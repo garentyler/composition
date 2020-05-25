@@ -1,0 +1,12 @@
+[package]
+name = "Composition"
+version = "0.1.0"
+authors = ["ElementG9 <garentyler@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = "1.0.110"
+serde_json = "1.0.53"
+ozelot = "0.9.0"
