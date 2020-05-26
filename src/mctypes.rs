@@ -64,13 +64,11 @@ impl MCBoolean {
 #[allow(dead_code)]
 #[derive(Debug, Copy, Clone)]
 pub struct MCByte {
-    pub value: i8 // -128 to 127
+    pub value: i8, // -128 to 127
 }
 impl From<i8> for MCByte {
     fn from(v: i8) -> MCByte {
-        MCByte {
-            value: v
-        }
+        MCByte { value: v }
     }
 }
 #[allow(dead_code)]
@@ -80,7 +78,7 @@ impl MCByte {
     }
     pub fn from_bytes(v: Vec<u8>) -> MCByte {
         MCByte {
-            value: get_bytes(v, 1)[0] as i8
+            value: get_bytes(v, 1)[0] as i8,
         }
     }
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -90,13 +88,11 @@ impl MCByte {
 #[allow(dead_code)]
 #[derive(Debug, Copy, Clone)]
 pub struct MCUnsignedByte {
-    pub value: u8 // 0 to 255
+    pub value: u8, // 0 to 255
 }
 impl From<u8> for MCUnsignedByte {
     fn from(v: u8) -> MCUnsignedByte {
-        MCUnsignedByte {
-            value: v
-        }
+        MCUnsignedByte { value: v }
     }
 }
 #[allow(dead_code)]
@@ -106,7 +102,7 @@ impl MCUnsignedByte {
     }
     pub fn from_bytes(v: Vec<u8>) -> MCUnsignedByte {
         MCUnsignedByte {
-            value: get_bytes(v, 1)[0]
+            value: get_bytes(v, 1)[0],
         }
     }
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -116,13 +112,11 @@ impl MCUnsignedByte {
 #[allow(dead_code)]
 #[derive(Debug, Copy, Clone)]
 pub struct MCShort {
-    pub value: i16 // -32768 to 32767
+    pub value: i16, // -32768 to 32767
 }
 impl From<i16> for MCShort {
     fn from(v: i16) -> MCShort {
-        MCShort {
-            value: v
-        }
+        MCShort { value: v }
     }
 }
 #[allow(dead_code)]
@@ -137,7 +131,7 @@ impl MCShort {
         let mut a = [0u8; 2];
         a.copy_from_slice(&get_bytes(v, 2));
         MCShort {
-            value: i16::from_be_bytes(a)
+            value: i16::from_be_bytes(a),
         }
     }
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -147,13 +141,11 @@ impl MCShort {
 #[allow(dead_code)]
 #[derive(Debug, Copy, Clone)]
 pub struct MCUnsignedShort {
-    pub value: u16 // 0 to 65535
+    pub value: u16, // 0 to 65535
 }
 impl From<u16> for MCUnsignedShort {
     fn from(v: u16) -> MCUnsignedShort {
-        MCUnsignedShort {
-            value: v
-        }
+        MCUnsignedShort { value: v }
     }
 }
 #[allow(dead_code)]
@@ -168,7 +160,7 @@ impl MCUnsignedShort {
         let mut a = [0u8; 2];
         a.copy_from_slice(&get_bytes(v, 2));
         MCUnsignedShort {
-            value: u16::from_be_bytes(a)
+            value: u16::from_be_bytes(a),
         }
     }
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -178,13 +170,11 @@ impl MCUnsignedShort {
 #[allow(dead_code)]
 #[derive(Debug, Copy, Clone)]
 pub struct MCInt {
-    pub value: i32 // -2147483648 to 2147483647
+    pub value: i32, // -2147483648 to 2147483647
 }
 impl From<i32> for MCInt {
     fn from(v: i32) -> MCInt {
-        MCInt {
-            value: v
-        }
+        MCInt { value: v }
     }
 }
 #[allow(dead_code)]
@@ -200,7 +190,7 @@ impl MCInt {
         let mut a = [0u8; 4];
         a.copy_from_slice(&get_bytes(v, 4));
         MCInt {
-            value: i32::from_be_bytes(a)
+            value: i32::from_be_bytes(a),
         }
     }
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -210,13 +200,11 @@ impl MCInt {
 #[allow(dead_code)]
 #[derive(Debug, Copy, Clone)]
 pub struct MCLong {
-    pub value: i64 // -9223372036854775808 to 9223372036854775807
+    pub value: i64, // -9223372036854775808 to 9223372036854775807
 }
 impl From<i64> for MCLong {
     fn from(v: i64) -> MCLong {
-        MCLong {
-            value: v
-        }
+        MCLong { value: v }
     }
 }
 #[allow(dead_code)]
@@ -232,7 +220,7 @@ impl MCLong {
         let mut a = [0u8; 8];
         a.copy_from_slice(&get_bytes(v, 8));
         MCLong {
-            value: i64::from_be_bytes(a)
+            value: i64::from_be_bytes(a),
         }
     }
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -242,13 +230,11 @@ impl MCLong {
 #[allow(dead_code)]
 #[derive(Debug, Copy, Clone)]
 pub struct MCFloat {
-    pub value: f32 // 32-bit floating point number
+    pub value: f32, // 32-bit floating point number
 }
 impl From<f32> for MCFloat {
     fn from(v: f32) -> MCFloat {
-        MCFloat {
-            value: v
-        }
+        MCFloat { value: v }
     }
 }
 #[allow(dead_code)]
@@ -264,7 +250,7 @@ impl MCFloat {
         let mut a = [0u8; 4];
         a.copy_from_slice(&get_bytes(v, 4));
         MCFloat {
-            value: f32::from_be_bytes(a)
+            value: f32::from_be_bytes(a),
         }
     }
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -274,13 +260,11 @@ impl MCFloat {
 #[allow(dead_code)]
 #[derive(Debug, Copy, Clone)]
 pub struct MCDouble {
-    pub value: f64 // 64-bit floating point number
+    pub value: f64, // 64-bit floating point number
 }
 impl From<f64> for MCDouble {
     fn from(v: f64) -> MCDouble {
-        MCDouble {
-            value: v
-        }
+        MCDouble { value: v }
     }
 }
 #[allow(dead_code)]
@@ -296,7 +280,7 @@ impl MCDouble {
         let mut a = [0u8; 8];
         a.copy_from_slice(&get_bytes(v, 8));
         MCDouble {
-            value: f64::from_be_bytes(a)
+            value: f64::from_be_bytes(a),
         }
     }
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -306,21 +290,17 @@ impl MCDouble {
 #[allow(dead_code)]
 #[derive(Debug, Copy, Clone)]
 pub struct MCVarInt {
-    pub value: i32 // Variable length 32-bit integer
+    pub value: i32, // Variable length 32-bit integer
 }
 impl From<i32> for MCVarInt {
     fn from(v: i32) -> MCVarInt {
-        MCVarInt {
-            value: v
-        }
+        MCVarInt { value: v }
     }
 }
 #[allow(dead_code)]
 impl MCVarInt {
     pub fn new(i: i32) -> MCVarInt {
-        MCVarInt {
-            value: i
-        }
+        MCVarInt { value: i }
     }
     pub fn from_stream(t: &mut TcpStream) -> std::io::Result<MCVarInt> {
         let mut numRead = 0;
@@ -337,9 +317,7 @@ impl MCVarInt {
                 return Err(io_error("MCVarInt is too big"));
             }
         }
-        Ok(MCVarInt {
-            value: result
-        })
+        Ok(MCVarInt { value: result })
     }
     pub fn from_bytes(_: Vec<u8>) -> MCVarInt {
         panic!("Cannot construct MCVarInt from raw bytes");
@@ -368,7 +346,7 @@ impl std::fmt::Display for MCVarInt {
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct MCString {
-    pub value: String
+    pub value: String,
 }
 #[allow(dead_code)]
 impl MCString {
@@ -381,7 +359,7 @@ impl MCString {
         let value = String::from_utf8(bytes);
         if value.is_ok() {
             Ok(MCString {
-                value: value.unwrap()
+                value: value.unwrap(),
             })
         } else {
             return Err(io_error("MCString contains invalid utf-8"));
@@ -393,7 +371,7 @@ impl MCString {
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut out = Vec::new();
         let length = MCVarInt {
-            value: self.value.len() as i32
+            value: self.value.len() as i32,
         };
         for b in length.to_bytes() {
             out.push(b);
@@ -407,21 +385,19 @@ impl MCString {
 impl From<&str> for MCString {
     fn from(s: &str) -> MCString {
         MCString {
-            value: s.to_owned()
+            value: s.to_owned(),
         }
     }
 }
 impl From<String> for MCString {
     fn from(s: String) -> MCString {
-        MCString {
-            value: s.clone()
-        }
+        MCString { value: s.clone() }
     }
 }
 impl Clone for MCString {
     fn clone(&self) -> Self {
         MCString {
-            value: self.value.clone()
+            value: self.value.clone(),
         }
     }
 }
