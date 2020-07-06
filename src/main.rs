@@ -1,17 +1,12 @@
 #![allow(non_snake_case)]
 
-pub static DEBUG_LOGGING: bool = true;
-pub static SERVER_VERSION: &str = "1.15.2";
-pub static SERVER_PROTOCOL_VERSION: usize = 578;
-pub static SERVER_MOTD: &str = "ligma balls";
+pub mod logger;
 
-// mod net;
-// mod mctypes;
-
-fn main() -> std::io::Result<()> {
-    // Listener loops forever.
-    // net::start_listener().expect("could not start listener");
-    // println!("Stopping server");
-    use std::{io::prelude::*, net::TcpStream};
-    let mut stream = TcpStream::connect("206.189.67.44:25565")?;
+fn main() {
+    let mut log = logger::new("log.txt");
+    log.clear();
+    log.important("This is important information");
+    log.info("This is information");
+    log.warn("This is a warning");
+    log.error("This is an error");
 }
