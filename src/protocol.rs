@@ -13,7 +13,7 @@ pub fn read_packet_header(t: &mut TcpStream) -> std::io::Result<(MCVarInt, MCVar
     Ok((length, id))
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Handshake {
     pub protocol_version: MCVarInt,
     pub server_address: MCString,
@@ -64,7 +64,7 @@ impl Handshake {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LoginStart {
     pub username: MCString,
 }
@@ -80,14 +80,14 @@ impl LoginStart {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LoginSuccess {
     pub uuid: MCString,
     pub username: MCString,
 }
 impl LoginSuccess {
     pub fn new(uuid: MCString, username: MCString) -> LoginSuccess {
-        LoginSuccess {uuid, username}
+        LoginSuccess { uuid, username }
     }
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();

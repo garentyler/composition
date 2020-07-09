@@ -3,18 +3,18 @@
 // description:
 //   The module with everything to do with networkng.
 
-extern crate radix64;
-extern crate ozelot;
 extern crate mojang_api;
+extern crate ozelot;
+extern crate radix64;
 
-use mojang_api::*;
-use ozelot::mojang::*;
 use crate::mctypes::*;
 use crate::protocol::*;
 use crate::{config, log};
+use mojang_api::*;
+use ozelot::mojang::*;
 use std::net::{TcpListener, TcpStream};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::thread::sleep;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub fn start_listening() {
     let server_address: &str = &format!("0.0.0.0:{}", config.port);
@@ -129,29 +129,32 @@ fn handle_client(t: TcpStream) -> std::io::Result<()> {
                 let packet_id = MCVarInt::from(0x02);
                 let packet_len = MCVarInt::from(packet_id.to_bytes().len() as i32 + 54i32);
 
-                let user = ozelot::mojang::NameToUUID::new(login.username.value, None);
-                let nameUUIDbundle = user.perform().unwrap();
-                log.info(&format!("{:?}", nameUUIDbundle));
-                let mut uuidLong = nameUUIDbundle.id;
-                uuidLong.insert(8, '-');
-                uuidLong.insert(13, '-');
-                uuidLong.insert(18, '-');
-                uuidLong.insert(23, '-');
-                log.info(&format!("Long UUID: {:?}", uuidLong));
-
-                for b in packet_len.to_bytes() {
-                    write_byte(&mut gc.stream, b)?;
-                }
+                let nameUUIDbundle =
+                    ozelot::mojang::NameToUUID::new(login.clone().username.value, None)
+                        .perform()
+                        .unwrap();
+                let username = nameUUIDbundle.name;
+                let mut hyphenatedUUID = nameUUIDbundle.id;
+                hyphenatedUUID.insert(8, '-');
+                hyphenatedUUID.insert(13, '-');
+                hyphenatedUUID.insert(18, '-');
+                hyphenatedUUID.insert(23, '-');
+                let login_success_packet =
+                    LoginSuccess::new(MCString::from(hyphenatedUUID), MCString::from(username));
+                let mut bytes = Vec::new();
                 for b in packet_id.to_bytes() {
+                    bytes.push(b);
+                }
+                for b in login_success_packet.to_bytes() {
+                    bytes.push(b);
+                }
+                for b in MCVarInt::from(bytes.len() as i32).to_bytes() {
                     write_byte(&mut gc.stream, b)?;
                 }
-                for b in MCString::from(uuidLong).to_bytes() {
+                for b in bytes {
                     write_byte(&mut gc.stream, b)?;
                 }
-                for b in MCString::from(nameUUIDbundle.name).to_bytes() {
-                    write_byte(&mut gc.stream, b)?;
-                }
-
+                log.info(&format!("{:?}", login_success_packet));
                 gc.state = GameState::Play;
             }
             GameState::Play => {}
