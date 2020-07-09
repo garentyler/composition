@@ -1,3 +1,8 @@
+// old_net.rs
+// author: Garen Tyler
+// description:
+//   This was the original implementation of net.rs. Only use as a reference.
+
 pub static SERVER_LISTENER_ADDRESS: &str = "127.0.0.1:25565";
 pub static SOCKET_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
 extern crate serde;

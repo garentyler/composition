@@ -1,3 +1,9 @@
+// protocol.rs
+// author: Garen Tyler
+// description:
+//   This module contains all the packet structs.
+//   Not all of them are implemented, and new ones will be added as necessary.
+
 use crate::mctypes::*;
 use std::net::TcpStream;
 

@@ -3,9 +3,7 @@
 
 #[macro_use]
 extern crate lazy_static;
-extern crate ozelot;
 extern crate serde;
-extern crate toml;
 pub mod logger;
 pub mod mctypes;
 pub mod net;
@@ -24,11 +22,11 @@ fn main() {
         log.info("Network thread started");
         net::start_listening();
     });
-
     // Loop the main thread for now.
     loop {}
 }
 
+// Not in it's own config module because of name conflicts.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     pub port: u16,

@@ -1,6 +1,13 @@
+// mctypes.rs
+// author: Garen Tyler
+// description:
+//   A recreation of all the types necessary in the protocol.
+//   Directly taken from https://wiki.vg/Protocol#Data_types.
+
 use std::io::prelude::*;
 use std::net::TcpStream;
 
+// Helper functions.
 pub fn read_byte(t: &mut TcpStream) -> std::io::Result<u8> {
     let mut buffer = [0u8; 1];
     t.read_exact(&mut buffer)?;
@@ -25,6 +32,7 @@ pub fn get_bytes(v: Vec<u8>, l: usize) -> Box<[u8]> {
     }
     a.into_boxed_slice()
 }
+// Makes returning errors shorter.
 pub fn io_error(s: &str) -> std::io::Error {
     use std::io::{Error, ErrorKind};
     Error::new(ErrorKind::Other, s)
