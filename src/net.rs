@@ -3,7 +3,7 @@
 // description:
 //   The module with everything to do with networkng.
 
-extern crate base64;
+extern crate radix64;
 
 use crate::mctypes::*;
 use crate::protocol::*;
@@ -64,18 +64,21 @@ fn handle_client(t: TcpStream) -> std::io::Result<()> {
                 let (_request_packet_len, _request_packet_id) = read_packet_header(&mut gc.stream)?;
                 // Send the response packet.
                 let mut base64_encoded_favicon = "".to_owned();
-                let a = || -> std::io::Result<String> {
+                let a = || -> std::io::Result<Vec<u8>> {
                     // Only call this if config.favicon is not None, or it'll panic.
                     use std::fs::File;
                     use std::io::prelude::*;
                     let mut file = File::open(config.favicon.as_ref().unwrap())?;
-                    let mut favicon = String::new();
-                    file.read_to_string(&mut favicon)?;
-                    Ok(favicon)
+                    let mut buffer = Vec::new();
+                    file.read_to_end(&mut buffer)?;
+                    Ok(buffer)
                 };
                 if config.favicon.is_some() {
-                    if let Ok(s) = a() {
-                        base64_encoded_favicon = base64::encode(s);
+                    let temp = a();
+                    if let Ok(s) = temp {
+                        base64_encoded_favicon = radix64::STD.encode(&s);
+                    } else {
+                        println!("{:?}", temp);
                     }
                 }
                 let response = MCString::from(format!("{{\n\t\"version\": {{\n\t\t\"name\": \"Composition 1.15.2\",\n\t\t\"protocol\": {}\n\t}},\n\t\"players\": {{\n\t\t\"max\": {},\n\t\t\"online\": 2147483648,\n\t\t\"sample\": [\n\t\t\t{{\n\t\t\t\t\"name\": \"fumolover12\",\n\t\t\t\t\"id\": \"4566e69f-c907-48ee-8d71-d7ba5aa00d20\"\n\t\t\t}}\n\t\t]\n\t}},\n\t\"description\": {{\n\t\t\"text\": \"{}\"\n\t}},\n\t\"favicon\": \"data:image/png;base64,{}\"\n}}", config.protocol_version, config.max_players, config.motd, base64_encoded_favicon));
