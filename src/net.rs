@@ -4,11 +4,17 @@
 //   The module with everything to do with networkng.
 
 extern crate radix64;
+extern crate ozelot;
+extern crate mojang_api;
 
+use mojang_api::*;
+use ozelot::mojang::*;
 use crate::mctypes::*;
 use crate::protocol::*;
 use crate::{config, log};
 use std::net::{TcpListener, TcpStream};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::thread::sleep;
 
 pub fn start_listening() {
     let server_address: &str = &format!("0.0.0.0:{}", config.port);
@@ -119,6 +125,34 @@ fn handle_client(t: TcpStream) -> std::io::Result<()> {
                 let (_packet_len, _packet_id) = read_packet_header(&mut gc.stream)?;
                 let login = LoginStart::read(&mut gc.stream)?;
                 log.info(&format!("{:?}", login));
+
+                let packet_id = MCVarInt::from(0x02);
+                let packet_len = MCVarInt::from(packet_id.to_bytes().len() as i32 + 52i32);
+
+                let user = ozelot::mojang::NameToUUID::new(login.username.value, None);
+                let nameUUIDbundle = user.perform().unwrap();
+                log.info(&format!("{:?}", nameUUIDbundle));
+                let mut uuidLong = nameUUIDbundle.id;
+                uuidLong.insert(8, '-');
+                uuidLong.insert(13, '-');
+                uuidLong.insert(18, '-');
+                uuidLong.insert(23, '-');
+                log.info(&format!("Long UUID: {:?}", uuidLong));
+
+                for b in packet_len.to_bytes() {
+                    write_byte(&mut gc.stream, b)?;
+                }
+                for b in packet_id.to_bytes() {
+                    write_byte(&mut gc.stream, b)?;
+                }
+                for b in uuidLong.as_bytes() {
+                    write_byte(&mut gc.stream, *b)?;
+                }
+                for b in nameUUIDbundle.name.as_bytes() {
+                    write_byte(&mut gc.stream, *b)?;
+                }
+
+                gc.state = GameState::Play;
             }
             GameState::Play => {}
             GameState::Closed => {

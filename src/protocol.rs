@@ -79,3 +79,24 @@ impl LoginStart {
         self.username.to_bytes()
     }
 }
+
+#[derive(Debug)]
+pub struct LoginSuccess {
+    pub uuid: MCString,
+    pub username: MCString,
+}
+impl LoginSuccess {
+    pub fn new(uuid: MCString, username: MCString) -> LoginSuccess {
+        LoginSuccess {uuid, username}
+    }
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        for b in self.uuid.to_bytes() {
+            bytes.push(b);
+        }
+        for b in self.username.to_bytes() {
+            bytes.push(b);
+        }
+        bytes
+    }
+}
