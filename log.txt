@@ -408,3 +408,11 @@
 2020-07-09 14:07:59 [INFO] - LoginStart { username: MCString { value: "NomCafeRage" } }
 2020-07-09 14:08:02 [INFO] - NameUUID { id: "3dc562e61c9047e4b5b02cd10cd895f2", name: "NomCafeRage", legacy: false, demo: false }
 2020-07-09 14:08:02 [INFO] - Long UUID: "3dc562e6-1c90-47e4-b5b0-2cd10cd895f2"
+2020-07-09 14:14:11 [INFO] - Network thread started
+2020-07-09 14:14:11 [IMPORTANT] - Started server on 0.0.0.0:25565
+2020-07-09 14:15:04 [INFO] - Got a client!
+2020-07-09 14:15:04 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "192.168.0.98" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 2 } }
+2020-07-09 14:15:04 [INFO] - Next state: Login
+2020-07-09 14:15:04 [INFO] - LoginStart { username: MCString { value: "NomCafeRage" } }
+2020-07-09 14:15:07 [INFO] - NameUUID { id: "3dc562e61c9047e4b5b02cd10cd895f2", name: "NomCafeRage", legacy: false, demo: false }
+2020-07-09 14:15:07 [INFO] - Long UUID: "3dc562e6-1c90-47e4-b5b0-2cd10cd895f2"

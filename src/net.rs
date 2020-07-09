@@ -127,7 +127,7 @@ fn handle_client(t: TcpStream) -> std::io::Result<()> {
                 log.info(&format!("{:?}", login));
 
                 let packet_id = MCVarInt::from(0x02);
-                let packet_len = MCVarInt::from(packet_id.to_bytes().len() as i32 + 52i32);
+                let packet_len = MCVarInt::from(packet_id.to_bytes().len() as i32 + 54i32);
 
                 let user = ozelot::mojang::NameToUUID::new(login.username.value, None);
                 let nameUUIDbundle = user.perform().unwrap();
