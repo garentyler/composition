@@ -37,6 +37,8 @@ pub struct Config {
     pub port: u16,
     pub protocol_version: u16,
     pub max_players: u32,
+    pub motd: String,
+    pub favicon: Option<String>,
 }
 impl Config {
     pub fn default() -> Config {
@@ -44,6 +46,8 @@ impl Config {
             port: 25565,
             protocol_version: 578,
             max_players: 250,
+            motd: "Hello world!".to_owned(),
+            favicon: None,
         }
     }
     pub fn from_file(filename: &str) -> Config {
