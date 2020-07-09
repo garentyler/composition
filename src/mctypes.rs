@@ -6,6 +6,10 @@ pub fn read_byte(t: &mut TcpStream) -> std::io::Result<u8> {
     t.read_exact(&mut buffer)?;
     Ok(buffer[0])
 }
+pub fn write_byte(t: &mut TcpStream, value: u8) -> std::io::Result<()> {
+    t.write(&[value])?;
+    Ok(())
+}
 pub fn get_bytes(v: Vec<u8>, l: usize) -> Box<[u8]> {
     use std::collections::VecDeque;
     let mut v = VecDeque::from(v);

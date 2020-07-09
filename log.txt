@@ -1,5 +1,222 @@
-2020-07-05 21:37:41 [IMPORTANT] - Cleared log file log.txt
-2020-07-05 21:37:41 [IMPORTANT] - This is important information
-2020-07-05 21:37:41 [INFO] - This is information
-2020-07-05 21:37:41 [WARN] - This is a warning
-2020-07-05 21:37:41 [ERROR] - This is an error
+2020-07-06 10:40:25 [IMPORTANT] - Cleared log file log.txt
+2020-07-06 10:40:25 [INFO] - gamer
+2020-07-06 10:40:25 [INFO] - balls
+2020-07-06 10:41:04 [INFO] - Network thread started
+2020-07-06 10:41:04 [INFO] - balls
+2020-07-06 10:42:10 [INFO] - Network thread started
+2020-07-06 10:42:10 [INFO] - balls
+2020-07-06 10:44:02 [INFO] - Network thread started
+2020-07-06 10:44:02 [INFO] - balls
+2020-07-06 10:44:15 [INFO] - Network thread started
+2020-07-06 10:44:15 [INFO] - log from network thread
+2020-07-06 10:49:45 [INFO] - Network thread started
+2020-07-06 10:49:59 [INFO] - Got a client!
+2020-07-06 11:00:42 [INFO] - Network thread started
+2020-07-06 11:04:04 [INFO] - Network thread started
+2020-07-06 11:04:04 [IMPORTANT] - Starting server on 127.0.0.1:25565
+2020-07-06 11:04:24 [INFO] - Network thread started
+2020-07-06 11:04:24 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-06 11:04:43 [INFO] - Got a client!
+2020-07-06 11:22:16 [INFO] - Network thread started
+2020-07-06 11:22:16 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-06 11:22:22 [INFO] - Got a client!
+2020-07-06 11:25:16 [INFO] - Network thread started
+2020-07-06 11:25:16 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-06 11:25:20 [INFO] - Got a client!
+2020-07-06 11:26:01 [INFO] - Network thread started
+2020-07-06 11:26:01 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-06 11:26:04 [INFO] - Got a client!
+2020-07-06 11:27:38 [INFO] - Network thread started
+2020-07-06 11:27:38 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-06 11:27:47 [INFO] - Got a client!
+2020-07-06 11:29:02 [INFO] - Network thread started
+2020-07-06 11:29:02 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-06 11:29:05 [INFO] - Got a client!
+2020-07-06 13:06:10 [INFO] - Network thread started
+2020-07-06 13:06:10 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-06 13:06:14 [INFO] - Got a client!
+2020-07-07 12:51:20 [INFO] - Network thread started
+2020-07-07 12:51:20 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-07 12:51:45 [INFO] - Network thread started
+2020-07-07 12:51:45 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-07 12:57:26 [INFO] - Network thread started
+2020-07-07 12:57:26 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 19:08:57 [INFO] - Got a client!
+2020-07-08 19:08:57 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "localhost" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 2 } }
+2020-07-08 19:17:12 [INFO] - Network thread started
+2020-07-08 19:17:12 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 19:40:27 [INFO] - Network thread started
+2020-07-08 19:40:27 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 19:40:38 [INFO] - Network thread started
+2020-07-08 19:40:38 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 19:41:43 [INFO] - 12345
+2020-07-08 19:41:43 [INFO] - Network thread started
+2020-07-08 19:41:43 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 19:41:55 [INFO] - 25565
+2020-07-08 19:41:55 [INFO] - Network thread started
+2020-07-08 19:41:55 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 19:43:03 [INFO] - 12345
+2020-07-08 19:43:03 [INFO] - Network thread started
+2020-07-08 19:43:03 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 19:43:12 [WARN] - Could not load config from composition.toml, using default config.
+2020-07-08 19:43:12 [INFO] - 25565
+2020-07-08 19:43:12 [INFO] - Network thread started
+2020-07-08 19:43:12 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 19:56:14 [INFO] - 25565
+2020-07-08 19:56:14 [INFO] - Network thread started
+2020-07-08 19:56:14 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 19:58:29 [INFO] - Network thread started
+2020-07-08 19:58:29 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 19:58:43 [INFO] - Network thread started
+2020-07-08 19:58:43 [IMPORTANT] - Started server on 127.0.0.1:12345
+2020-07-08 19:58:52 [INFO] - Network thread started
+2020-07-08 19:58:52 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 20:03:06 [INFO] - Network thread started
+2020-07-08 20:03:06 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 20:03:12 [INFO] - Got a client!
+2020-07-08 20:03:12 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "localhost" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 2 } }
+2020-07-08 20:05:29 [INFO] - Network thread started
+2020-07-08 20:05:29 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 20:08:08 [INFO] - Network thread started
+2020-07-08 20:08:08 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 20:10:04 [INFO] - Network thread started
+2020-07-08 20:10:04 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 20:10:08 [INFO] - Got a client!
+2020-07-08 20:10:09 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "localhost" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 2 } }
+2020-07-08 20:10:09 [INFO] - Client and server run same version of Minecraft.
+2020-07-08 20:11:50 [INFO] - Got a client!
+2020-07-08 20:11:50 [INFO] - Handshake { protocol_version: MCVarInt { value: 736 }, server_address: MCString { value: "localhost" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 2 } }
+2020-07-08 20:11:50 [INFO] - Client and server don't run same version of Minecraft.
+2020-07-08 20:38:15 [INFO] - Network thread started
+2020-07-08 20:38:15 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 20:38:30 [INFO] - Got a client!
+2020-07-08 20:38:30 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "localhost" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 2 } }
+2020-07-08 20:38:32 [ERROR] - Error when handling client: failed to fill whole buffer
+2020-07-08 20:40:27 [INFO] - Network thread started
+2020-07-08 20:40:27 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 20:40:30 [INFO] - Got a client!
+2020-07-08 20:40:30 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "localhost" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 2 } }
+2020-07-08 20:40:30 [INFO] - Next state: Login
+2020-07-08 20:40:33 [ERROR] - Error when handling client: failed to fill whole buffer
+2020-07-08 20:48:19 [INFO] - Network thread started
+2020-07-08 20:48:19 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 20:48:25 [INFO] - Got a client!
+2020-07-08 20:48:25 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "localhost" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 2 } }
+2020-07-08 20:48:25 [INFO] - Next state: Login
+2020-07-08 20:48:25 [INFO] - LoginStart { username: MCString { value: "ElementG9" } }
+2020-07-08 20:48:25 [ERROR] - Error when handling client: failed to fill whole buffer
+2020-07-08 20:51:41 [INFO] - Network thread started
+2020-07-08 20:51:41 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 20:52:00 [INFO] - Got a client!
+2020-07-08 20:52:00 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "127.0.0.1" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 20:52:00 [INFO] - Next state: Status
+2020-07-08 20:52:30 [ERROR] - Error when handling client: failed to fill whole buffer
+2020-07-08 20:52:30 [INFO] - Got a client!
+2020-07-08 20:52:30 [INFO] - Handshake { protocol_version: MCVarInt { value: 11 }, server_address: MCString { value: "" }, server_port: MCUnsignedShort { value: 19712 }, next_state: MCVarInt { value: 67 } }
+2020-07-08 20:52:30 [INFO] - Next state: Closed
+2020-07-08 20:52:30 [INFO] - Client at 127.0.0.1:52064 closed connection
+2020-07-08 20:55:47 [INFO] - Network thread started
+2020-07-08 20:55:47 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 20:55:53 [INFO] - Got a client!
+2020-07-08 20:55:53 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "localhost" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 2 } }
+2020-07-08 20:55:53 [INFO] - Next state: Login
+2020-07-08 20:55:53 [INFO] - LoginStart { username: MCString { value: "ElementG9" } }
+2020-07-08 20:55:54 [ERROR] - Error when handling client: failed to fill whole buffer
+2020-07-08 20:56:00 [INFO] - Got a client!
+2020-07-08 20:56:00 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "127.0.0.1" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 20:56:00 [INFO] - Next state: Status
+2020-07-08 20:56:30 [ERROR] - Error when handling client: failed to fill whole buffer
+2020-07-08 20:56:30 [INFO] - Got a client!
+2020-07-08 20:56:30 [INFO] - Handshake { protocol_version: MCVarInt { value: 11 }, server_address: MCString { value: "" }, server_port: MCUnsignedShort { value: 19712 }, next_state: MCVarInt { value: 67 } }
+2020-07-08 20:56:30 [INFO] - Next state: Closed
+2020-07-08 20:56:30 [INFO] - Client at 127.0.0.1:52096 closed connection
+2020-07-08 21:04:04 [INFO] - Network thread started
+2020-07-08 21:04:04 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 21:04:17 [INFO] - Network thread started
+2020-07-08 21:04:17 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 21:04:22 [INFO] - Got a client!
+2020-07-08 21:04:22 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "127.0.0.1" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 21:04:22 [INFO] - Next state: Status
+2020-07-08 21:04:52 [ERROR] - Error when handling client: failed to fill whole buffer
+2020-07-08 21:04:52 [INFO] - Got a client!
+2020-07-08 21:04:52 [INFO] - Handshake { protocol_version: MCVarInt { value: 11 }, server_address: MCString { value: "" }, server_port: MCUnsignedShort { value: 19712 }, next_state: MCVarInt { value: 67 } }
+2020-07-08 21:04:52 [INFO] - Next state: Closed
+2020-07-08 21:04:52 [INFO] - Client at 127.0.0.1:52301 closed connection
+2020-07-08 21:09:13 [INFO] - Network thread started
+2020-07-08 21:09:13 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 21:09:26 [INFO] - Got a client!
+2020-07-08 21:09:26 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "127.0.0.1" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 21:09:26 [INFO] - Next state: Status
+2020-07-08 21:09:56 [ERROR] - Error when handling client: Connection reset by peer (os error 54)
+2020-07-08 21:09:56 [INFO] - Got a client!
+2020-07-08 21:09:56 [INFO] - Handshake { protocol_version: MCVarInt { value: 11 }, server_address: MCString { value: "" }, server_port: MCUnsignedShort { value: 19712 }, next_state: MCVarInt { value: 67 } }
+2020-07-08 21:09:56 [INFO] - Next state: Closed
+2020-07-08 21:09:56 [INFO] - Client at 127.0.0.1:52998 closed connection
+2020-07-08 21:10:42 [INFO] - Network thread started
+2020-07-08 21:10:42 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 21:10:44 [INFO] - Got a client!
+2020-07-08 21:10:44 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "127.0.0.1" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 21:10:44 [INFO] - Next state: Status
+2020-07-08 21:10:44 [INFO] - Ping number: MCLong { value: 6738900 }
+2020-07-08 21:10:44 [ERROR] - Error when handling client: failed to fill whole buffer
+2020-07-08 21:11:20 [INFO] - Network thread started
+2020-07-08 21:11:20 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 21:11:25 [INFO] - Got a client!
+2020-07-08 21:11:25 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "127.0.0.1" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 21:11:25 [INFO] - Next state: Status
+2020-07-08 21:11:25 [INFO] - Ping number: MCLong { value: 6779912 }
+2020-07-08 21:11:25 [INFO] - Client at 127.0.0.1:53056 closed connection
+2020-07-08 21:16:51 [INFO] - Network thread started
+2020-07-08 21:16:51 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 21:16:58 [INFO] - Got a client!
+2020-07-08 21:16:58 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "127.0.0.1" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 21:16:58 [INFO] - Next state: Status
+2020-07-08 21:16:58 [ERROR] - Error when handling client: failed to fill whole buffer
+2020-07-08 21:16:58 [INFO] - Got a client!
+2020-07-08 21:16:58 [INFO] - Handshake { protocol_version: MCVarInt { value: 11 }, server_address: MCString { value: "" }, server_port: MCUnsignedShort { value: 19712 }, next_state: MCVarInt { value: 67 } }
+2020-07-08 21:16:58 [INFO] - Next state: Closed
+2020-07-08 21:16:58 [INFO] - Client at 127.0.0.1:53607 closed connection
+2020-07-08 21:17:32 [INFO] - Network thread started
+2020-07-08 21:17:32 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 21:17:36 [INFO] - Got a client!
+2020-07-08 21:17:36 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "127.0.0.1" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 21:17:36 [INFO] - Next state: Status
+2020-07-08 21:17:36 [INFO] - Ping number: MCLong { value: 7150256 }
+2020-07-08 21:17:36 [INFO] - Client at 127.0.0.1:53687 closed connection
+2020-07-08 21:18:54 [INFO] - Network thread started
+2020-07-08 21:18:54 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 21:18:58 [INFO] - Got a client!
+2020-07-08 21:18:58 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "127.0.0.1" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 21:18:58 [INFO] - Next state: Status
+2020-07-08 21:18:58 [INFO] - Ping number: MCLong { value: 7232924 }
+2020-07-08 21:18:58 [INFO] - Client at 127.0.0.1:53774 closed connection
+2020-07-08 21:19:42 [INFO] - Network thread started
+2020-07-08 21:19:42 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 21:19:45 [INFO] - Got a client!
+2020-07-08 21:19:45 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "127.0.0.1" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 21:19:45 [INFO] - Next state: Status
+2020-07-08 21:19:45 [INFO] - Ping number: MCLong { value: 7279794 }
+2020-07-08 21:19:45 [INFO] - Client at 127.0.0.1:53784 closed connection
+2020-07-08 21:20:07 [INFO] - Network thread started
+2020-07-08 21:20:07 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 21:20:12 [INFO] - Got a client!
+2020-07-08 21:20:12 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "127.0.0.1" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 21:20:12 [INFO] - Next state: Status
+2020-07-08 21:20:12 [INFO] - Ping number: MCLong { value: 7306496 }
+2020-07-08 21:20:12 [INFO] - Client at 127.0.0.1:54216 closed connection
+2020-07-08 21:22:22 [INFO] - Network thread started
+2020-07-08 21:22:22 [WARN] - Could not load config from composition.toml, using default config.
+2020-07-08 21:22:22 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 21:22:26 [INFO] - Got a client!
+2020-07-08 21:22:26 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "127.0.0.1" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 21:22:26 [INFO] - Next state: Status
+2020-07-08 21:22:26 [INFO] - Ping number: MCLong { value: 7440272 }
+2020-07-08 21:22:26 [INFO] - Client at 127.0.0.1:55792 closed connection
+2020-07-08 21:23:10 [INFO] - Network thread started
+2020-07-08 21:23:10 [WARN] - Could not load config from composition.toml, using default config.
+2020-07-08 21:23:10 [IMPORTANT] - Started server on 127.0.0.1:25565
+2020-07-08 21:23:13 [INFO] - Got a client!
+2020-07-08 21:23:13 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "127.0.0.1" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 21:23:13 [INFO] - Next state: Status
+2020-07-08 21:23:13 [INFO] - Ping number: MCLong { value: 7487517 }
+2020-07-08 21:23:13 [INFO] - Client at 127.0.0.1:55872 closed connection

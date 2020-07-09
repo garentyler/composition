@@ -1,12 +1,63 @@
 #![allow(non_snake_case)]
+#![allow(non_upper_case_globals)]
 
+#[macro_use]
+extern crate lazy_static;
+extern crate ozelot;
+extern crate serde;
+extern crate toml;
 pub mod logger;
+pub mod mctypes;
+pub mod net;
+pub mod protocol;
+
+use serde::{Deserialize, Serialize};
+
+lazy_static! {
+    static ref log: logger::Logger = logger::new("log.txt");
+    static ref config: Config = { Config::from_file("composition.toml") };
+}
 
 fn main() {
-    let mut log = logger::new("log.txt");
-    log.clear();
-    log.important("This is important information");
-    log.info("This is information");
-    log.warn("This is a warning");
-    log.error("This is an error");
+    // Start the network thread.
+    std::thread::spawn(|| {
+        log.info("Network thread started");
+        net::start_listening();
+    });
+
+    // Loop the main thread for now.
+    loop {}
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Config {
+    pub port: u16,
+    pub protocol_version: u16,
+}
+impl Config {
+    pub fn default() -> Config {
+        Config {
+            port: 25565,
+            protocol_version: 578,
+        }
+    }
+    pub fn from_file(filename: &str) -> Config {
+        use std::fs::File;
+        use std::io::prelude::*;
+        let a = || -> std::io::Result<Config> {
+            let mut file = File::open(filename)?;
+            let mut configStr = String::new();
+            file.read_to_string(&mut configStr)?;
+            Ok(toml::from_str(&configStr)?)
+        };
+        if let Ok(c) = a() {
+            c
+        } else {
+            log.warn(&format!(
+                "Could not load config from {}, using default config.",
+                filename
+            ));
+            Config::default()
+        }
+    }
 }

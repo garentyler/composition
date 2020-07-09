@@ -18,75 +18,55 @@ pub fn new(logfile: &str) -> Logger {
     Logger::new(logfile)
 }
 
+#[derive(Clone)]
 pub struct Logger {
     pub logfile: String,
-    pub info_written: u32,
-    pub warn_written: u32,
-    pub error_written: u32,
-    pub important_written: u32,
-    pub write_enabled: bool,
 }
 impl Logger {
     pub fn new(logfile: &str) -> Logger {
         Logger {
             logfile: logfile.to_owned(),
-            info_written: 0,
-            warn_written: 0,
-            error_written: 0,
-            important_written: 0,
-            write_enabled: true,
         }
     }
-    pub fn important(&mut self, s: &str) {
+    pub fn important(&self, s: &str) {
         let l = log("IMPORTANT", s);
-        println!("{}", l.clone().color(Color::Cyan));
+        println!("{}", l.clone().color(Color::Green));
         self.append(&l);
-        self.important_written += 1;
     }
-    pub fn info(&mut self, s: &str) {
+    pub fn info(&self, s: &str) {
         let l = log("INFO", s);
-        println!("{}", l.clone().color(Color::White));
+        // println!("{}", l.clone().color(Color::White));
+        println!("{}", l.clone());
         self.append(&l);
-        self.info_written += 1;
     }
-    pub fn warn(&mut self, s: &str) {
+    pub fn warn(&self, s: &str) {
         let l = log("WARN", s);
-        println!("{}", l.clone().color(Color::Yellow));
+        println!("{}", l.clone().color(Color::LightYellow));
         self.append(&l);
-        self.warn_written += 1;
     }
-    pub fn error(&mut self, s: &str) {
+    pub fn error(&self, s: &str) {
         let l = log("ERROR", s);
-        println!("{}", l.clone().color(Color::Red));
+        println!("{}", l.clone().color(Color::LightRed));
         self.append(&l);
-        self.error_written += 1;
     }
-    pub fn append(&mut self, s: &str) {
-        if self.write_enabled {
-            let a = || -> std::io::Result<()> {
-                let mut file = OpenOptions::new()
-                    .create(true)
-                    .write(true)
-                    .append(true)
-                    .open(&self.logfile)?;
-                writeln!(file, "{}", s)?;
-                Ok(())
-            };
-            if a().is_err() {
-                self.logger_error(&format!("Could not write to log file {}", self.logfile));
-            }
+    pub fn append(&self, s: &str) {
+        let a = || -> std::io::Result<()> {
+            let mut file = OpenOptions::new()
+                .create(true)
+                .write(true)
+                .append(true)
+                .open(&self.logfile)?;
+            writeln!(file, "{}", s)?;
+            Ok(())
+        };
+        if a().is_err() {
+            self.logger_error(&format!("Could not write to log file {}", self.logfile));
         }
     }
-    pub fn clear(&mut self) {
-        if self.write_enabled {
-            if std::fs::remove_file(&self.logfile).is_err() {
-                self.logger_error(&format!("Could not write to log file {}", self.logfile));
-            }
+    pub fn clear(&self) {
+        if std::fs::remove_file(&self.logfile).is_err() {
+            self.logger_error(&format!("Could not write to log file {}", self.logfile));
         }
-        self.info_written = 0;
-        self.warn_written = 0;
-        self.error_written = 0;
-        self.important_written = 0;
         self.important(&format!("Cleared log file {}", self.logfile));
     }
     pub fn read(&self) -> std::io::Result<String> {
@@ -95,8 +75,8 @@ impl Logger {
         f.read_to_string(&mut buffer)?;
         Ok(buffer)
     }
-    pub fn logger_error(&mut self, error_message: &str) {
-        self.write_enabled = false;
-        self.error(error_message);
+    pub fn logger_error(&self, error_message: &str) {
+        let l = log("ERROR", error_message);
+        println!("{}", l.clone().color(Color::LightRed));
     }
 }
