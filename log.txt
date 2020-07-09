@@ -314,3 +314,89 @@
 2020-07-08 21:23:12 [INFO] - Handshake { protocol_version: MCVarInt { value: 736 }, server_address: MCString { value: "192.168.0.98" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 2 } }
 2020-07-08 21:23:12 [INFO] - Next state: Closed
 2020-07-08 21:23:12 [INFO] - Client at 192.168.0.88:55745 closed connection
+2020-07-08 21:38:26 [INFO] - Network thread started
+2020-07-08 21:38:26 [IMPORTANT] - Started server on 0.0.0.0:25565
+2020-07-08 21:38:38 [INFO] - Got a client!
+2020-07-08 21:38:38 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "192.168.0.98" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 21:38:38 [INFO] - Next state: Status
+2020-07-08 21:38:38 [ERROR] - Error when handling client: failed to fill whole buffer
+2020-07-08 21:38:38 [INFO] - Got a client!
+2020-07-08 21:38:38 [INFO] - Handshake { protocol_version: MCVarInt { value: 11 }, server_address: MCString { value: "" }, server_port: MCUnsignedShort { value: 19712 }, next_state: MCVarInt { value: 67 } }
+2020-07-08 21:38:38 [INFO] - Next state: Closed
+2020-07-08 21:38:38 [INFO] - Client at 192.168.0.88:55778 closed connection
+2020-07-08 21:39:45 [INFO] - Network thread started
+2020-07-08 21:39:45 [IMPORTANT] - Started server on 0.0.0.0:25565
+2020-07-08 21:39:52 [INFO] - Got a client!
+2020-07-08 21:39:52 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "192.168.0.98" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 21:39:52 [INFO] - Next state: Status
+2020-07-08 21:40:01 [ERROR] - Error when handling client: Connection reset by peer (os error 54)
+2020-07-08 21:40:04 [INFO] - Got a client!
+2020-07-08 21:40:04 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "192.168.0.98" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 21:40:04 [INFO] - Next state: Status
+2020-07-08 21:40:04 [INFO] - Ping number: MCLong { value: 1803114 }
+2020-07-08 21:40:04 [INFO] - Client at 192.168.0.88:55790 closed connection
+2020-07-08 21:40:16 [INFO] - Got a client!
+2020-07-08 21:40:16 [INFO] - Handshake { protocol_version: MCVarInt { value: 736 }, server_address: MCString { value: "192.168.0.98" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 21:40:16 [INFO] - Next state: Status
+2020-07-08 21:40:16 [INFO] - Ping number: MCLong { value: 1815195 }
+2020-07-08 21:40:16 [INFO] - Client at 192.168.0.88:55796 closed connection
+2020-07-08 21:40:47 [INFO] - Network thread started
+2020-07-08 21:40:47 [IMPORTANT] - Started server on 0.0.0.0:25565
+2020-07-08 21:40:59 [INFO] - Got a client!
+2020-07-08 21:40:59 [INFO] - Handshake { protocol_version: MCVarInt { value: 736 }, server_address: MCString { value: "192.168.0.98" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 21:40:59 [INFO] - Next state: Status
+2020-07-08 21:41:00 [INFO] - Ping number: MCLong { value: 1858861 }
+2020-07-08 21:41:00 [INFO] - Client at 192.168.0.88:55802 closed connection
+2020-07-08 21:54:37 [INFO] - Network thread started
+2020-07-08 21:54:37 [IMPORTANT] - Started server on 0.0.0.0:25565
+2020-07-08 21:54:45 [INFO] - Got a client!
+2020-07-08 21:54:45 [INFO] - Handshake { protocol_version: MCVarInt { value: 736 }, server_address: MCString { value: "192.168.0.98" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 21:54:45 [INFO] - Next state: Status
+2020-07-08 21:54:45 [INFO] - Ping number: MCLong { value: 2684003 }
+2020-07-08 21:54:45 [INFO] - Client at 192.168.0.88:55845 closed connection
+2020-07-08 21:54:54 [INFO] - Got a client!
+2020-07-08 21:54:54 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "192.168.0.98" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 21:54:54 [INFO] - Next state: Status
+2020-07-08 21:54:54 [INFO] - Ping number: MCLong { value: 2693231 }
+2020-07-08 21:54:54 [INFO] - Client at 192.168.0.88:55851 closed connection
+2020-07-08 22:08:35 [INFO] - Network thread started
+2020-07-08 22:08:35 [IMPORTANT] - Started server on 0.0.0.0:25565
+2020-07-08 22:08:42 [INFO] - Got a client!
+2020-07-08 22:08:42 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "192.168.0.98" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 22:08:42 [INFO] - Next state: Status
+2020-07-08 22:08:42 [INFO] - Ping number: MCLong { value: 3521389 }
+2020-07-08 22:08:42 [INFO] - Client at 192.168.0.88:55885 closed connection
+2020-07-08 22:08:49 [INFO] - Got a client!
+2020-07-08 22:08:49 [INFO] - Handshake { protocol_version: MCVarInt { value: 736 }, server_address: MCString { value: "192.168.0.98" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 22:08:49 [INFO] - Next state: Status
+2020-07-08 22:08:49 [INFO] - Ping number: MCLong { value: 3528562 }
+2020-07-08 22:08:49 [INFO] - Client at 192.168.0.88:55891 closed connection
+2020-07-08 22:15:19 [INFO] - Network thread started
+2020-07-08 22:15:19 [IMPORTANT] - Started server on 0.0.0.0:25565
+2020-07-08 22:15:39 [INFO] - Got a client!
+2020-07-08 22:15:39 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "192.168.0.98" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 22:15:39 [INFO] - Next state: Status
+2020-07-08 22:15:39 [INFO] - Ping number: MCLong { value: 3938584 }
+2020-07-08 22:15:39 [INFO] - Client at 192.168.0.88:55909 closed connection
+2020-07-08 22:23:14 [INFO] - Network thread started
+2020-07-08 22:23:14 [IMPORTANT] - Started server on 0.0.0.0:25565
+2020-07-08 22:23:20 [INFO] - Got a client!
+2020-07-08 22:23:20 [INFO] - Handshake { protocol_version: MCVarInt { value: 498 }, server_address: MCString { value: "192.168.0.98" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 22:23:20 [INFO] - Next state: Status
+2020-07-08 22:23:20 [INFO] - Ping number: MCLong { value: 4398964 }
+2020-07-08 22:23:20 [INFO] - Client at 192.168.0.88:55921 closed connection
+2020-07-08 22:23:22 [INFO] - Got a client!
+2020-07-08 22:23:22 [INFO] - Handshake { protocol_version: MCVarInt { value: 498 }, server_address: MCString { value: "192.168.0.98" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 22:23:22 [INFO] - Next state: Status
+2020-07-08 22:23:22 [INFO] - Ping number: MCLong { value: 4401109 }
+2020-07-08 22:23:22 [INFO] - Client at 192.168.0.88:55927 closed connection
+2020-07-08 22:23:41 [INFO] - Got a client!
+2020-07-08 22:23:42 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "192.168.0.98" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 22:23:42 [INFO] - Next state: Status
+2020-07-08 22:23:42 [INFO] - Ping number: MCLong { value: 4420928 }
+2020-07-08 22:23:42 [INFO] - Client at 192.168.0.88:55934 closed connection
+2020-07-08 22:25:40 [INFO] - Got a client!
+2020-07-08 22:25:40 [INFO] - Handshake { protocol_version: MCVarInt { value: 316 }, server_address: MCString { value: "192.168.0.98" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 22:25:40 [INFO] - Next state: Status
+2020-07-08 22:25:40 [INFO] - Ping number: MCLong { value: 4539076 }
+2020-07-08 22:25:40 [INFO] - Client at 192.168.0.88:55943 closed connection
