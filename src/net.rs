@@ -5,7 +5,7 @@ use crate::mctypes::*;
 use crate::protocol::*;
 
 pub fn start_listening() {
-    let server_address: &str = &format!("127.0.0.1:{}", config.port);
+    let server_address: &str = &format!("0.0.0.0:{}", config.port);
     let listener = TcpListener::bind(server_address);
     if listener.is_err() {
         log.error("Could not start listener");
@@ -39,7 +39,7 @@ fn handle_client(t: TcpStream) -> std::io::Result<()> {
                 let (_packet_len, packet_id) = read_packet_header(&mut gc.stream)?;
                 let handshake = Handshake::read(&mut gc.stream)?;
                 log.info(&format!("{:?}", handshake));
-                gc.state = if handshake.protocol_version.value != config.protocol_version as i32 {
+                gc.state = if handshake.protocol_version.value != config.protocol_version as i32 && handshake.next_state.value == 2 {
                     GameState::Closed
                 } else {
                     match handshake.next_state.value {
@@ -58,7 +58,7 @@ fn handle_client(t: TcpStream) -> std::io::Result<()> {
                 let response = MCString::from(
                     r#"{
     "version": {
-        "name": "1.15.2",
+        "name": "Composition Alpha 1.15.2",
         "protocol": 578
     },
     "players": {
