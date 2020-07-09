@@ -63,6 +63,7 @@ fn handle_client(t: TcpStream) -> std::io::Result<()> {
                 // Read the request packet.
                 let (_request_packet_len, _request_packet_id) = read_packet_header(&mut gc.stream)?;
                 // Send the response packet.
+                log.warn("Server favicon not working correctly. Fix this in issue #4");
                 let mut base64_encoded_favicon = "".to_owned();
                 let a = || -> std::io::Result<Vec<u8>> {
                     // Only call this if config.favicon is not None, or it'll panic.
