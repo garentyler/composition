@@ -1,3 +1,8 @@
+// net.rs
+// author: Garen Tyler
+// description:
+//   The module with everything to do with networkng.
+
 use crate::{config, log};
 use std::net::{TcpListener, TcpStream};
 
@@ -62,7 +67,7 @@ fn handle_client(t: TcpStream) -> std::io::Result<()> {
         "protocol": 578
     },
     "players": {
-        "max": 2147483647,
+        "max": 420,
         "online": 69,
         "sample": [
             {
