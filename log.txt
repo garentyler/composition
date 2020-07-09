@@ -378,3 +378,25 @@
 2020-07-08 22:15:39 [INFO] - Next state: Status
 2020-07-08 22:15:39 [INFO] - Ping number: MCLong { value: 3938584 }
 2020-07-08 22:15:39 [INFO] - Client at 192.168.0.88:55909 closed connection
+2020-07-08 22:23:14 [INFO] - Network thread started
+2020-07-08 22:23:14 [IMPORTANT] - Started server on 0.0.0.0:25565
+2020-07-08 22:23:20 [INFO] - Got a client!
+2020-07-08 22:23:20 [INFO] - Handshake { protocol_version: MCVarInt { value: 498 }, server_address: MCString { value: "192.168.0.98" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 22:23:20 [INFO] - Next state: Status
+2020-07-08 22:23:20 [INFO] - Ping number: MCLong { value: 4398964 }
+2020-07-08 22:23:20 [INFO] - Client at 192.168.0.88:55921 closed connection
+2020-07-08 22:23:22 [INFO] - Got a client!
+2020-07-08 22:23:22 [INFO] - Handshake { protocol_version: MCVarInt { value: 498 }, server_address: MCString { value: "192.168.0.98" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 22:23:22 [INFO] - Next state: Status
+2020-07-08 22:23:22 [INFO] - Ping number: MCLong { value: 4401109 }
+2020-07-08 22:23:22 [INFO] - Client at 192.168.0.88:55927 closed connection
+2020-07-08 22:23:41 [INFO] - Got a client!
+2020-07-08 22:23:42 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "192.168.0.98" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 22:23:42 [INFO] - Next state: Status
+2020-07-08 22:23:42 [INFO] - Ping number: MCLong { value: 4420928 }
+2020-07-08 22:23:42 [INFO] - Client at 192.168.0.88:55934 closed connection
+2020-07-08 22:25:40 [INFO] - Got a client!
+2020-07-08 22:25:40 [INFO] - Handshake { protocol_version: MCVarInt { value: 316 }, server_address: MCString { value: "192.168.0.98" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 22:25:40 [INFO] - Next state: Status
+2020-07-08 22:25:40 [INFO] - Ping number: MCLong { value: 4539076 }
+2020-07-08 22:25:40 [INFO] - Client at 192.168.0.88:55943 closed connection
