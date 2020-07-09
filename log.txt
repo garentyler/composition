@@ -371,3 +371,10 @@
 2020-07-08 22:08:49 [INFO] - Next state: Status
 2020-07-08 22:08:49 [INFO] - Ping number: MCLong { value: 3528562 }
 2020-07-08 22:08:49 [INFO] - Client at 192.168.0.88:55891 closed connection
+2020-07-08 22:15:19 [INFO] - Network thread started
+2020-07-08 22:15:19 [IMPORTANT] - Started server on 0.0.0.0:25565
+2020-07-08 22:15:39 [INFO] - Got a client!
+2020-07-08 22:15:39 [INFO] - Handshake { protocol_version: MCVarInt { value: 578 }, server_address: MCString { value: "192.168.0.98" }, server_port: MCUnsignedShort { value: 25565 }, next_state: MCVarInt { value: 1 } }
+2020-07-08 22:15:39 [INFO] - Next state: Status
+2020-07-08 22:15:39 [INFO] - Ping number: MCLong { value: 3938584 }
+2020-07-08 22:15:39 [INFO] - Client at 192.168.0.88:55909 closed connection
