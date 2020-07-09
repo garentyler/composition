@@ -145,11 +145,11 @@ fn handle_client(t: TcpStream) -> std::io::Result<()> {
                 for b in packet_id.to_bytes() {
                     write_byte(&mut gc.stream, b)?;
                 }
-                for b in uuidLong.as_bytes() {
-                    write_byte(&mut gc.stream, *b)?;
+                for b in MCString::from(uuidLong).to_bytes() {
+                    write_byte(&mut gc.stream, b)?;
                 }
-                for b in nameUUIDbundle.name.as_bytes() {
-                    write_byte(&mut gc.stream, *b)?;
+                for b in MCString::from(nameUUIDbundle.name).to_bytes() {
+                    write_byte(&mut gc.stream, b)?;
                 }
 
                 gc.state = GameState::Play;
