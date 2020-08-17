@@ -16,3 +16,6 @@ serde = { version = "1.0.114", features = ["serde_derive"]}
 base64 = "0.12.3"
 radix64 = "0.3.0"
 mojang-api = "0.6.1"
+log = "*"
+fern = { version = "0.6", features = ["colored"] }
+backtrace = "0.3.50"

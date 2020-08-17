@@ -1,72 +1,73 @@
 // main.rs
 // authors: Garen Tyler, Danton Hou
 // description:
-//   Main Game loop, config handler.
+//   Initializes the server, main server loop.
 
 #![allow(non_snake_case)]
 #![allow(non_upper_case_globals)]
+#![allow(unused_imports)]
 
-#[macro_use]
-extern crate lazy_static;
+extern crate backtrace;
+extern crate fern;
+extern crate log;
 extern crate serde;
-pub mod logger;
-pub mod mctypes;
-pub mod net;
-pub mod protocol;
 
+pub mod network;
+pub mod server;
+
+use backtrace::Backtrace;
+use fern::colors::{Color, ColoredLevelConfig};
+use log::{debug, error, info, warn};
+use network::NetworkServer;
 use serde::{Deserialize, Serialize};
-
-lazy_static! {
-    static ref log: logger::Logger = logger::new("log.txt");
-    static ref config: Config = { Config::from_file("composition.toml") };
-}
+use server::{Server, ServerConfig};
+use std::sync::mpsc::{self, Receiver, Sender};
+use std::time::{Duration, Instant};
 
 fn main() {
-    // Start the network thread.
-    std::thread::spawn(|| {
-        log.info("Network thread started");
-        net::start_listening();
-    });
-    // Loop the main thread for now.
-    loop {}
-}
+    // Setup logging.
+    fern::Dispatch::new()
+        .format(move |out, message, record| {
+            out.finish(format_args!(
+                "{date} [{level}] - {message}",
+                date = chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
+                // target = record.target(),
+                level = record.level(),
+                message = message,
+            ))
+        })
+        .level(log::LevelFilter::Debug)
+        .chain(std::io::stdout())
+        .chain(fern::log_file("output.log").unwrap())
+        .apply()
+        .unwrap();
 
-// Not in it's own config module because of name conflicts.
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Config {
-    pub port: u16,
-    pub protocol_version: u16,
-    pub max_players: u32,
-    pub motd: String,
-    pub favicon: Option<String>,
-}
-impl Config {
-    pub fn default() -> Config {
-        Config {
-            port: 25565,
-            protocol_version: 578,
-            max_players: 250,
-            motd: "Hello world!".to_owned(),
-            favicon: None,
-        }
-    }
-    pub fn from_file(filename: &str) -> Config {
-        use std::fs::File;
-        use std::io::prelude::*;
-        let a = || -> std::io::Result<Config> {
-            let mut file = File::open(filename)?;
-            let mut configStr = String::new();
-            file.read_to_string(&mut configStr)?;
-            Ok(toml::from_str(&configStr)?)
-        };
-        if let Ok(c) = a() {
-            c
-        } else {
-            log.warn(&format!(
-                "Could not load config from {}, using default config.",
-                filename
-            ));
-            Config::default()
-        }
+    std::panic::set_hook(Box::new(|panic_info| {
+        let backtrace = Backtrace::new();
+        error!("{}\n{:?}", panic_info.to_string(), backtrace);
+    }));
+
+    info!("Starting server...");
+    let start_time = Instant::now();
+
+    let config = ServerConfig::from_file("composition.toml");
+    let port = config.port;
+
+    // Create the message channels.
+    let (tx, rx) = mpsc::channel();
+
+    // Create the server.
+    let mut server = Server {
+        config,
+        receiver: rx,
+        network: NetworkServer::new(port),
+    };
+
+    info!("Done! Start took {:?}", start_time.elapsed());
+
+    // The main server loop.
+    loop {
+        server.update(); // Do the tick.
+        std::thread::sleep(Duration::from_millis(50));
     }
 }
