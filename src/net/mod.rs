@@ -95,27 +95,14 @@ impl NetworkClient {
                 let statusrequest = StatusRequest::read(&mut self.stream).unwrap();
                 println!("{:?}", statusrequest);
                 let mut statusresponse = StatusResponse::new();
-                statusresponse.json_response = r#"{
-    "version": {
-        "name": "1.8.7",
-        "protocol": 47
-    },
-    "players": {
-        "max": 100,
-        "online": 5,
-        "sample": [
-            {
-                "name": "thinkofdeath",
-                "id": "4566e69f-c907-48ee-8d71-d7ba5aa00d20"
-            }
-        ]
-    },
-    "description": {
-        "text": "Hello world"
-    },
-    "sample": ""
-}"#
-                .into();
+                statusresponse.json_response = format!(
+                    "{{\n\t\"version\": {{\n\t\t\"name\": \"{server_version}\",\n\t\t\"protocol\": {server_protocol}\n\t}},\n\t\"players\": {{\n\t\t\"max\": {max_players},\n\t\t\"online\": {num_players},\n\t\t\"sample\": [\n\t\t\t{{\n\t\t\t\t\"name\": \"ElementG9\",\n\t\t\t\t\"id\": \"e3f58380-60bb-4714-91f2-151d525e64aa\"\n\t\t\t}}\n\t\t]\n\t}},\n\t\"description\": {{\n\t\t\"text\": \"{server_description}\"\n\t}},\n\t\"sample\": \"\"\n}}",
+                    server_version = "1.8.9",
+                    server_protocol = 47,
+                    num_players = 5,
+                    max_players = 100,
+                    server_description = "Hello world!"
+                ).into();
                 statusresponse.write(&mut self.stream).unwrap();
                 println!("{:?}", statusresponse);
                 let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).unwrap();

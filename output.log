@@ -38,3 +38,12 @@
 [2020-08-18 08:15:48][Composition::net][INFO] Network server started!
 [2020-08-18 08:15:48][Composition][INFO] Done! Start took 1.853066ms
 [2020-08-18 08:15:55][Composition::net][INFO] Got client at 127.0.0.1:56532
+[2020-08-18 12:50:04][Composition][INFO] Starting server...
+[2020-08-18 12:50:04][Composition::net][INFO] Network server started!
+[2020-08-18 12:50:04][Composition][INFO] Done! Start took 1.983874ms
+[2020-08-18 12:50:23][Composition::net][INFO] Got client at 127.0.0.1:62307
+[2020-08-18 12:50:33][Composition::net][INFO] Got client at 127.0.0.1:62319
+[2020-08-18 12:55:34][Composition][INFO] Starting server...
+[2020-08-18 12:55:34][Composition::net][INFO] Network server started!
+[2020-08-18 12:55:34][Composition][INFO] Done! Start took 1.130267ms
+[2020-08-18 12:55:56][Composition::net][INFO] Got client at 127.0.0.1:62750
