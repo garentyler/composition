@@ -1,175 +1,40 @@
-
-2020-07-27 11:25:17 [ERROR] - panicked at 'Normal panic', src/main.rs:55:5
-2020-07-27 11:25:18 [ERROR] - panicked at 'Normal panic', src/main.rs:55:5
-   0: backtrace::backtrace::libunwind::trace
-             at /Users/gt/.cargo/registry/src/github.com-1ecc6299db9ec823/backtrace-0.3.50/src/backtrace/libunwind.rs:95
-      backtrace::backtrace::trace_unsynchronized
-             at /Users/gt/.cargo/registry/src/github.com-1ecc6299db9ec823/backtrace-0.3.50/src/backtrace/mod.rs:66
-   1: backtrace::backtrace::trace
-             at /Users/gt/.cargo/registry/src/github.com-1ecc6299db9ec823/backtrace-0.3.50/src/backtrace/mod.rs:53
-   2: backtrace::capture::Backtrace::create
-             at /Users/gt/.cargo/registry/src/github.com-1ecc6299db9ec823/backtrace-0.3.50/src/capture.rs:164
-   3: backtrace::capture::Backtrace::new
-             at /Users/gt/.cargo/registry/src/github.com-1ecc6299db9ec823/backtrace-0.3.50/src/capture.rs:128
-   4: Composition::main::{{closure}}
-             at src/main.rs:52
-   5: std::panicking::rust_panic_with_hook
-             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libstd/panicking.rs:475
-   6: std::panicking::begin_panic
-             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libstd/panicking.rs:404
-   7: Composition::main
-             at src/main.rs:55
-   8: std::rt::lang_start::{{closure}}
-             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libstd/rt.rs:67
-   9: std::rt::lang_start_internal::{{closure}}
-             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libstd/rt.rs:52
-      std::panicking::try::do_call
-             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libstd/panicking.rs:292
-  10: __rust_maybe_catch_panic
-             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libpanic_unwind/lib.rs:78
-  11: std::panicking::try
-             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libstd/panicking.rs:270
-      std::panic::catch_unwind
-             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libstd/panic.rs:394
-      std::rt::lang_start_internal
-             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libstd/rt.rs:51
-  12: std::rt::lang_start
-             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libstd/rt.rs:67
-  13: _main
-
-2020-07-27 11:26:38 [ERROR] - panicked at 'Normal panic', src/main.rs:54:5
-   0: backtrace::backtrace::libunwind::trace
-             at /Users/gt/.cargo/registry/src/github.com-1ecc6299db9ec823/backtrace-0.3.50/src/backtrace/libunwind.rs:95
-      backtrace::backtrace::trace_unsynchronized
-             at /Users/gt/.cargo/registry/src/github.com-1ecc6299db9ec823/backtrace-0.3.50/src/backtrace/mod.rs:66
-   1: backtrace::backtrace::trace
-             at /Users/gt/.cargo/registry/src/github.com-1ecc6299db9ec823/backtrace-0.3.50/src/backtrace/mod.rs:53
-   2: backtrace::capture::Backtrace::create
-             at /Users/gt/.cargo/registry/src/github.com-1ecc6299db9ec823/backtrace-0.3.50/src/capture.rs:164
-   3: backtrace::capture::Backtrace::new
-             at /Users/gt/.cargo/registry/src/github.com-1ecc6299db9ec823/backtrace-0.3.50/src/capture.rs:128
-   4: Composition::main::{{closure}}
-             at src/main.rs:51
-   5: std::panicking::rust_panic_with_hook
-             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libstd/panicking.rs:475
-   6: std::panicking::begin_panic
-             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libstd/panicking.rs:404
-   7: Composition::main
-             at src/main.rs:54
-   8: std::rt::lang_start::{{closure}}
-             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libstd/rt.rs:67
-   9: std::rt::lang_start_internal::{{closure}}
-             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libstd/rt.rs:52
-      std::panicking::try::do_call
-             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libstd/panicking.rs:292
-  10: __rust_maybe_catch_panic
-             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libpanic_unwind/lib.rs:78
-  11: std::panicking::try
-             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libstd/panicking.rs:270
-      std::panic::catch_unwind
-             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libstd/panic.rs:394
-      std::rt::lang_start_internal
-             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libstd/rt.rs:51
-  12: std::rt::lang_start
-             at /rustc/5e1a799842ba6ed4a57e91f7ab9435947482f7d8/src/libstd/rt.rs:67
-  13: _main
-
-2020-07-27 11:30:23 [INFO] - Starting server...
-2020-07-27 11:30:46 [INFO] - Starting server...
-2020-07-27 11:31:01 [INFO] - Starting server
-2020-07-27 11:40:10 [INFO] - Starting server...
-2020-07-27 11:40:10 [INFO] - Done! Start took 763.52µs
-2020-07-27 11:40:51 [INFO] - Starting server...
-2020-07-27 11:40:51 [INFO] - Done! Start took 820.196µs
-2020-07-27 11:47:37 [INFO] - Starting server...
-2020-07-27 11:47:37 [INFO] - Done! Start took 441.888µs
-2020-07-27 12:51:18 [INFO] - Starting server...
-2020-07-27 12:51:18 [INFO] - Done! Start took 929.466µs
-2020-07-27 13:14:52 [INFO] - Starting server...
-2020-07-27 13:14:52 [INFO] - Starting network server...
-2020-07-27 13:14:52 [INFO] - Done! Start took 829.689µs
-2020-07-27 17:14:52 [INFO] - Starting server...
-2020-07-27 17:14:52 [INFO] - Done! Start took 920.073µs
-2020-07-27 17:14:52 [INFO] - Starting network...
-2020-07-27 17:14:52 [INFO] - []
-2020-07-27 17:14:52 [INFO] - []
-2020-07-27 17:14:52 [INFO] - []
-2020-07-27 17:14:52 [INFO] - []
-2020-07-27 17:14:52 [INFO] - []
-2020-07-27 17:14:52 [INFO] - []
-2020-07-27 17:14:53 [INFO] - []
-2020-07-27 17:14:53 [INFO] - []
-2020-07-27 17:14:53 [INFO] - []
-2020-07-27 17:14:53 [INFO] - []
-2020-07-27 17:14:53 [INFO] - []
-2020-07-27 17:14:53 [INFO] - []
-2020-07-27 17:14:53 [INFO] - []
-2020-07-27 17:14:53 [INFO] - []
-2020-07-27 17:14:53 [INFO] - []
-2020-07-27 17:14:53 [INFO] - []
-2020-07-27 17:14:53 [INFO] - []
-2020-07-27 17:14:53 [INFO] - []
-2020-07-27 17:14:53 [INFO] - []
-2020-07-27 17:14:53 [INFO] - []
-2020-07-27 17:14:53 [INFO] - []
-2020-07-27 17:14:53 [INFO] - []
-2020-07-27 17:14:53 [INFO] - []
-2020-07-27 17:14:53 [INFO] - []
-2020-07-27 17:14:53 [INFO] - []
-2020-07-27 17:14:54 [INFO] - []
-2020-07-27 17:14:54 [INFO] - []
-2020-07-27 17:14:54 [INFO] - []
-2020-07-27 17:14:54 [INFO] - []
-2020-07-27 17:14:54 [INFO] - []
-2020-07-27 17:14:54 [INFO] - []
-2020-07-27 17:14:54 [INFO] - []
-2020-07-27 17:14:54 [INFO] - []
-2020-07-27 17:14:54 [INFO] - []
-2020-07-27 17:14:54 [INFO] - []
-2020-07-27 17:14:54 [INFO] - []
-2020-07-27 17:14:54 [INFO] - []
-2020-07-27 17:14:54 [INFO] - []
-2020-07-27 17:14:54 [INFO] - []
-2020-07-27 17:14:54 [INFO] - []
-2020-07-27 17:14:54 [INFO] - []
-2020-07-27 17:14:54 [INFO] - []
-2020-07-27 17:14:54 [INFO] - []
-2020-07-27 17:14:54 [INFO] - []
-2020-07-27 17:14:55 [INFO] - []
-2020-07-27 17:14:55 [INFO] - []
-2020-07-27 17:14:55 [INFO] - []
-2020-07-27 17:14:55 [INFO] - []
-2020-07-27 17:14:55 [INFO] - []
-2020-07-27 17:14:55 [INFO] - []
-2020-07-27 17:14:55 [INFO] - []
-2020-07-27 17:14:55 [INFO] - []
-2020-07-27 17:14:55 [INFO] - []
-2020-07-27 17:14:55 [INFO] - []
-2020-07-27 17:14:55 [INFO] - []
-2020-07-27 17:14:55 [INFO] - []
-2020-07-27 17:14:55 [INFO] - []
-2020-07-27 17:14:55 [INFO] - []
-2020-07-27 17:14:55 [INFO] - []
-2020-07-27 17:14:55 [INFO] - []
-2020-07-27 17:14:55 [INFO] - []
-2020-07-27 17:14:55 [INFO] - []
-2020-07-27 17:14:55 [INFO] - []
-2020-07-27 17:14:55 [INFO] - []
-2020-07-27 17:14:56 [INFO] - []
-2020-07-27 17:14:56 [INFO] - []
-2020-07-27 17:14:56 [INFO] - []
-2020-07-27 17:28:01 [INFO] - Starting server...
-2020-07-27 17:28:01 [INFO] - Done! Start took 1.079011ms
-2020-07-27 17:28:01 [INFO] - Starting network...
-2020-07-27 17:28:32 [INFO] - Starting server...
-2020-07-27 17:28:32 [INFO] - Done! Start took 891.237µs
-2020-07-27 17:30:03 [INFO] - Starting server...
-2020-07-27 17:30:03 [INFO] - Done! Start took 889.43µs
-2020-07-27 17:30:39 [INFO] - Starting server...
-2020-07-27 17:30:39 [INFO] - Done! Start took 668.524µs
-2020-07-27 17:32:13 [DEBUG] - Network received client: NetworkClient { id: 0, state: Handshake, alive: true, stream: BufReader { reader: TcpStream { addr: V4(127.0.0.1:25565), peer: V4(127.0.0.1:58986), fd: 5 }, buffer: 0/8192 }, username: None, packets: [] }
-2020-07-27 17:32:13 [DEBUG] - Network received client: NetworkClient { id: 1, state: Handshake, alive: true, stream: BufReader { reader: TcpStream { addr: V4(127.0.0.1:25565), peer: V4(127.0.0.1:58988), fd: 5 }, buffer: 0/8192 }, username: None, packets: [] }
-2020-07-27 17:37:57 [INFO] - Starting server...
-2020-07-27 17:37:57 [INFO] - Done! Start took 1.007552ms
-2020-07-27 18:15:45 [INFO] - Starting server...
-2020-07-27 18:15:45 [INFO] - Done! Start took 812.588µs
+[2020-08-17 16:41:40][Composition][INFO] Starting server...
+[2020-08-17 16:41:40][Composition::net][INFO] Network server started!
+[2020-08-17 16:41:40][Composition][INFO] Done! Start took 1.023788ms
+[2020-08-17 16:41:50][Composition][INFO] Starting server...
+[2020-08-17 16:41:50][Composition::net][INFO] Network server started!
+[2020-08-17 16:41:50][Composition][INFO] Done! Start took 1.005714ms
+[2020-08-17 16:42:32][Composition::net][INFO] Got client at 127.0.0.1:51769
+[2020-08-17 17:11:43][Composition][INFO] Starting server...
+[2020-08-17 17:11:43][Composition::net][INFO] Network server started!
+[2020-08-17 17:11:43][Composition][INFO] Done! Start took 1.245737ms
+[2020-08-17 17:14:54][Composition][INFO] Starting server...
+[2020-08-17 17:14:54][Composition::net][INFO] Network server started!
+[2020-08-17 17:14:54][Composition][INFO] Done! Start took 1.252385ms
+[2020-08-17 17:15:41][Composition::net][INFO] Got client at 127.0.0.1:56994
+[2020-08-17 21:14:58][Composition][INFO] Starting server...
+[2020-08-17 21:14:58][Composition::net][INFO] Network server started!
+[2020-08-17 21:14:58][Composition][INFO] Done! Start took 1.787424ms
+[2020-08-17 21:15:32][Composition::net][INFO] Got client at 127.0.0.1:52811
+[2020-08-17 21:17:01][Composition][INFO] Starting server...
+[2020-08-17 21:17:01][Composition::net][INFO] Network server started!
+[2020-08-17 21:17:01][Composition][INFO] Done! Start took 1.242146ms
+[2020-08-17 21:17:04][Composition::net][INFO] Got client at 127.0.0.1:52841
+[2020-08-17 21:18:13][Composition][INFO] Starting server...
+[2020-08-17 21:18:13][Composition::net][INFO] Network server started!
+[2020-08-17 21:18:13][Composition][INFO] Done! Start took 1.033613ms
+[2020-08-17 21:18:15][Composition::net][INFO] Got client at 127.0.0.1:52847
+[2020-08-17 21:18:25][Composition::net][INFO] Got client at 127.0.0.1:52850
+[2020-08-17 21:18:52][Composition::net][INFO] Got client at 127.0.0.1:52855
+[2020-08-17 21:23:47][Composition][INFO] Starting server...
+[2020-08-17 21:23:47][Composition::net][INFO] Network server started!
+[2020-08-17 21:23:47][Composition][INFO] Done! Start took 966.985µs
+[2020-08-17 21:23:49][Composition::net][INFO] Got client at 127.0.0.1:52879
+[2020-08-17 21:37:35][Composition][INFO] Starting server...
+[2020-08-17 21:37:35][Composition::net][INFO] Network server started!
+[2020-08-17 21:37:35][Composition][INFO] Done! Start took 1.448375ms
+[2020-08-17 21:37:44][Composition::net][INFO] Got client at 127.0.0.1:53276
+[2020-08-18 08:15:48][Composition][INFO] Starting server...
+[2020-08-18 08:15:48][Composition::net][INFO] Network server started!
+[2020-08-18 08:15:48][Composition][INFO] Done! Start took 1.853066ms
+[2020-08-18 08:15:55][Composition::net][INFO] Got client at 127.0.0.1:56532
