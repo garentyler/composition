@@ -59,7 +59,7 @@ pub struct StatusRequest {}
 impl Into<Vec<u8>> for StatusRequest {
     fn into(self) -> Vec<u8> {
         let mut out = vec![];
-        let mut temp: Vec<u8> = MCVarInt::from(0x00).into(); // 0x00 Status Request.
+        let temp: Vec<u8> = MCVarInt::from(0x00).into(); // 0x00 Status Request.
         out.extend_from_slice(&Into::<Vec<u8>>::into(MCVarInt::from(temp.len() as i32)));
         out.extend_from_slice(&temp);
         out
@@ -75,8 +75,8 @@ impl Packet for StatusRequest {
     fn new() -> Self {
         StatusRequest {}
     }
-    fn read(t: &mut TcpStream) -> std::io::Result<Self> {
-        let mut statusrequest = StatusRequest::new();
+    fn read(_t: &mut TcpStream) -> std::io::Result<Self> {
+        let statusrequest = StatusRequest::new();
         Ok(statusrequest)
     }
     fn write(&self, t: &mut TcpStream) -> std::io::Result<()> {

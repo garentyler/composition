@@ -19,3 +19,4 @@ mojang-api = "0.6.1"
 log = "*"
 fern = { version = "0.6", features = ["colored"] }
 backtrace = "0.3.50"
+serde_json = "1.0.59"

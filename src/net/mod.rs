@@ -5,6 +5,7 @@ use log::{debug, error, info, warn};
 use packets::*;
 use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
+use serde_json::json;
 
 pub struct NetworkServer {
     pub clients: Vec<NetworkClient>,
@@ -88,42 +89,55 @@ impl NetworkClient {
                     logindisconnect.write(&mut self.stream).unwrap();
                     self.state = NetworkClientState::Disconnected;
                 }
-                println!("{:?}", handshake);
+                debug!("Got handshake: {:?}", handshake);
             }
             NetworkClientState::Status => {
                 let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).unwrap();
                 let statusrequest = StatusRequest::read(&mut self.stream).unwrap();
-                println!("{:?}", statusrequest);
+                debug!("Got status request: {:?}", statusrequest);
                 let mut statusresponse = StatusResponse::new();
-                statusresponse.json_response = format!(
-                    "{{\n\t\"version\": {{\n\t\t\"name\": \"{server_version}\",\n\t\t\"protocol\": {server_protocol}\n\t}},\n\t\"players\": {{\n\t\t\"max\": {max_players},\n\t\t\"online\": {num_players},\n\t\t\"sample\": [\n\t\t\t{{\n\t\t\t\t\"name\": \"ElementG9\",\n\t\t\t\t\"id\": \"e3f58380-60bb-4714-91f2-151d525e64aa\"\n\t\t\t}}\n\t\t]\n\t}},\n\t\"description\": {{\n\t\t\"text\": \"{server_description}\"\n\t}},\n\t\"sample\": \"\"\n}}",
-                    server_version = "1.8.9",
-                    server_protocol = 47,
-                    num_players = 5,
-                    max_players = 100,
-                    server_description = "Hello world!"
-                ).into();
+                statusresponse.json_response = json!({
+                    "version": {
+                        "name": "1.8.9",
+                        "protocol": 47,
+                    },
+                    "players": {
+                        "max": 100,
+                        "online": 5,
+                        "sample": [
+                            {
+                                "name": "ElementG9",
+                                "id": "e3f58380-60bb-4714-91f2-151d525e64aa"
+                            }
+                        ]
+                    },
+                    "description": {
+                        "text": "Hello world!"
+                    },
+                    "favicon": format!("data:image/png;base64,{}", radix64::STD.encode(include_bytes!("../server-icon.png")))
+                }).to_string().into();
                 statusresponse.write(&mut self.stream).unwrap();
-                println!("{:?}", statusresponse);
+                debug!("Sending status response: StatusResponse");
                 let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).unwrap();
                 let statusping = StatusPing::read(&mut self.stream).unwrap();
-                println!("{:?}", statusping);
+                debug!("Got status ping: {:?}", statusping);
                 let mut statuspong = StatusPong::new();
                 statuspong.payload = statusping.payload;
                 statuspong.write(&mut self.stream).unwrap();
+                debug!("Sending status pong: {:?}", statuspong);
                 self.state = NetworkClientState::Disconnected;
             }
             NetworkClientState::Login => {
                 let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).unwrap();
                 let loginstart = LoginStart::read(&mut self.stream).unwrap();
-                println!("{:?}", loginstart);
+                debug!("{:?}", loginstart);
                 // Offline mode skips encryption and compression.
                 let mut loginsuccess = LoginSuccess::new();
                 // We're in offline mode, so this is a temporary uuid.
                 loginsuccess.uuid = "00000000-0000-3000-0000-000000000000".into();
                 loginsuccess.username = loginstart.player_name;
                 loginsuccess.write(&mut self.stream).unwrap();
-                println!("{:?}", loginsuccess);
+                debug!("{:?}", loginsuccess);
                 self.state = NetworkClientState::Play;
             }
             NetworkClientState::Play => {}

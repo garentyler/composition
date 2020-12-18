@@ -1,7 +1,7 @@
 # Composition
 
-Composition is targeting 1.15.2, protocol version 578.
-The main goal is to get a working server, then optimize for speed. 1.16 support may come in the future, after 1.15 is completed.
+Composition is targeting 1.8.9, protocol version 47.
+The main goal is to get a working server, then optimize for speed.
 
 ## Development Resources
 
