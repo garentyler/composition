@@ -1,8 +1,7 @@
-use crate::net::{NetworkClient, NetworkClientState, NetworkServer};
-use log::{debug, error, info, warn};
+pub mod net;
 
 pub struct GameServer {
-    pub network: NetworkServer,
+    pub network: net::NetworkServer,
 }
 impl GameServer {
     pub fn update(&mut self) {

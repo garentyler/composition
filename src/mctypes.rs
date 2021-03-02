@@ -1012,7 +1012,7 @@ pub mod numbers {
     }
     impl MCType for MCVarInt {
         fn read(t: &mut TcpStream) -> std::io::Result<Self> {
-            let mut numRead = 0;
+            let mut num_read = 0;
             let mut result = 0i32;
             let mut read = 0u8;
             let mut run_once = false;
@@ -1020,9 +1020,9 @@ pub mod numbers {
                 run_once = true;
                 read = read_byte(t)?;
                 let value = (read & 0b01111111) as i32;
-                result |= value << (7 * numRead);
-                numRead += 1;
-                if numRead > 5 {
+                result |= value << (7 * num_read);
+                num_read += 1;
+                if num_read > 5 {
                     return Err(io_error("MCVarInt is too big"));
                 }
             }

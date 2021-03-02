@@ -1,11 +1,11 @@
 pub mod packets;
 
 use crate::mctypes::*;
-use log::{debug, error, info, warn};
+use log::{debug, info};
 use packets::*;
-use std::net::{TcpListener, TcpStream, ToSocketAddrs};
-use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 use serde_json::json;
+use std::net::{TcpListener, TcpStream, ToSocketAddrs};
+use std::sync::mpsc::{self, Receiver, TryRecvError};
 
 pub struct NetworkServer {
     pub clients: Vec<NetworkClient>,
@@ -114,7 +114,7 @@ impl NetworkClient {
                     "description": {
                         "text": "Hello world!"
                     },
-                    "favicon": format!("data:image/png;base64,{}", radix64::STD.encode(include_bytes!("../server-icon.png")))
+                    "favicon": format!("data:image/png;base64,{}", radix64::STD.encode(include_bytes!("../../server-icon.png")))
                 }).to_string().into();
                 statusresponse.write(&mut self.stream).unwrap();
                 debug!("Sending status response: StatusResponse");
