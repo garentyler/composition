@@ -162,3 +162,66 @@ impl LoginStart {
         Ok(())
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct ClientSettings {
+    pub locale: MCString,
+    pub view_distance: MCByte,
+    pub chat_mode: MCVarInt, // 0: enabled, 1: commands only, 2: hidden.
+    pub chat_colors: MCBoolean,
+    pub displayed_skin_parts: MCUnsignedByte, // Bit mask
+    // Displayed skin parts flags:
+    // Bit 0 (0x01): Cape enabled
+    // Bit 1 (0x02): Jacket enabled
+    // Bit 2 (0x04): Left Sleeve enabled
+    // Bit 3 (0x08): Right Sleeve enabled
+    // Bit 4 (0x10): Left Pants Leg enabled
+    // Bit 5 (0x20): Right Pants Leg enabled
+    // Bit 6 (0x40): Hat enabled
+}
+impl Into<Vec<u8>> for ClientSettings {
+    fn into(self) -> Vec<u8> {
+        let mut out = vec![];
+        let mut temp: Vec<u8> = MCVarInt::from(0x15).into(); // 0x15 Client Settings.
+        temp.extend_from_slice(&Into::<Vec<u8>>::into(self.locale));
+        temp.extend_from_slice(&Into::<Vec<u8>>::into(self.view_distance));
+        temp.extend_from_slice(&Into::<Vec<u8>>::into(self.chat_mode));
+        temp.extend_from_slice(&Into::<Vec<u8>>::into(self.chat_colors));
+        temp.extend_from_slice(&Into::<Vec<u8>>::into(self.displayed_skin_parts));
+        out.extend_from_slice(&Into::<Vec<u8>>::into(MCVarInt::from(temp.len() as i32)));
+        out.extend_from_slice(&temp);
+        out
+    }
+}
+impl TryFrom<Vec<u8>> for ClientSettings {
+    type Error = &'static str;
+    fn try_from(_bytes: Vec<u8>) -> Result<Self, Self::Error> {
+        Err("unimplemented")
+    }
+}
+impl ClientSettings {
+    pub fn new() -> Self {
+        ClientSettings {
+            locale: "en_US".into(),
+            view_distance: 8.into(), // 8 chunks.
+            chat_mode: 0.into(), // All chat enabled.
+            chat_colors: true.into(),
+            displayed_skin_parts: 0xff.into(), // Enable all parts.
+        }
+    }
+    pub async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
+        let mut clientsettings = ClientSettings::new();
+        clientsettings.locale = MCString::read(t).await?;
+        clientsettings.view_distance = MCByte::read(t).await?;
+        clientsettings.chat_mode = MCVarInt::read(t).await?;
+        clientsettings.chat_colors = MCBoolean::read(t).await?;
+        clientsettings.displayed_skin_parts = MCUnsignedByte::read(t).await?;
+        Ok(clientsettings)
+    }
+    pub async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
+        for b in Into::<Vec<u8>>::into(self.clone()) {
+            write_byte(t, b).await?;
+        }
+        Ok(())
+    }
+}

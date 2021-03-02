@@ -1,4 +1,5 @@
 use crate::mctypes::*;
+use crate::CONFIG;
 use std::convert::{Into, TryFrom};
 use tokio::net::TcpStream;
 
@@ -155,6 +156,69 @@ impl LoginDisconnect {
             text: MCString::read(t).await?,
         };
         Ok(logindisconnect)
+    }
+    pub async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
+        for b in Into::<Vec<u8>>::into(self.clone()) {
+            write_byte(t, b).await?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct JoinGame {
+    entity_id: MCInt, // The player's Entity ID (EID)
+    gamemode: MCUnsignedByte, // 0: Survival, 1: Creative, 2: Adventure, 3: Spectator. Bit 3 (0x8) is the hardcore flag.
+    dimension: MCByte, // -1: Nether, 0: Overworld, 1: End
+    difficulty: MCUnsignedByte, // 0: Peaceful, 1: Easy, 2: Normal, 3: Hard
+    max_players: MCUnsignedByte, // Used by the client to draw the player list
+    level_type: MCString, // default, flat, largeBiomes, amplified, default_1_1
+    reduced_debug_info: MCBoolean, // If true, a Notchian client shows reduced information on the debug screen.
+}
+impl Into<Vec<u8>> for JoinGame {
+    fn into(self) -> Vec<u8> {
+        let mut out = vec![];
+        let mut temp: Vec<u8> = MCVarInt::from(0x01).into(); // 0x01 Join Game.
+        temp.extend_from_slice(&Into::<Vec<u8>>::into(self.entity_id));
+        temp.extend_from_slice(&Into::<Vec<u8>>::into(self.gamemode));
+        temp.extend_from_slice(&Into::<Vec<u8>>::into(self.dimension));
+        temp.extend_from_slice(&Into::<Vec<u8>>::into(self.difficulty));
+        temp.extend_from_slice(&Into::<Vec<u8>>::into(self.max_players));
+        temp.extend_from_slice(&Into::<Vec<u8>>::into(self.level_type));
+        temp.extend_from_slice(&Into::<Vec<u8>>::into(self.reduced_debug_info));
+        out.extend_from_slice(&Into::<Vec<u8>>::into(MCVarInt::from(temp.len() as i32)));
+        out.extend_from_slice(&temp);
+        out
+    }
+}
+impl TryFrom<Vec<u8>> for JoinGame {
+    type Error = &'static str;
+    fn try_from(_bytes: Vec<u8>) -> Result<Self, Self::Error> {
+        Err("unimplemented")
+    }
+}
+impl JoinGame {
+    pub fn new() -> Self {
+        JoinGame {
+            entity_id: 0.into(),
+            gamemode: 1.into(), // Default to creative mode.
+            dimension: 0.into(), // Default to overworld.
+            difficulty: 2.into(),
+            max_players: (CONFIG.max_players as u8).into(),
+            level_type: "default".into(), // Use the default world type.
+            reduced_debug_info: false.into(), // The debug info should be useful.
+        }
+    }
+    pub async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
+        let mut joingame = JoinGame::new();
+        joingame.entity_id = MCInt::read(t).await?;
+        joingame.gamemode = MCUnsignedByte::read(t).await?;
+        joingame.dimension = MCByte::read(t).await?;
+        joingame.difficulty = MCUnsignedByte::read(t).await?;
+        joingame.max_players = MCUnsignedByte::read(t).await?;
+        joingame.level_type = MCString::read(t).await?;
+        joingame.reduced_debug_info = MCBoolean::read(t).await?;
+        Ok(joingame)
     }
     pub async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {

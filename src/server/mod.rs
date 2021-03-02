@@ -7,11 +7,13 @@ use packets::*;
 use serde_json::json;
 use std::sync::mpsc::{self, Receiver, TryRecvError};
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
+use crate::entity::player::Player;
 
 /// The struct containing all the data and running all the updates.
 pub struct Server {
-    pub network_clients: Vec<NetworkClient>,
+    network_clients: Vec<NetworkClient>,
     network_receiver: Receiver<NetworkClient>,
+    pub players: Vec<Player>,
 }
 impl Server {
     pub fn new<A: 'static + ToSocketAddrs + Send>(addr: A) -> Server {
@@ -26,12 +28,7 @@ impl Server {
                     .accept()
                     .await
                     .expect("Network receiver disconnected");
-                tx.send(NetworkClient {
-                    id: id as u128,
-                    connected: true,
-                    stream,
-                    state: NetworkClientState::Handshake,
-                })
+                tx.send(NetworkClient::new(stream, id as u128))
                 .expect("Network receiver disconnected");
                 id += 1;
             }
@@ -40,6 +37,7 @@ impl Server {
         Server {
             network_receiver: rx,
             network_clients: vec![],
+            players: vec![],
         }
     }
 
@@ -101,8 +99,22 @@ pub struct NetworkClient {
     pub connected: bool,
     pub stream: TcpStream,
     pub state: NetworkClientState,
+    pub uuid: Option<String>,
+    pub username: Option<String>,
 }
 impl NetworkClient {
+    /// Create a new `NetworkClient`
+    pub fn new(stream: TcpStream, id: u128) -> NetworkClient {
+        NetworkClient {
+            id,
+            connected: true,
+            stream,
+            state: NetworkClientState::Handshake,
+            uuid: None,
+            username: None,
+        }
+    }
+
     /// Update the client.
     ///
     /// Updating could mean connecting new clients, reading packets,
@@ -156,7 +168,6 @@ impl NetworkClient {
                     "description": {
                         "text": CONFIG.motd
                     },
-                    // TODO: Dynamically send the icon instead of linking statically.
                     "favicon": format!("data:image/png;base64,{}", if FAVICON.is_ok() { radix64::STD.encode(FAVICON.as_ref().unwrap().as_slice()) } else { "".to_owned() })
                 })
                 .to_string()
@@ -179,13 +190,25 @@ impl NetworkClient {
                 let loginstart = LoginStart::read(&mut self.stream).await.unwrap();
                 debug!("{:?}", loginstart);
                 // Offline mode skips encryption and compression.
+                // TODO: Encryption and compression
                 let mut loginsuccess = LoginSuccess::new();
                 // We're in offline mode, so this is a temporary uuid.
+                // TODO: Get uuid and username from Mojang servers.
                 loginsuccess.uuid = "00000000-0000-3000-0000-000000000000".into();
                 loginsuccess.username = loginstart.player_name;
                 loginsuccess.write(&mut self.stream).await.unwrap();
                 debug!("{:?}", loginsuccess);
+                self.uuid = Some(loginsuccess.uuid.clone().into());
+                self.username = Some(loginsuccess.username.clone().into());
                 self.state = NetworkClientState::Play;
+                let joingame = JoinGame::new();
+                /// TODO: Fill out `joingame` with actual information.
+                joingame.write(&mut self.stream).await.unwrap();
+                debug!("{:?}", joingame);
+                let (packet_length, packet_id) =
+                    read_packet_header(&mut self.stream).await.unwrap();
+                let clientsettings = ClientSettings::read(&mut self.stream).await.unwrap();
+                debug!("{:?}", clientsettings);
             }
             NetworkClientState::Play => {}
             NetworkClientState::Disconnected => {
