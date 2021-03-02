@@ -1,4 +1,4 @@
 .DS_Store
-output.log
-target/
-world/
+/output.log
+/target
+/world

@@ -4,9 +4,6 @@
 pub mod mctypes;
 pub mod net;
 pub mod server;
-extern crate chrono;
-extern crate fern;
-extern crate log;
 
 use log::{debug, error, info, warn};
 use net::NetworkServer;
