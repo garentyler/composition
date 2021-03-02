@@ -1,6 +1,6 @@
 use crate::mctypes::*;
 use std::convert::{Into, TryFrom};
-use std::net::TcpStream;
+use tokio::net::TcpStream;
 
 #[derive(Debug, Clone)]
 pub struct StatusResponse {
@@ -28,14 +28,14 @@ impl StatusResponse {
             json_response: MCString::from(""),
         }
     }
-    pub async fn read(t: &'_ mut TcpStream) -> std::io::Result<Self> {
+    pub async fn read(t: &'_ mut TcpStream) -> tokio::io::Result<Self> {
         let mut statusresponse = StatusResponse::new();
         statusresponse.json_response = MCString::read(t).await?;
         Ok(statusresponse)
     }
-    pub async fn write(&self, t: &'_ mut TcpStream) -> std::io::Result<()> {
+    pub async fn write(&self, t: &'_ mut TcpStream) -> tokio::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
-            write_byte(t, b)?;
+            write_byte(t, b).await?;
         }
         Ok(())
     }
@@ -65,14 +65,14 @@ impl StatusPong {
     pub fn new() -> Self {
         StatusPong { payload: 0.into() }
     }
-    pub async fn read(t: &mut TcpStream) -> std::io::Result<Self> {
+    pub async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut statuspong = StatusPong::new();
         statuspong.payload = MCLong::read(t).await?;
         Ok(statuspong)
     }
-    pub async fn write(&self, t: &mut TcpStream) -> std::io::Result<()> {
+    pub async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
-            write_byte(t, b)?;
+            write_byte(t, b).await?;
         }
         Ok(())
     }
@@ -107,15 +107,15 @@ impl LoginSuccess {
             username: MCString::from(""),
         }
     }
-    pub async fn read(t: &mut TcpStream) -> std::io::Result<Self> {
+    pub async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut loginsuccess = LoginSuccess::new();
         loginsuccess.uuid = MCString::read(t).await?;
         loginsuccess.username = MCString::read(t).await?;
         Ok(loginsuccess)
     }
-    pub async fn write(&self, t: &mut TcpStream) -> std::io::Result<()> {
+    pub async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
-            write_byte(t, b)?;
+            write_byte(t, b).await?;
         }
         Ok(())
     }
@@ -149,16 +149,16 @@ impl LoginDisconnect {
             },
         }
     }
-    pub async fn read(t: &mut TcpStream) -> std::io::Result<Self> {
+    pub async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut logindisconnect = LoginDisconnect::new();
         logindisconnect.reason = MCChat {
             text: MCString::read(t).await?,
         };
         Ok(logindisconnect)
     }
-    pub async fn write(&self, t: &mut TcpStream) -> std::io::Result<()> {
+    pub async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
-            write_byte(t, b)?;
+            write_byte(t, b).await?;
         }
         Ok(())
     }

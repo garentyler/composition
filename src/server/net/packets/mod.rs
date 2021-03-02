@@ -6,10 +6,10 @@ pub mod serverbound;
 use crate::mctypes::MCVarInt;
 pub use clientbound::*;
 pub use serverbound::*;
-use std::net::TcpStream;
+use tokio::net::TcpStream;
 
 /// A helper function to read the packet header.
-pub async fn read_packet_header(t: &mut TcpStream) -> std::io::Result<(MCVarInt, MCVarInt)> {
+pub async fn read_packet_header(t: &mut TcpStream) -> tokio::io::Result<(MCVarInt, MCVarInt)> {
     let length = MCVarInt::read(t).await?;
     let id = MCVarInt::read(t).await?;
     Ok((length, id))

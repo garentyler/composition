@@ -5,8 +5,8 @@ use crate::mctypes::*;
 use log::{debug, info};
 use packets::*;
 use serde_json::json;
-use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::sync::mpsc::{self, Receiver, TryRecvError};
+use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
 
 /// The part of the server that handles
 /// connecting clients and receiving/sending packets.
@@ -20,18 +20,24 @@ impl NetworkServer {
     /// then hold that in a queue for processing on an update.
     pub fn new<A: 'static + ToSocketAddrs + Send>(addr: A) -> NetworkServer {
         let (tx, rx) = mpsc::channel();
-        std::thread::spawn(move || {
-            let listener = TcpListener::bind(addr).expect("Could not bind to TCP socket");
-            for (id, stream) in listener.incoming().enumerate() {
-                if let Ok(s) = stream {
-                    tx.send(NetworkClient {
-                        id: id as u128,
-                        connected: true,
-                        stream: s,
-                        state: NetworkClientState::Handshake,
-                    })
+        tokio::task::spawn(async move {
+            let listener = TcpListener::bind(addr)
+                .await
+                .expect("Could not bind to TCP socket");
+            let mut id = 0;
+            loop {
+                let (stream, _) = listener
+                    .accept()
+                    .await
                     .expect("Network receiver disconnected");
-                }
+                tx.send(NetworkClient {
+                    id: id as u128,
+                    connected: true,
+                    stream,
+                    state: NetworkClientState::Handshake,
+                })
+                .expect("Network receiver disconnected");
+                id += 1;
             }
         });
         info!("Network server started!");
@@ -87,7 +93,8 @@ impl NetworkClient {
     pub async fn update(&mut self) {
         match self.state {
             NetworkClientState::Handshake => {
-                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await.unwrap();
+                let (_packet_length, _packet_id) =
+                    read_packet_header(&mut self.stream).await.unwrap();
                 let handshake = Handshake::read(&mut self.stream).await.unwrap();
                 // Minecraft versions 1.8 - 1.8.9 use protocol version 47.
                 let compatible_versions = handshake.protocol_version == 47;
@@ -109,7 +116,8 @@ impl NetworkClient {
                 debug!("Got handshake: {:?}", handshake);
             }
             NetworkClientState::Status => {
-                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await.unwrap();
+                let (_packet_length, _packet_id) =
+                    read_packet_header(&mut self.stream).await.unwrap();
                 let statusrequest = StatusRequest::read(&mut self.stream).await.unwrap();
                 debug!("Got status request: {:?}", statusrequest);
                 let mut statusresponse = StatusResponse::new();
@@ -138,7 +146,8 @@ impl NetworkClient {
                 .into();
                 statusresponse.write(&mut self.stream).await.unwrap();
                 debug!("Sending status response: StatusResponse");
-                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await.unwrap();
+                let (_packet_length, _packet_id) =
+                    read_packet_header(&mut self.stream).await.unwrap();
                 let statusping = StatusPing::read(&mut self.stream).await.unwrap();
                 debug!("Got status ping: {:?}", statusping);
                 let mut statuspong = StatusPong::new();
@@ -148,7 +157,8 @@ impl NetworkClient {
                 self.state = NetworkClientState::Disconnected;
             }
             NetworkClientState::Login => {
-                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await.unwrap();
+                let (_packet_length, _packet_id) =
+                    read_packet_header(&mut self.stream).await.unwrap();
                 let loginstart = LoginStart::read(&mut self.stream).await.unwrap();
                 debug!("{:?}", loginstart);
                 // Offline mode skips encryption and compression.

@@ -3,12 +3,12 @@
 pub use functions::*;
 pub use numbers::*;
 pub use other::*;
-use std::io::prelude::*;
-use std::net::TcpStream;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpStream;
 
 // /// Make sure all types can serialize and deserialize to/from `Vec<u8>`.
 // pub trait MCType: Into<Vec<u8>> + TryFrom<Vec<u8>> + Display {
-//     pub async fn read(_stream: &mut TcpStream) -> std::io::Result<Self>;
+//     pub async fn read(_stream: &mut TcpStream) -> tokio::io::Result<Self>;
 // }
 
 /// Helper functions.
@@ -16,14 +16,14 @@ pub mod functions {
     use super::*;
 
     /// Read a single byte from the given `TcpStream`.
-    pub async fn read_byte(t: &mut TcpStream) -> std::io::Result<u8> {
+    pub async fn read_byte(t: &mut TcpStream) -> tokio::io::Result<u8> {
         let mut buffer = [0u8; 1];
-        t.read_exact(&mut buffer)?;
+        t.read_exact(&mut buffer).await?;
         Ok(buffer[0])
     }
     /// Write a single byte to the given `TcpStream`.
-    pub fn write_byte(t: &mut TcpStream, value: u8) -> std::io::Result<u8> {
-        t.write(&[value])?;
+    pub async fn write_byte(t: &mut TcpStream, value: u8) -> tokio::io::Result<u8> {
+        t.write(&[value]).await?;
         Ok(value)
     }
     /// Take `l` bytes from the given `Vec<u8>`.
@@ -43,8 +43,8 @@ pub mod functions {
         a.into_boxed_slice()
     }
     /// Makes returning errors shorter.
-    pub fn io_error(s: &str) -> std::io::Error {
-        use std::io::{Error, ErrorKind};
+    pub fn io_error(s: &str) -> tokio::io::Error {
+        use tokio::io::{Error, ErrorKind};
         Error::new(ErrorKind::Other, s)
     }
 }
@@ -113,7 +113,7 @@ pub mod other {
         }
     }
     impl MCBoolean {
-        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCBoolean> {
+        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCBoolean> {
             let b = read_byte(t).await?;
             Ok(MCBoolean::try_from(vec![b]).unwrap())
         }
@@ -188,7 +188,7 @@ pub mod other {
         }
     }
     impl MCString {
-        pub async fn read(t: &mut TcpStream) -> std::io::Result<Self> {
+        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
             let str_len = MCVarInt::read(t).await?;
             let mut str_bytes = vec![];
             for _ in 0..str_len.into() {
@@ -243,7 +243,7 @@ pub mod other {
         }
     }
     impl MCChat {
-        pub async fn read(_t: &mut TcpStream) -> std::io::Result<Self> {
+        pub async fn read(_t: &mut TcpStream) -> tokio::io::Result<Self> {
             Err(io_error("Cannot read MCChat from stream"))
         }
     }
@@ -261,7 +261,7 @@ pub mod numbers {
         pub value: i8, // -128 to 127
     }
     impl MCByte {
-        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCByte> {
+        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCByte> {
             Ok(MCByte::from_bytes(vec![read_byte(t).await?]))
         }
         pub fn from_bytes(v: Vec<u8>) -> MCByte {
@@ -319,7 +319,7 @@ pub mod numbers {
         pub value: u8, // 0 to 255
     }
     impl MCUnsignedByte {
-        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCUnsignedByte> {
+        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCUnsignedByte> {
             Ok(MCUnsignedByte::from_bytes(vec![read_byte(t).await?]))
         }
         pub fn from_bytes(v: Vec<u8>) -> MCUnsignedByte {
@@ -377,7 +377,7 @@ pub mod numbers {
         pub value: i16, // -32768 to 32767
     }
     impl MCShort {
-        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCShort> {
+        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCShort> {
             let mut bytes = Vec::new();
             bytes.push(read_byte(t).await?); // MSD
             bytes.push(read_byte(t).await?); // LSD
@@ -440,7 +440,7 @@ pub mod numbers {
         pub value: u16, // 0 to 65535
     }
     impl MCUnsignedShort {
-        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCUnsignedShort> {
+        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCUnsignedShort> {
             let mut bytes = Vec::new();
             bytes.push(read_byte(t).await?); // MSD
             bytes.push(read_byte(t).await?); // LSD
@@ -503,7 +503,7 @@ pub mod numbers {
         pub value: i32, // -2147483648 to 2147483647
     }
     impl MCInt {
-        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCInt> {
+        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCInt> {
             let mut bytes = Vec::new();
             for _ in 0..4 {
                 bytes.push(read_byte(t).await?);
@@ -567,7 +567,7 @@ pub mod numbers {
         pub value: u32, // 0 to 4294967295
     }
     impl MCUnsignedInt {
-        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCUnsignedInt> {
+        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCUnsignedInt> {
             let mut bytes = Vec::new();
             for _ in 0..4 {
                 bytes.push(read_byte(t).await?);
@@ -631,7 +631,7 @@ pub mod numbers {
         pub value: i64, // -9223372036854775808 to 9223372036854775807
     }
     impl MCLong {
-        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCLong> {
+        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCLong> {
             let mut bytes = Vec::new();
             for _ in 0..8 {
                 bytes.push(read_byte(t).await?);
@@ -695,7 +695,7 @@ pub mod numbers {
         pub value: u64, // 0 to 18446744073709551615
     }
     impl MCUnsignedLong {
-        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCUnsignedLong> {
+        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCUnsignedLong> {
             let mut bytes = Vec::new();
             for _ in 0..8 {
                 bytes.push(read_byte(t).await?);
@@ -759,7 +759,7 @@ pub mod numbers {
         pub value: f32, // 32-bit floating point number
     }
     impl MCFloat {
-        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCFloat> {
+        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCFloat> {
             let mut bytes = Vec::new();
             for _ in 0..4 {
                 bytes.push(read_byte(t).await?);
@@ -823,7 +823,7 @@ pub mod numbers {
         pub value: f64, // 64-bit floating point number
     }
     impl MCDouble {
-        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCDouble> {
+        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCDouble> {
             let mut bytes = Vec::new();
             for _ in 0..8 {
                 bytes.push(read_byte(t).await?);
@@ -887,7 +887,7 @@ pub mod numbers {
         pub value: i32, // Variable length 32-bit integer
     }
     impl MCVarInt {
-        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCVarInt> {
+        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCVarInt> {
             let mut num_read = 0;
             let mut result = 0i32;
             let mut read = 0u8;
