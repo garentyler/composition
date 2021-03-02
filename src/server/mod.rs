@@ -9,7 +9,7 @@ impl GameServer {
     /// Update the game server.
     ///
     /// Start by updating the network.
-    pub fn update(&mut self) {
-        self.network.update();
+    pub async fn update(&mut self) {
+        self.network.update().await;
     }
 }

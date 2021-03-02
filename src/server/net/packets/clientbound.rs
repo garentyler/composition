@@ -1,4 +1,3 @@
-use super::Packet;
 use crate::mctypes::*;
 use std::convert::{Into, TryFrom};
 use std::net::TcpStream;
@@ -23,18 +22,18 @@ impl TryFrom<Vec<u8>> for StatusResponse {
         Err("unimplemented")
     }
 }
-impl Packet for StatusResponse {
-    fn new() -> Self {
+impl StatusResponse {
+    pub fn new() -> Self {
         StatusResponse {
             json_response: MCString::from(""),
         }
     }
-    fn read(t: &mut TcpStream) -> std::io::Result<Self> {
+    pub async fn read(t: &'_ mut TcpStream) -> std::io::Result<Self> {
         let mut statusresponse = StatusResponse::new();
-        statusresponse.json_response = MCString::read(t)?;
+        statusresponse.json_response = MCString::read(t).await?;
         Ok(statusresponse)
     }
-    fn write(&self, t: &mut TcpStream) -> std::io::Result<()> {
+    pub async fn write(&self, t: &'_ mut TcpStream) -> std::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b)?;
         }
@@ -62,16 +61,16 @@ impl TryFrom<Vec<u8>> for StatusPong {
         Err("unimplemented")
     }
 }
-impl Packet for StatusPong {
-    fn new() -> Self {
+impl StatusPong {
+    pub fn new() -> Self {
         StatusPong { payload: 0.into() }
     }
-    fn read(t: &mut TcpStream) -> std::io::Result<Self> {
+    pub async fn read(t: &mut TcpStream) -> std::io::Result<Self> {
         let mut statuspong = StatusPong::new();
-        statuspong.payload = MCLong::read(t)?;
+        statuspong.payload = MCLong::read(t).await?;
         Ok(statuspong)
     }
-    fn write(&self, t: &mut TcpStream) -> std::io::Result<()> {
+    pub async fn write(&self, t: &mut TcpStream) -> std::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b)?;
         }
@@ -101,20 +100,20 @@ impl TryFrom<Vec<u8>> for LoginSuccess {
         Err("unimplemented")
     }
 }
-impl Packet for LoginSuccess {
-    fn new() -> Self {
+impl LoginSuccess {
+    pub fn new() -> Self {
         LoginSuccess {
             uuid: MCString::from(""),
             username: MCString::from(""),
         }
     }
-    fn read(t: &mut TcpStream) -> std::io::Result<Self> {
+    pub async fn read(t: &mut TcpStream) -> std::io::Result<Self> {
         let mut loginsuccess = LoginSuccess::new();
-        loginsuccess.uuid = MCString::read(t)?;
-        loginsuccess.username = MCString::read(t)?;
+        loginsuccess.uuid = MCString::read(t).await?;
+        loginsuccess.username = MCString::read(t).await?;
         Ok(loginsuccess)
     }
-    fn write(&self, t: &mut TcpStream) -> std::io::Result<()> {
+    pub async fn write(&self, t: &mut TcpStream) -> std::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b)?;
         }
@@ -142,22 +141,22 @@ impl TryFrom<Vec<u8>> for LoginDisconnect {
         Err("unimplemented")
     }
 }
-impl Packet for LoginDisconnect {
-    fn new() -> Self {
+impl LoginDisconnect {
+    pub fn new() -> Self {
         LoginDisconnect {
             reason: MCChat {
                 text: MCString::from(""),
             },
         }
     }
-    fn read(t: &mut TcpStream) -> std::io::Result<Self> {
+    pub async fn read(t: &mut TcpStream) -> std::io::Result<Self> {
         let mut logindisconnect = LoginDisconnect::new();
         logindisconnect.reason = MCChat {
-            text: MCString::read(t)?,
+            text: MCString::read(t).await?,
         };
         Ok(logindisconnect)
     }
-    fn write(&self, t: &mut TcpStream) -> std::io::Result<()> {
+    pub async fn write(&self, t: &mut TcpStream) -> std::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b)?;
         }

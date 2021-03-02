@@ -1,4 +1,3 @@
-use super::Packet;
 use crate::mctypes::*;
 use std::convert::{Into, TryFrom};
 use std::net::TcpStream;
@@ -30,8 +29,8 @@ impl TryFrom<Vec<u8>> for Handshake {
         Err("unimplemented")
     }
 }
-impl Packet for Handshake {
-    fn new() -> Self {
+impl Handshake {
+    pub fn new() -> Self {
         Handshake {
             protocol_version: 0.into(),
             server_address: "".into(),
@@ -39,15 +38,15 @@ impl Packet for Handshake {
             next_state: 0.into(),
         }
     }
-    fn read(t: &mut TcpStream) -> std::io::Result<Self> {
+    pub async fn read(t: &mut TcpStream) -> std::io::Result<Self> {
         let mut handshake = Handshake::new();
-        handshake.protocol_version = MCVarInt::read(t)?;
-        handshake.server_address = MCString::read(t)?;
-        handshake.server_port = MCUnsignedShort::read(t)?;
-        handshake.next_state = MCVarInt::read(t)?;
+        handshake.protocol_version = MCVarInt::read(t).await?;
+        handshake.server_address = MCString::read(t).await?;
+        handshake.server_port = MCUnsignedShort::read(t).await?;
+        handshake.next_state = MCVarInt::read(t).await?;
         Ok(handshake)
     }
-    fn write(&self, t: &mut TcpStream) -> std::io::Result<()> {
+    pub async fn write(&self, t: &mut TcpStream) -> std::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b)?;
         }
@@ -72,15 +71,15 @@ impl TryFrom<Vec<u8>> for StatusRequest {
         Err("unimplemented")
     }
 }
-impl Packet for StatusRequest {
-    fn new() -> Self {
+impl StatusRequest {
+    pub fn new() -> Self {
         StatusRequest {}
     }
-    fn read(_t: &mut TcpStream) -> std::io::Result<Self> {
+    pub async fn read(_t: &mut TcpStream) -> std::io::Result<Self> {
         let statusrequest = StatusRequest::new();
         Ok(statusrequest)
     }
-    fn write(&self, t: &mut TcpStream) -> std::io::Result<()> {
+    pub async fn write(&self, t: &mut TcpStream) -> std::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b)?;
         }
@@ -108,16 +107,16 @@ impl TryFrom<Vec<u8>> for StatusPing {
         Err("unimplemented")
     }
 }
-impl Packet for StatusPing {
-    fn new() -> Self {
+impl StatusPing {
+    pub fn new() -> Self {
         StatusPing { payload: 0.into() }
     }
-    fn read(t: &mut TcpStream) -> std::io::Result<Self> {
+    pub async fn read(t: &mut TcpStream) -> std::io::Result<Self> {
         let mut statusping = StatusPing::new();
-        statusping.payload = MCLong::read(t)?;
+        statusping.payload = MCLong::read(t).await?;
         Ok(statusping)
     }
-    fn write(&self, t: &mut TcpStream) -> std::io::Result<()> {
+    pub async fn write(&self, t: &mut TcpStream) -> std::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b)?;
         }
@@ -145,18 +144,18 @@ impl TryFrom<Vec<u8>> for LoginStart {
         Err("unimplemented")
     }
 }
-impl Packet for LoginStart {
-    fn new() -> Self {
+impl LoginStart {
+    pub fn new() -> Self {
         LoginStart {
             player_name: "".into(),
         }
     }
-    fn read(t: &mut TcpStream) -> std::io::Result<Self> {
+    pub async fn read(t: &mut TcpStream) -> std::io::Result<Self> {
         let mut loginstart = LoginStart::new();
-        loginstart.player_name = MCString::read(t)?;
+        loginstart.player_name = MCString::read(t).await?;
         Ok(loginstart)
     }
-    fn write(&self, t: &mut TcpStream) -> std::io::Result<()> {
+    pub async fn write(&self, t: &mut TcpStream) -> std::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b)?;
         }

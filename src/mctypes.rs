@@ -3,22 +3,20 @@
 pub use functions::*;
 pub use numbers::*;
 pub use other::*;
-use std::convert::{Into, TryFrom};
-use std::fmt::Display;
 use std::io::prelude::*;
 use std::net::TcpStream;
 
-/// Make sure all types can serialize and deserialize to/from `Vec<u8>`.
-pub trait MCType: Into<Vec<u8>> + TryFrom<Vec<u8>> + Display {
-    fn read(_stream: &mut TcpStream) -> std::io::Result<Self>;
-}
+// /// Make sure all types can serialize and deserialize to/from `Vec<u8>`.
+// pub trait MCType: Into<Vec<u8>> + TryFrom<Vec<u8>> + Display {
+//     pub async fn read(_stream: &mut TcpStream) -> std::io::Result<Self>;
+// }
 
 /// Helper functions.
 pub mod functions {
     use super::*;
 
     /// Read a single byte from the given `TcpStream`.
-    pub fn read_byte(t: &mut TcpStream) -> std::io::Result<u8> {
+    pub async fn read_byte(t: &mut TcpStream) -> std::io::Result<u8> {
         let mut buffer = [0u8; 1];
         t.read_exact(&mut buffer)?;
         Ok(buffer[0])
@@ -114,9 +112,9 @@ pub mod other {
             }
         }
     }
-    impl MCType for MCBoolean {
-        fn read(t: &mut TcpStream) -> std::io::Result<MCBoolean> {
-            let b = read_byte(t)?;
+    impl MCBoolean {
+        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCBoolean> {
+            let b = read_byte(t).await?;
             Ok(MCBoolean::try_from(vec![b]).unwrap())
         }
     }
@@ -189,12 +187,12 @@ pub mod other {
             out
         }
     }
-    impl MCType for MCString {
-        fn read(t: &mut TcpStream) -> std::io::Result<Self> {
-            let str_len = MCVarInt::read(t)?;
+    impl MCString {
+        pub async fn read(t: &mut TcpStream) -> std::io::Result<Self> {
+            let str_len = MCVarInt::read(t).await?;
             let mut str_bytes = vec![];
             for _ in 0..str_len.into() {
-                str_bytes.push(read_byte(t)?);
+                str_bytes.push(read_byte(t).await?);
             }
             Ok(MCString {
                 value: String::from_utf8_lossy(&str_bytes).to_string(),
@@ -244,8 +242,8 @@ pub mod other {
             out
         }
     }
-    impl MCType for MCChat {
-        fn read(_t: &mut TcpStream) -> std::io::Result<Self> {
+    impl MCChat {
+        pub async fn read(_t: &mut TcpStream) -> std::io::Result<Self> {
             Err(io_error("Cannot read MCChat from stream"))
         }
     }
@@ -263,8 +261,8 @@ pub mod numbers {
         pub value: i8, // -128 to 127
     }
     impl MCByte {
-        pub fn from_stream(t: &mut TcpStream) -> std::io::Result<MCByte> {
-            Ok(MCByte::from_bytes(vec![read_byte(t)?]))
+        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCByte> {
+            Ok(MCByte::from_bytes(vec![read_byte(t).await?]))
         }
         pub fn from_bytes(v: Vec<u8>) -> MCByte {
             MCByte {
@@ -314,15 +312,6 @@ pub mod numbers {
             self.value.to_be_bytes().to_vec()
         }
     }
-    impl MCType for MCByte {
-        fn read(t: &mut TcpStream) -> std::io::Result<Self> {
-            let mut bytes = Vec::new();
-            for _ in 0..1 {
-                bytes.push(read_byte(t)?);
-            }
-            Ok(MCByte::try_from(bytes).unwrap())
-        }
-    }
 
     /// The equivalent of a `u8`
     #[derive(Debug, Copy, Clone, PartialEq)]
@@ -330,8 +319,8 @@ pub mod numbers {
         pub value: u8, // 0 to 255
     }
     impl MCUnsignedByte {
-        pub fn from_stream(t: &mut TcpStream) -> std::io::Result<MCUnsignedByte> {
-            Ok(MCUnsignedByte::from_bytes(vec![read_byte(t)?]))
+        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCUnsignedByte> {
+            Ok(MCUnsignedByte::from_bytes(vec![read_byte(t).await?]))
         }
         pub fn from_bytes(v: Vec<u8>) -> MCUnsignedByte {
             MCUnsignedByte {
@@ -381,15 +370,6 @@ pub mod numbers {
             self.value.to_be_bytes().to_vec()
         }
     }
-    impl MCType for MCUnsignedByte {
-        fn read(t: &mut TcpStream) -> std::io::Result<Self> {
-            let mut bytes = Vec::new();
-            for _ in 0..1 {
-                bytes.push(read_byte(t)?);
-            }
-            Ok(MCUnsignedByte::try_from(bytes).unwrap())
-        }
-    }
 
     /// The equivalent of an `i16`
     #[derive(Debug, Copy, Clone, PartialEq)]
@@ -397,10 +377,10 @@ pub mod numbers {
         pub value: i16, // -32768 to 32767
     }
     impl MCShort {
-        pub fn from_stream(t: &mut TcpStream) -> std::io::Result<MCShort> {
+        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCShort> {
             let mut bytes = Vec::new();
-            bytes.push(read_byte(t)?); // MSD
-            bytes.push(read_byte(t)?); // LSD
+            bytes.push(read_byte(t).await?); // MSD
+            bytes.push(read_byte(t).await?); // LSD
             Ok(MCShort::from_bytes(bytes))
         }
         pub fn from_bytes(v: Vec<u8>) -> MCShort {
@@ -453,15 +433,6 @@ pub mod numbers {
             self.value.to_be_bytes().to_vec()
         }
     }
-    impl MCType for MCShort {
-        fn read(t: &mut TcpStream) -> std::io::Result<Self> {
-            let mut bytes = Vec::new();
-            for _ in 0..2 {
-                bytes.push(read_byte(t)?);
-            }
-            Ok(MCShort::try_from(bytes).unwrap())
-        }
-    }
 
     /// The equivalent of a `u16`
     #[derive(Debug, Copy, Clone, PartialEq)]
@@ -469,10 +440,10 @@ pub mod numbers {
         pub value: u16, // 0 to 65535
     }
     impl MCUnsignedShort {
-        pub fn from_stream(t: &mut TcpStream) -> std::io::Result<MCUnsignedShort> {
+        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCUnsignedShort> {
             let mut bytes = Vec::new();
-            bytes.push(read_byte(t)?); // MSD
-            bytes.push(read_byte(t)?); // LSD
+            bytes.push(read_byte(t).await?); // MSD
+            bytes.push(read_byte(t).await?); // LSD
             Ok(MCUnsignedShort::from_bytes(bytes))
         }
         pub fn from_bytes(v: Vec<u8>) -> MCUnsignedShort {
@@ -525,15 +496,6 @@ pub mod numbers {
             self.value.to_be_bytes().to_vec()
         }
     }
-    impl MCType for MCUnsignedShort {
-        fn read(t: &mut TcpStream) -> std::io::Result<Self> {
-            let mut bytes = Vec::new();
-            for _ in 0..2 {
-                bytes.push(read_byte(t)?);
-            }
-            Ok(MCUnsignedShort::try_from(bytes).unwrap())
-        }
-    }
 
     /// The equivalent of an `i32`
     #[derive(Debug, Copy, Clone, PartialEq)]
@@ -541,10 +503,10 @@ pub mod numbers {
         pub value: i32, // -2147483648 to 2147483647
     }
     impl MCInt {
-        pub fn from_stream(t: &mut TcpStream) -> std::io::Result<MCInt> {
+        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCInt> {
             let mut bytes = Vec::new();
             for _ in 0..4 {
-                bytes.push(read_byte(t)?);
+                bytes.push(read_byte(t).await?);
             }
             Ok(MCInt::from_bytes(bytes))
         }
@@ -598,15 +560,6 @@ pub mod numbers {
             self.value.to_be_bytes().to_vec()
         }
     }
-    impl MCType for MCInt {
-        fn read(t: &mut TcpStream) -> std::io::Result<Self> {
-            let mut bytes = Vec::new();
-            for _ in 0..4 {
-                bytes.push(read_byte(t)?);
-            }
-            Ok(MCInt::try_from(bytes).unwrap())
-        }
-    }
 
     /// The equivalent of a `u32`
     #[derive(Debug, Copy, Clone, PartialEq)]
@@ -614,10 +567,10 @@ pub mod numbers {
         pub value: u32, // 0 to 4294967295
     }
     impl MCUnsignedInt {
-        pub fn from_stream(t: &mut TcpStream) -> std::io::Result<MCUnsignedInt> {
+        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCUnsignedInt> {
             let mut bytes = Vec::new();
             for _ in 0..4 {
-                bytes.push(read_byte(t)?);
+                bytes.push(read_byte(t).await?);
             }
             Ok(MCUnsignedInt::from_bytes(bytes))
         }
@@ -671,15 +624,6 @@ pub mod numbers {
             self.value.to_be_bytes().to_vec()
         }
     }
-    impl MCType for MCUnsignedInt {
-        fn read(t: &mut TcpStream) -> std::io::Result<Self> {
-            let mut bytes = Vec::new();
-            for _ in 0..4 {
-                bytes.push(read_byte(t)?);
-            }
-            Ok(MCUnsignedInt::try_from(bytes).unwrap())
-        }
-    }
 
     /// The equivalent of an `864`
     #[derive(Debug, Copy, Clone, PartialEq)]
@@ -687,10 +631,10 @@ pub mod numbers {
         pub value: i64, // -9223372036854775808 to 9223372036854775807
     }
     impl MCLong {
-        pub fn from_stream(t: &mut TcpStream) -> std::io::Result<MCLong> {
+        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCLong> {
             let mut bytes = Vec::new();
             for _ in 0..8 {
-                bytes.push(read_byte(t)?);
+                bytes.push(read_byte(t).await?);
             }
             Ok(MCLong::from_bytes(bytes))
         }
@@ -744,15 +688,6 @@ pub mod numbers {
             self.value.to_be_bytes().to_vec()
         }
     }
-    impl MCType for MCLong {
-        fn read(t: &mut TcpStream) -> std::io::Result<Self> {
-            let mut bytes = Vec::new();
-            for _ in 0..8 {
-                bytes.push(read_byte(t)?);
-            }
-            Ok(MCLong::try_from(bytes).unwrap())
-        }
-    }
 
     /// The equivalent of a `u64`
     #[derive(Debug, Copy, Clone, PartialEq)]
@@ -760,10 +695,10 @@ pub mod numbers {
         pub value: u64, // 0 to 18446744073709551615
     }
     impl MCUnsignedLong {
-        pub fn from_stream(t: &mut TcpStream) -> std::io::Result<MCUnsignedLong> {
+        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCUnsignedLong> {
             let mut bytes = Vec::new();
             for _ in 0..8 {
-                bytes.push(read_byte(t)?);
+                bytes.push(read_byte(t).await?);
             }
             Ok(MCUnsignedLong::from_bytes(bytes))
         }
@@ -817,15 +752,6 @@ pub mod numbers {
             self.value.to_be_bytes().to_vec()
         }
     }
-    impl MCType for MCUnsignedLong {
-        fn read(t: &mut TcpStream) -> std::io::Result<Self> {
-            let mut bytes = Vec::new();
-            for _ in 0..8 {
-                bytes.push(read_byte(t)?);
-            }
-            Ok(MCUnsignedLong::try_from(bytes).unwrap())
-        }
-    }
 
     /// The equivalent of a `f32`
     #[derive(Debug, Copy, Clone, PartialEq)]
@@ -833,10 +759,10 @@ pub mod numbers {
         pub value: f32, // 32-bit floating point number
     }
     impl MCFloat {
-        pub fn from_stream(t: &mut TcpStream) -> std::io::Result<MCFloat> {
+        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCFloat> {
             let mut bytes = Vec::new();
             for _ in 0..4 {
-                bytes.push(read_byte(t)?);
+                bytes.push(read_byte(t).await?);
             }
             Ok(MCFloat::from_bytes(bytes))
         }
@@ -890,20 +816,30 @@ pub mod numbers {
             self.value.to_be_bytes().to_vec()
         }
     }
-    impl MCType for MCFloat {
-        fn read(t: &mut TcpStream) -> std::io::Result<Self> {
-            let mut bytes = Vec::new();
-            for _ in 0..4 {
-                bytes.push(read_byte(t)?);
-            }
-            Ok(MCFloat::try_from(bytes).unwrap())
-        }
-    }
 
     /// The equivalent of a `f64`
     #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct MCDouble {
         pub value: f64, // 64-bit floating point number
+    }
+    impl MCDouble {
+        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCDouble> {
+            let mut bytes = Vec::new();
+            for _ in 0..8 {
+                bytes.push(read_byte(t).await?);
+            }
+            Ok(MCDouble::from_bytes(bytes))
+        }
+        pub fn from_bytes(v: Vec<u8>) -> MCDouble {
+            let mut a = [0u8; 8];
+            a.copy_from_slice(&get_bytes(v, 8));
+            MCDouble {
+                value: f64::from_be_bytes(a),
+            }
+        }
+        pub fn to_bytes(&self) -> Vec<u8> {
+            self.value.to_be_bytes().to_vec()
+        }
     }
     impl From<f64> for MCDouble {
         fn from(v: f64) -> MCDouble {
@@ -944,20 +880,36 @@ pub mod numbers {
             self.value.to_be_bytes().to_vec()
         }
     }
-    impl MCType for MCDouble {
-        fn read(t: &mut TcpStream) -> std::io::Result<Self> {
-            let mut bytes = Vec::new();
-            for _ in 0..8 {
-                bytes.push(read_byte(t)?);
-            }
-            Ok(MCDouble::try_from(bytes).unwrap())
-        }
-    }
 
     /// A variable-length integer.
     #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct MCVarInt {
         pub value: i32, // Variable length 32-bit integer
+    }
+    impl MCVarInt {
+        pub async fn read(t: &mut TcpStream) -> std::io::Result<MCVarInt> {
+            let mut num_read = 0;
+            let mut result = 0i32;
+            let mut read = 0u8;
+            let mut run_once = false;
+            while (read & 0b10000000) != 0 || !run_once {
+                run_once = true;
+                read = read_byte(t).await?;
+                let value = (read & 0b01111111) as i32;
+                result |= value << (7 * num_read);
+                num_read += 1;
+                if num_read > 5 {
+                    return Err(io_error("MCVarInt is too big"));
+                }
+            }
+            Ok(MCVarInt { value: result })
+        }
+        pub fn from_bytes(_v: Vec<u8>) -> MCVarInt {
+            unimplemented!()
+        }
+        pub fn to_bytes(&self) -> Vec<u8> {
+            unimplemented!()
+        }
     }
     impl From<i32> for MCVarInt {
         fn from(v: i32) -> MCVarInt {
@@ -1016,25 +968,6 @@ pub mod numbers {
                 out.push(temp);
             }
             return out;
-        }
-    }
-    impl MCType for MCVarInt {
-        fn read(t: &mut TcpStream) -> std::io::Result<Self> {
-            let mut num_read = 0;
-            let mut result = 0i32;
-            let mut read = 0u8;
-            let mut run_once = false;
-            while (read & 0b10000000) != 0 || !run_once {
-                run_once = true;
-                read = read_byte(t)?;
-                let value = (read & 0b01111111) as i32;
-                result |= value << (7 * num_read);
-                num_read += 1;
-                if num_read > 5 {
-                    return Err(io_error("MCVarInt is too big"));
-                }
-            }
-            Ok(MCVarInt { value: result })
         }
     }
 }

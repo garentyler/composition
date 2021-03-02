@@ -30,7 +30,7 @@ pub fn init() {
 }
 
 /// Start the server.
-pub fn start_server() -> server::GameServer {
+pub async fn start_server() -> server::GameServer {
     // Start the network.
     let network = server::net::NetworkServer::new("0.0.0.0:25565");
     let server = server::GameServer { network: network };

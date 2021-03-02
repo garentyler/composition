@@ -41,7 +41,7 @@ impl NetworkServer {
         }
     }
     /// Update each client in `self.clients`.
-    pub fn update(&mut self) {
+    pub async fn update(&mut self) {
         loop {
             match self.receiver.try_recv() {
                 Ok(client) => {
@@ -56,7 +56,7 @@ impl NetworkServer {
             }
         }
         for client in self.clients.iter_mut() {
-            client.update();
+            client.update().await;
         }
     }
 }
@@ -84,11 +84,11 @@ impl NetworkClient {
     ///
     /// Updating could mean connecting new clients, reading packets,
     /// writing packets, or disconnecting clients.
-    pub fn update(&mut self) {
+    pub async fn update(&mut self) {
         match self.state {
             NetworkClientState::Handshake => {
-                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).unwrap();
-                let handshake = Handshake::read(&mut self.stream).unwrap();
+                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await.unwrap();
+                let handshake = Handshake::read(&mut self.stream).await.unwrap();
                 // Minecraft versions 1.8 - 1.8.9 use protocol version 47.
                 let compatible_versions = handshake.protocol_version == 47;
                 let next_state = match handshake.next_state.into() {
@@ -103,14 +103,14 @@ impl NetworkClient {
                     logindisconnect.reason = MCChat {
                         text: MCString::from("Incompatible client! Server is on 1.8.9"),
                     };
-                    logindisconnect.write(&mut self.stream).unwrap();
+                    logindisconnect.write(&mut self.stream).await.unwrap();
                     self.state = NetworkClientState::Disconnected;
                 }
                 debug!("Got handshake: {:?}", handshake);
             }
             NetworkClientState::Status => {
-                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).unwrap();
-                let statusrequest = StatusRequest::read(&mut self.stream).unwrap();
+                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await.unwrap();
+                let statusrequest = StatusRequest::read(&mut self.stream).await.unwrap();
                 debug!("Got status request: {:?}", statusrequest);
                 let mut statusresponse = StatusResponse::new();
                 statusresponse.json_response = json!({
@@ -123,7 +123,7 @@ impl NetworkClient {
                         "online": 5,
                         "sample": [
                             {
-                                "name": "ElementG9",
+                                "name": "shvr",
                                 "id": "e3f58380-60bb-4714-91f2-151d525e64aa"
                             }
                         ]
@@ -136,27 +136,27 @@ impl NetworkClient {
                 })
                 .to_string()
                 .into();
-                statusresponse.write(&mut self.stream).unwrap();
+                statusresponse.write(&mut self.stream).await.unwrap();
                 debug!("Sending status response: StatusResponse");
-                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).unwrap();
-                let statusping = StatusPing::read(&mut self.stream).unwrap();
+                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await.unwrap();
+                let statusping = StatusPing::read(&mut self.stream).await.unwrap();
                 debug!("Got status ping: {:?}", statusping);
                 let mut statuspong = StatusPong::new();
                 statuspong.payload = statusping.payload;
-                statuspong.write(&mut self.stream).unwrap();
+                statuspong.write(&mut self.stream).await.unwrap();
                 debug!("Sending status pong: {:?}", statuspong);
                 self.state = NetworkClientState::Disconnected;
             }
             NetworkClientState::Login => {
-                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).unwrap();
-                let loginstart = LoginStart::read(&mut self.stream).unwrap();
+                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await.unwrap();
+                let loginstart = LoginStart::read(&mut self.stream).await.unwrap();
                 debug!("{:?}", loginstart);
                 // Offline mode skips encryption and compression.
                 let mut loginsuccess = LoginSuccess::new();
                 // We're in offline mode, so this is a temporary uuid.
                 loginsuccess.uuid = "00000000-0000-3000-0000-000000000000".into();
                 loginsuccess.username = loginstart.player_name;
-                loginsuccess.write(&mut self.stream).unwrap();
+                loginsuccess.write(&mut self.stream).await.unwrap();
                 debug!("{:?}", loginsuccess);
                 self.state = NetworkClientState::Play;
             }
