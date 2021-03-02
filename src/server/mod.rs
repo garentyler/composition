@@ -209,6 +209,25 @@ impl NetworkClient {
                     read_packet_header(&mut self.stream).await.unwrap();
                 let clientsettings = ClientSettings::read(&mut self.stream).await.unwrap();
                 debug!("{:?}", clientsettings);
+                // TODO: S->C Held Item Change
+                // TODO: S->C Declare Recipes
+                // TODO: S->C Tags
+                // TODO: S->C Entity Status
+                // TODO: S->C Declare Commands
+                // TODO: S->C Unlock Recipes
+                // TODO: S->C Player Position and Look
+                // TODO: S->C Player Info (Add Player action)
+                // TODO: S->C Player Info (Update latency action)
+                // TODO: S->C Update View Position
+                // TODO: S->C Update Light
+                // TODO: S->C Chunk Data
+                // TODO: S->C World Border
+                // TODO: S->C Spawn Position
+                // TODO: S->C Player Position and Look
+                // TODO: C->S Teleport Confirm
+                // TODO: C->S Player Position and Look
+                // TODO: C->S Client Status
+                // TODO: S->C inventories, entities, etc.
             }
             NetworkClientState::Play => {}
             NetworkClientState::Disconnected => {
