@@ -10,9 +10,9 @@ pub mod server;
 /// The data types for blocks, chunks, dimensions, and world files.
 pub mod world;
 
-pub use mctypes::*;
-use serde::{Serialize, Deserialize};
 use log::warn;
+pub use mctypes::*;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
@@ -32,7 +32,10 @@ lazy_static! {
             if let Ok(c) = toml::from_str::<Config>(&data) {
                 Ok(c)
             } else {
-                Err(std::io::Error::new(std::io::ErrorKind::Other, "Could not parse toml"))
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    "Could not parse toml",
+                ))
             }
         };
         if let Ok(c) = config_from_file() {
@@ -81,9 +84,6 @@ pub fn init() {
 }
 
 /// Start the server.
-pub async fn start_server() -> server::GameServer {
-    // Start the network.
-    let network = server::net::NetworkServer::new(format!("0.0.0.0:{}", CONFIG.port));
-    let server = server::GameServer { network: network };
-    server
+pub async fn start_server() -> server::Server {
+    server::Server::new(format!("0.0.0.0:{}", CONFIG.port))
 }
