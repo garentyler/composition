@@ -1,10 +1,15 @@
+/// Data types for every entity in the game.
 pub mod entity;
+/// Implementations of the data types needed for the Minecraft protocol.
 pub mod mctypes;
+/// The logic for the server.
 pub mod server;
+/// The data types for blocks, chunks, dimensions, and world files.
 pub mod world;
 
 pub use mctypes::*;
 
+/// Set up logging, read the config file, etc.
 pub fn init() {
     // Set up fern logging.
     fern::Dispatch::new()
@@ -24,6 +29,7 @@ pub fn init() {
         .unwrap();
 }
 
+/// Start the server.
 pub fn start_server() -> server::GameServer {
     // Start the network.
     let network = server::net::NetworkServer::new("0.0.0.0:25565");

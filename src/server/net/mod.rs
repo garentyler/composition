@@ -1,3 +1,4 @@
+/// Definitions for all the packets in the Minecraft protocol.
 pub mod packets;
 
 use crate::mctypes::*;
@@ -7,11 +8,16 @@ use serde_json::json;
 use std::net::{TcpListener, TcpStream, ToSocketAddrs};
 use std::sync::mpsc::{self, Receiver, TryRecvError};
 
+/// The part of the server that handles
+/// connecting clients and receiving/sending packets.
 pub struct NetworkServer {
     pub clients: Vec<NetworkClient>,
     receiver: Receiver<NetworkClient>,
 }
 impl NetworkServer {
+    /// Create a thread for listening to new clients.
+    /// Use `std::sync::mpsc::channel()` to send the new clients across threads,
+    /// then hold that in a queue for processing on an update.
     pub fn new<A: 'static + ToSocketAddrs + Send>(addr: A) -> NetworkServer {
         let (tx, rx) = mpsc::channel();
         std::thread::spawn(move || {
@@ -34,6 +40,7 @@ impl NetworkServer {
             receiver: rx,
         }
     }
+    /// Update each client in `self.clients`.
     pub fn update(&mut self) {
         loop {
             match self.receiver.try_recv() {
@@ -53,6 +60,9 @@ impl NetworkServer {
         }
     }
 }
+
+/// The network client can only be in a few states,
+/// this enum keeps track of that.
 pub enum NetworkClientState {
     Handshake,
     Status,
@@ -60,6 +70,9 @@ pub enum NetworkClientState {
     Play,
     Disconnected,
 }
+
+/// A wrapper to contain everything related
+/// to networking for the client.
 pub struct NetworkClient {
     pub id: u128,
     pub connected: bool,
@@ -67,6 +80,10 @@ pub struct NetworkClient {
     pub state: NetworkClientState,
 }
 impl NetworkClient {
+    /// Update the client.
+    ///
+    /// Updating could mean connecting new clients, reading packets,
+    /// writing packets, or disconnecting clients.
     pub fn update(&mut self) {
         match self.state {
             NetworkClientState::Handshake => {
@@ -114,8 +131,11 @@ impl NetworkClient {
                     "description": {
                         "text": "Hello world!"
                     },
+                    // TODO: Dynamically send the icon instead of linking statically.
                     "favicon": format!("data:image/png;base64,{}", radix64::STD.encode(include_bytes!("../../server-icon.png")))
-                }).to_string().into();
+                })
+                .to_string()
+                .into();
                 statusresponse.write(&mut self.stream).unwrap();
                 debug!("Sending status response: StatusResponse");
                 let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).unwrap();

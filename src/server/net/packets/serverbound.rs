@@ -3,6 +3,7 @@ use crate::mctypes::*;
 use std::convert::{Into, TryFrom};
 use std::net::TcpStream;
 
+/// Needed for every interaction with the server.
 #[derive(Debug, Clone)]
 pub struct Handshake {
     pub protocol_version: MCVarInt,

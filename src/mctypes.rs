@@ -8,23 +8,27 @@ use std::fmt::Display;
 use std::io::prelude::*;
 use std::net::TcpStream;
 
+/// Make sure all types can serialize and deserialize to/from `Vec<u8>`.
 pub trait MCType: Into<Vec<u8>> + TryFrom<Vec<u8>> + Display {
     fn read(_stream: &mut TcpStream) -> std::io::Result<Self>;
 }
 
-// Helper functions.
+/// Helper functions.
 pub mod functions {
     use super::*;
 
+    /// Read a single byte from the given `TcpStream`.
     pub fn read_byte(t: &mut TcpStream) -> std::io::Result<u8> {
         let mut buffer = [0u8; 1];
         t.read_exact(&mut buffer)?;
         Ok(buffer[0])
     }
+    /// Write a single byte to the given `TcpStream`.
     pub fn write_byte(t: &mut TcpStream, value: u8) -> std::io::Result<u8> {
         t.write(&[value])?;
         Ok(value)
     }
+    /// Take `l` bytes from the given `Vec<u8>`.
     pub fn get_bytes(v: Vec<u8>, l: usize) -> Box<[u8]> {
         use std::collections::VecDeque;
         let mut v = VecDeque::from(v);
@@ -40,19 +44,20 @@ pub mod functions {
         }
         a.into_boxed_slice()
     }
-    // Makes returning errors shorter.
+    /// Makes returning errors shorter.
     pub fn io_error(s: &str) -> std::io::Error {
         use std::io::{Error, ErrorKind};
         Error::new(ErrorKind::Other, s)
     }
 }
 
-// The other types, (booleans and strings).
+/// The other types, (booleans and strings).
 pub mod other {
     use super::*;
     use std::convert::{From, Into, TryFrom};
     use std::fmt::Display;
 
+    /// The equivalent of a `bool`.
     #[derive(Debug, Copy, Clone, PartialEq)]
     pub enum MCBoolean {
         True,
@@ -116,6 +121,7 @@ pub mod other {
         }
     }
 
+    /// The equivalent of a `String`.
     #[derive(Debug, PartialEq)]
     pub struct MCString {
         pub value: String,
@@ -196,6 +202,7 @@ pub mod other {
         }
     }
 
+    /// A normal `MCString`, but with extra embedded formatting data.
     #[derive(Debug, PartialEq)]
     pub struct MCChat {
         pub text: MCString,
@@ -244,13 +251,13 @@ pub mod other {
     }
 }
 
-// All the numbers, from i8 and u8 to i64 and u64, plus VarInts.
+/// All the numbers, from `i8` and `u8` to `i64` and `u64`, plus `VarInt`s.
 pub mod numbers {
     use super::*;
     use std::convert::{From, Into, TryFrom};
     use std::fmt::Display;
 
-    // Byte: i8
+    /// The equivalent of an `i8`
     #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct MCByte {
         pub value: i8, // -128 to 127
@@ -317,7 +324,7 @@ pub mod numbers {
         }
     }
 
-    // Unsigned Byte: u8
+    /// The equivalent of a `u8`
     #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct MCUnsignedByte {
         pub value: u8, // 0 to 255
@@ -384,7 +391,7 @@ pub mod numbers {
         }
     }
 
-    // Short: i16
+    /// The equivalent of an `i16`
     #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct MCShort {
         pub value: i16, // -32768 to 32767
@@ -456,7 +463,7 @@ pub mod numbers {
         }
     }
 
-    // Unsigned Short: u16
+    /// The equivalent of a `u16`
     #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct MCUnsignedShort {
         pub value: u16, // 0 to 65535
@@ -528,7 +535,7 @@ pub mod numbers {
         }
     }
 
-    // Int: i32
+    /// The equivalent of an `i32`
     #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct MCInt {
         pub value: i32, // -2147483648 to 2147483647
@@ -601,7 +608,7 @@ pub mod numbers {
         }
     }
 
-    // Unsigned Int: u32
+    /// The equivalent of a `u32`
     #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct MCUnsignedInt {
         pub value: u32, // 0 to 4294967295
@@ -674,7 +681,7 @@ pub mod numbers {
         }
     }
 
-    // Long: i64
+    /// The equivalent of an `864`
     #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct MCLong {
         pub value: i64, // -9223372036854775808 to 9223372036854775807
@@ -747,7 +754,7 @@ pub mod numbers {
         }
     }
 
-    // Unsigned Long: u64
+    /// The equivalent of a `u64`
     #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct MCUnsignedLong {
         pub value: u64, // 0 to 18446744073709551615
@@ -820,7 +827,7 @@ pub mod numbers {
         }
     }
 
-    // Float: f32
+    /// The equivalent of a `f32`
     #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct MCFloat {
         pub value: f32, // 32-bit floating point number
@@ -893,7 +900,7 @@ pub mod numbers {
         }
     }
 
-    // Double: f64
+    /// The equivalent of a `f64`
     #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct MCDouble {
         pub value: f64, // 64-bit floating point number
@@ -947,6 +954,7 @@ pub mod numbers {
         }
     }
 
+    /// A variable-length integer.
     #[derive(Debug, Copy, Clone, PartialEq)]
     pub struct MCVarInt {
         pub value: i32, // Variable length 32-bit integer
