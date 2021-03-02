@@ -1,7 +1,7 @@
 /// Definitions for all the packets in the Minecraft protocol.
 pub mod packets;
 
-use crate::mctypes::*;
+use crate::{mctypes::*, CONFIG, FAVICON};
 use log::{debug, info};
 use packets::*;
 use serde_json::json;
@@ -127,7 +127,7 @@ impl NetworkClient {
                         "protocol": 47,
                     },
                     "players": {
-                        "max": 100,
+                        "max": CONFIG.max_players,
                         "online": 5,
                         "sample": [
                             {
@@ -137,10 +137,10 @@ impl NetworkClient {
                         ]
                     },
                     "description": {
-                        "text": "Hello world!"
+                        "text": CONFIG.motd
                     },
                     // TODO: Dynamically send the icon instead of linking statically.
-                    "favicon": format!("data:image/png;base64,{}", radix64::STD.encode(include_bytes!("../../server-icon.png")))
+                    "favicon": format!("data:image/png;base64,{}", if FAVICON.is_ok() { radix64::STD.encode(FAVICON.as_ref().unwrap().as_slice()) } else { "".to_owned() })
                 })
                 .to_string()
                 .into();
