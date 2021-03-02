@@ -22,7 +22,11 @@ pub fn init() {
                 message = message,
             ))
         })
-        .level(log::LevelFilter::Debug)
+        .level(if cfg!(debug_assertions) {
+            log::LevelFilter::Debug
+        } else {
+            log::LevelFilter::Info
+        })
         .chain(std::io::stdout())
         .chain(fern::log_file("output.log").unwrap())
         .apply()
