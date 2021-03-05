@@ -1,5 +1,5 @@
-use crate::world::location::Location;
 use crate::server::NetworkClient;
+use crate::world::location::Location;
 
 pub struct Player {
     position: Location,

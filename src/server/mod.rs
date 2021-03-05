@@ -1,13 +1,13 @@
 /// Definitions for all the packets in the Minecraft protocol.
 pub mod packets;
 
+use crate::entity::player::Player;
 use crate::{mctypes::*, CONFIG, FAVICON};
 use log::{debug, info};
 use packets::*;
 use serde_json::json;
 use std::sync::mpsc::{self, Receiver, TryRecvError};
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
-use crate::entity::player::Player;
 
 /// The struct containing all the data and running all the updates.
 pub struct Server {
@@ -29,7 +29,7 @@ impl Server {
                     .await
                     .expect("Network receiver disconnected");
                 tx.send(NetworkClient::new(stream, id as u128))
-                .expect("Network receiver disconnected");
+                    .expect("Network receiver disconnected");
                 id += 1;
             }
         });
@@ -202,24 +202,35 @@ impl NetworkClient {
                 self.username = Some(loginsuccess.username.clone().into());
                 self.state = NetworkClientState::Play;
                 let joingame = JoinGame::new();
-                /// TODO: Fill out `joingame` with actual information.
+                // TODO: Fill out `joingame` with actual information.
                 joingame.write(&mut self.stream).await.unwrap();
                 debug!("{:?}", joingame);
-                let (packet_length, packet_id) =
+                let (_packet_length, _packet_id) =
                     read_packet_header(&mut self.stream).await.unwrap();
                 let clientsettings = ClientSettings::read(&mut self.stream).await.unwrap();
+                // TODO: Actualy use client settings.
                 debug!("{:?}", clientsettings);
-                // TODO: S->C Held Item Change
-                // TODO: S->C Declare Recipes
-                // TODO: S->C Tags
-                // TODO: S->C Entity Status
-                // TODO: S->C Declare Commands
-                // TODO: S->C Unlock Recipes
+
+                // All good up to here.
+
+                let helditemchange = HeldItemChange::new();
+                // TODO: Retrieve selected slot from storage.
+                helditemchange.write(&mut self.stream).await.unwrap();
+                debug!("{:?}", helditemchange);
+                // TODO: S->C Declare Recipes (1.16?)
+                // TODO: S->C Tags (1.16?)
+                // TODO: S->C Entity Status (optional?)
+                // TODO: S->C Declare Commands (1.16?)
+                // TODO: S->C Unlock Recipes (1.16?)
                 // TODO: S->C Player Position and Look
-                // TODO: S->C Player Info (Add Player action)
-                // TODO: S->C Player Info (Update latency action)
-                // TODO: S->C Update View Position
-                // TODO: S->C Update Light
+                let playerpositionandlook = PlayerPositionAndLook::new();
+                // TODO: Retrieve player position from storage.
+                // playerpositionandlook.write(&mut self.stream).await.unwrap();
+                debug!("{:?}", playerpositionandlook);
+                // TODO: S->C Player Info (Add Player action) (1.16?)
+                // TODO: S->C Player Info (Update latency action) (1.16?)
+                // TODO: S->C Update View Position (1.16?)
+                // TODO: S->C Update Light (1.16?)
                 // TODO: S->C Chunk Data
                 // TODO: S->C World Border
                 // TODO: S->C Spawn Position

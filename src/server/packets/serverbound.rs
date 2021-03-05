@@ -170,14 +170,14 @@ pub struct ClientSettings {
     pub chat_mode: MCVarInt, // 0: enabled, 1: commands only, 2: hidden.
     pub chat_colors: MCBoolean,
     pub displayed_skin_parts: MCUnsignedByte, // Bit mask
-    // Displayed skin parts flags:
-    // Bit 0 (0x01): Cape enabled
-    // Bit 1 (0x02): Jacket enabled
-    // Bit 2 (0x04): Left Sleeve enabled
-    // Bit 3 (0x08): Right Sleeve enabled
-    // Bit 4 (0x10): Left Pants Leg enabled
-    // Bit 5 (0x20): Right Pants Leg enabled
-    // Bit 6 (0x40): Hat enabled
+                                              // Displayed skin parts flags:
+                                              // Bit 0 (0x01): Cape enabled
+                                              // Bit 1 (0x02): Jacket enabled
+                                              // Bit 2 (0x04): Left Sleeve enabled
+                                              // Bit 3 (0x08): Right Sleeve enabled
+                                              // Bit 4 (0x10): Left Pants Leg enabled
+                                              // Bit 5 (0x20): Right Pants Leg enabled
+                                              // Bit 6 (0x40): Hat enabled
 }
 impl Into<Vec<u8>> for ClientSettings {
     fn into(self) -> Vec<u8> {
@@ -204,7 +204,7 @@ impl ClientSettings {
         ClientSettings {
             locale: "en_US".into(),
             view_distance: 8.into(), // 8 chunks.
-            chat_mode: 0.into(), // All chat enabled.
+            chat_mode: 0.into(),     // All chat enabled.
             chat_colors: true.into(),
             displayed_skin_parts: 0xff.into(), // Enable all parts.
         }
