@@ -254,9 +254,23 @@ impl NetworkClient {
                 }
             }
             NetworkClientState::Disconnected => {
-                self.connected = false;
+                if self.connected {
+                    self.disconnect(None).await;
+                }
             }
         }
+    }
+
+    async fn disconnect(&mut self, reason: Option<&str>) {
+        self.connected = false;
+        self.state = NetworkClientState::Disconnected;
+        // Send 0x40 Disconnect.
+        let mut disconnect = Disconnect::new();
+        disconnect.reason.text = reason.unwrap_or("Disconnected").into();
+        disconnect.write(&mut self.stream).await.unwrap();
+        debug!("{:?}", disconnect);
+        // Give the client 10 seconds to disconnect before forcing it.
+        tokio::time::sleep(Duration::from_secs(10)).await;
     }
 
     /// Send a keep alive packet to the client.

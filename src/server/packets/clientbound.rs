@@ -469,3 +469,44 @@ impl KeepAlivePing {
         Ok(())
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct Disconnect {
+    pub reason: MCChat,
+}
+impl Into<Vec<u8>> for Disconnect {
+    fn into(self) -> Vec<u8> {
+        let mut out = vec![];
+        let mut temp: Vec<u8> = MCVarInt::from(0x40).into(); // 0x40 Disconnect.
+        temp.extend_from_slice(&Into::<Vec<u8>>::into(self.reason));
+        out.extend_from_slice(&Into::<Vec<u8>>::into(MCVarInt::from(temp.len() as i32)));
+        out.extend_from_slice(&temp);
+        out
+    }
+}
+impl TryFrom<Vec<u8>> for Disconnect {
+    type Error = &'static str;
+    fn try_from(_bytes: Vec<u8>) -> Result<Self, Self::Error> {
+        Err("unimplemented")
+    }
+}
+impl Disconnect {
+    pub fn new() -> Self {
+        Disconnect {
+            reason: MCChat {
+                text: "Disconnected".into(),
+            },
+        }
+    }
+    pub async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
+        let mut keepalive = Disconnect::new();
+        keepalive.reason = MCChat::read(t).await?;
+        Ok(keepalive)
+    }
+    pub async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
+        for b in Into::<Vec<u8>>::into(self.clone()) {
+            write_byte(t, b).await?;
+        }
+        Ok(())
+    }
+}
