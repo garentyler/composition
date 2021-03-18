@@ -391,3 +391,44 @@ impl PlayerPositionAndLook {
         Ok(())
     }
 }
+
+// TODO: Actually send the position.
+#[derive(Debug, Clone)]
+pub struct SpawnPosition {
+    position: MCPosition,
+}
+impl Into<Vec<u8>> for SpawnPosition {
+    fn into(self) -> Vec<u8> {
+        let mut out = vec![];
+        let mut temp: Vec<u8> = MCVarInt::from(0x05).into(); // 0x05 Spawn Position.
+        // temp.extend_from_slice(&Into::<Vec<u8>>::into(self.position));
+        temp.extend_from_slice(&0u64.to_be_bytes());
+        out.extend_from_slice(&Into::<Vec<u8>>::into(MCVarInt::from(temp.len() as i32)));
+        out.extend_from_slice(&temp);
+        out
+    }
+}
+impl TryFrom<Vec<u8>> for SpawnPosition {
+    type Error = &'static str;
+    fn try_from(_bytes: Vec<u8>) -> Result<Self, Self::Error> {
+        Err("unimplemented")
+    }
+}
+impl SpawnPosition {
+    pub fn new() -> Self {
+        SpawnPosition {
+            position: MCPosition::new(),
+        }
+    }
+    pub async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
+        let mut spawnposition = SpawnPosition::new();
+        spawnposition.position = MCPosition::read(t).await?;
+        Ok(spawnposition)
+    }
+    pub async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
+        for b in Into::<Vec<u8>>::into(self.clone()) {
+            write_byte(t, b).await?;
+        }
+        Ok(())
+    }
+}

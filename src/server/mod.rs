@@ -225,7 +225,7 @@ impl NetworkClient {
                 // TODO: S->C Player Position and Look
                 let playerpositionandlook = PlayerPositionAndLook::new();
                 // TODO: Retrieve player position from storage.
-                // playerpositionandlook.write(&mut self.stream).await.unwrap();
+                playerpositionandlook.write(&mut self.stream).await.unwrap();
                 debug!("{:?}", playerpositionandlook);
                 // TODO: S->C Player Info (Add Player action) (1.16?)
                 // TODO: S->C Player Info (Update latency action) (1.16?)
@@ -234,6 +234,9 @@ impl NetworkClient {
                 // TODO: S->C Chunk Data
                 // TODO: S->C World Border
                 // TODO: S->C Spawn Position
+                let spawnposition = SpawnPosition::new();
+                spawnposition.write(&mut self.stream).await.unwrap();
+                debug!("{:?}", spawnposition);
                 // TODO: S->C Player Position and Look
                 // TODO: C->S Teleport Confirm
                 // TODO: C->S Player Position and Look

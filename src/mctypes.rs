@@ -247,6 +247,66 @@ pub mod other {
             Err(io_error("Cannot read MCChat from stream"))
         }
     }
+
+    // TODO: Actually make the MCPosition work.
+    #[derive(Debug, PartialEq, Clone)]
+    pub struct MCPosition {
+        x: MCLong,
+        y: MCLong,
+        z: MCLong,
+    }
+    impl Display for MCPosition {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(
+                f,
+                "({}, {}, {})",
+                self.x,
+                self.y,
+                self.z,
+            )
+        }
+    }
+    impl TryFrom<Vec<u8>> for MCPosition {
+        type Error = &'static str;
+        fn try_from(_bytes: Vec<u8>) -> Result<Self, Self::Error> {
+            Err("Cannot read MCPosition from bytes")
+        }
+    }
+    impl Into<Vec<u8>> for MCPosition {
+        fn into(self) -> Vec<u8> {
+            // Just output
+            // {"text": "<data>"}
+            let mut out = vec![];
+            let mut temp = vec![];
+            temp.extend_from_slice(
+                &(
+                    (
+                        ((Into::<i64>::into(self.x) & 0x3FFFFFF) << 38)
+                            | ((Into::<i64>::into(self.y) & 0xFFF) << 26)
+                            | (Into::<i64>::into(self.z) & 0x3FFFFFF)
+                    ) as u64
+                ).to_be_bytes()
+            );
+            // temp.extend_from_slice(&"{\"text\": \"".to_owned().into_bytes());
+            // temp.extend_from_slice(&self.text.value.into_bytes());
+            // temp.extend_from_slice(&"\"}".to_owned().into_bytes());
+            out.extend_from_slice(&Into::<Vec<u8>>::into(MCVarInt::from(temp.len() as i32)));
+            out.extend_from_slice(&temp);
+            out
+        }
+    }
+    impl MCPosition {
+        pub fn new() -> MCPosition {
+            MCPosition {
+                x: 0.into(),
+                y: 0.into(),
+                z: 0.into(),
+            }
+        }
+        pub async fn read(_t: &mut TcpStream) -> tokio::io::Result<Self> {
+            Err(io_error("Cannot read MCPosition from stream"))
+        }
+    }
 }
 
 /// All the numbers, from `i8` and `u8` to `i64` and `u64`, plus `VarInt`s.
