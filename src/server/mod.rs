@@ -45,7 +45,7 @@ impl Server {
     /// Update the network server.
     ///
     /// Update each client in `self.network_clients`.
-    async fn update_network(&mut self) {
+    async fn update_network(&mut self) -> tokio::io::Result<()> {
         loop {
             match self.network_receiver.try_recv() {
                 Ok(client) => {
@@ -67,18 +67,21 @@ impl Server {
             }
         });
         for client in self.network_clients.iter_mut() {
-            client.update(num_players).await;
+            client.update(num_players).await?;
         }
         // Remove disconnected clients.
         self.network_clients
             .retain(|nc| nc.state != NetworkClientState::Disconnected);
+
+        Ok(())
     }
 
     /// Update the game server.
     ///
     /// Start by updating the network.
-    pub async fn update(&mut self) {
-        self.update_network().await;
+    pub async fn update(&mut self) -> tokio::io::Result<()> {
+        self.update_network().await?;
+        Ok(())
     }
 }
 
@@ -122,12 +125,11 @@ impl NetworkClient {
     ///
     /// Updating could mean connecting new clients, reading packets,
     /// writing packets, or disconnecting clients.
-    pub async fn update(&mut self, num_players: usize) {
+    pub async fn update(&mut self, num_players: usize) -> tokio::io::Result<()> {
         match self.state {
             NetworkClientState::Handshake => {
-                let (_packet_length, _packet_id) =
-                    read_packet_header(&mut self.stream).await.unwrap();
-                let handshake = Handshake::read(&mut self.stream).await.unwrap();
+                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
+                let handshake = Handshake::read(&mut self.stream).await?;
                 // Minecraft versions 1.8 - 1.8.9 use protocol version 47.
                 let compatible_versions = handshake.protocol_version == 47;
                 let next_state = match handshake.next_state.into() {
@@ -142,15 +144,14 @@ impl NetworkClient {
                     logindisconnect.reason = MCChat {
                         text: MCString::from("Incompatible client! Server is on 1.8.9"),
                     };
-                    logindisconnect.write(&mut self.stream).await.unwrap();
+                    logindisconnect.write(&mut self.stream).await?;
                     self.state = NetworkClientState::Disconnected;
                 }
                 debug!("Got handshake: {:?}", handshake);
             }
             NetworkClientState::Status => {
-                let (_packet_length, _packet_id) =
-                    read_packet_header(&mut self.stream).await.unwrap();
-                let statusrequest = StatusRequest::read(&mut self.stream).await.unwrap();
+                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
+                let statusrequest = StatusRequest::read(&mut self.stream).await?;
                 debug!("Got status request: {:?}", statusrequest);
                 let mut statusresponse = StatusResponse::new();
                 statusresponse.json_response = json!({
@@ -175,22 +176,20 @@ impl NetworkClient {
                 })
                 .to_string()
                 .into();
-                statusresponse.write(&mut self.stream).await.unwrap();
+                statusresponse.write(&mut self.stream).await?;
                 debug!("Sending status response: StatusResponse");
-                let (_packet_length, _packet_id) =
-                    read_packet_header(&mut self.stream).await.unwrap();
-                let statusping = StatusPing::read(&mut self.stream).await.unwrap();
+                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
+                let statusping = StatusPing::read(&mut self.stream).await?;
                 debug!("Got status ping: {:?}", statusping);
                 let mut statuspong = StatusPong::new();
                 statuspong.payload = statusping.payload;
-                statuspong.write(&mut self.stream).await.unwrap();
+                statuspong.write(&mut self.stream).await?;
                 debug!("Sending status pong: {:?}", statuspong);
                 self.state = NetworkClientState::Disconnected;
             }
             NetworkClientState::Login => {
-                let (_packet_length, _packet_id) =
-                    read_packet_header(&mut self.stream).await.unwrap();
-                let loginstart = LoginStart::read(&mut self.stream).await.unwrap();
+                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
+                let loginstart = LoginStart::read(&mut self.stream).await?;
                 debug!("{:?}", loginstart);
                 // Offline mode skips encryption and compression.
                 // TODO: Encryption and compression
@@ -199,18 +198,17 @@ impl NetworkClient {
                 // TODO: Get uuid and username from Mojang servers.
                 loginsuccess.uuid = "00000000-0000-3000-0000-000000000000".into();
                 loginsuccess.username = loginstart.player_name;
-                loginsuccess.write(&mut self.stream).await.unwrap();
+                loginsuccess.write(&mut self.stream).await?;
                 debug!("{:?}", loginsuccess);
                 self.uuid = Some(loginsuccess.uuid.clone().into());
                 self.username = Some(loginsuccess.username.clone().into());
                 self.state = NetworkClientState::Play;
                 let joingame = JoinGame::new();
                 // TODO: Fill out `joingame` with actual information.
-                joingame.write(&mut self.stream).await.unwrap();
+                joingame.write(&mut self.stream).await?;
                 debug!("{:?}", joingame);
-                let (_packet_length, _packet_id) =
-                    read_packet_header(&mut self.stream).await.unwrap();
-                let clientsettings = ClientSettings::read(&mut self.stream).await.unwrap();
+                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
+                let clientsettings = ClientSettings::read(&mut self.stream).await?;
                 // TODO: Actualy use client settings.
                 debug!("{:?}", clientsettings);
 
@@ -218,7 +216,7 @@ impl NetworkClient {
 
                 let helditemchange = HeldItemChange::new();
                 // TODO: Retrieve selected slot from storage.
-                helditemchange.write(&mut self.stream).await.unwrap();
+                helditemchange.write(&mut self.stream).await?;
                 debug!("{:?}", helditemchange);
                 // TODO: S->C Declare Recipes (1.16?)
                 // TODO: S->C Tags (1.16?)
@@ -228,7 +226,7 @@ impl NetworkClient {
                 // TODO: S->C Player Position and Look
                 let playerpositionandlook = PlayerPositionAndLook::new();
                 // TODO: Retrieve player position from storage.
-                playerpositionandlook.write(&mut self.stream).await.unwrap();
+                playerpositionandlook.write(&mut self.stream).await?;
                 debug!("{:?}", playerpositionandlook);
                 // TODO: S->C Player Info (Add Player action) (1.16?)
                 // TODO: S->C Player Info (Update latency action) (1.16?)
@@ -238,11 +236,11 @@ impl NetworkClient {
                 // TODO: S->C World Border
                 // TODO: S->C Spawn Position
                 let spawnposition = SpawnPosition::new();
-                spawnposition.write(&mut self.stream).await.unwrap();
+                spawnposition.write(&mut self.stream).await?;
                 debug!("{:?}", spawnposition);
                 // Send initial keep alive.
-                self.send_chat_message("keep alive").await;
-                self.keep_alive().await;
+                self.send_chat_message("keep alive").await?;
+                self.keep_alive().await?;
                 // TODO: S->C Player Position and Look
                 // TODO: C->S Teleport Confirm
                 // TODO: C->S Player Position and Look
@@ -252,51 +250,55 @@ impl NetworkClient {
                     "Welcome {} to the server!",
                     self.username.as_ref().unwrap_or(&"unknown".to_owned())
                 ))
-                .await;
+                .await?;
             }
             NetworkClientState::Play => {
                 if self.last_keep_alive.elapsed() > Duration::from_secs(10) {
-                    self.send_chat_message("keep alive").await;
-                    self.keep_alive().await;
+                    self.send_chat_message("keep alive").await?;
+                    self.keep_alive().await?;
                 }
             }
             NetworkClientState::Disconnected => {
                 if self.connected {
-                    self.disconnect(None).await;
+                    self.disconnect(None).await?;
                 }
             }
         }
+        Ok(())
     }
 
-    async fn send_chat_message<C: Into<MCChat>>(&mut self, message: C) {
+    async fn send_chat_message<C: Into<MCChat>>(&mut self, message: C) -> tokio::io::Result<()> {
         let mut chatmessage = ClientboundChatMessage::new();
         chatmessage.text = message.into();
-        chatmessage.write(&mut self.stream).await.unwrap();
+        chatmessage.write(&mut self.stream).await?;
         debug!("{:?}", chatmessage);
+        Ok(())
     }
 
-    async fn disconnect(&mut self, reason: Option<&str>) {
+    async fn disconnect(&mut self, reason: Option<&str>) -> tokio::io::Result<()> {
         self.connected = false;
         self.state = NetworkClientState::Disconnected;
         // Send 0x40 Disconnect.
         let mut disconnect = Disconnect::new();
         disconnect.reason.text = reason.unwrap_or("Disconnected").into();
-        disconnect.write(&mut self.stream).await.unwrap();
+        disconnect.write(&mut self.stream).await?;
         debug!("{:?}", disconnect);
         // Give the client 10 seconds to disconnect before forcing it.
         tokio::time::sleep(Duration::from_secs(10)).await;
+        Ok(())
     }
 
     /// Send a keep alive packet to the client.
-    async fn keep_alive(&mut self) {
+    async fn keep_alive(&mut self) -> tokio::io::Result<()> {
         // Keep alive ping to client.
         let clientboundkeepalive = KeepAlivePing::new();
-        clientboundkeepalive.write(&mut self.stream).await.unwrap();
+        clientboundkeepalive.write(&mut self.stream).await?;
         debug!("{:?}", clientboundkeepalive);
         // Keep alive pong to server.
-        let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await.unwrap();
-        let serverboundkeepalive = KeepAlivePong::read(&mut self.stream).await.unwrap();
+        let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
+        let serverboundkeepalive = KeepAlivePong::read(&mut self.stream).await?;
         debug!("{:?}", serverboundkeepalive);
         self.last_keep_alive = Instant::now();
+        Ok(())
     }
 }

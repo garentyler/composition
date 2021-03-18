@@ -11,7 +11,7 @@ pub async fn main() {
 
     // The main server loop.
     loop {
-        server.update().await;
+        server.update().await.unwrap();
         std::thread::sleep(Duration::from_millis(2));
     }
 }
