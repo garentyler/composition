@@ -241,15 +241,22 @@ impl NetworkClient {
                 spawnposition.write(&mut self.stream).await.unwrap();
                 debug!("{:?}", spawnposition);
                 // Send initial keep alive.
+                self.send_chat_message("keep alive").await;
                 self.keep_alive().await;
                 // TODO: S->C Player Position and Look
                 // TODO: C->S Teleport Confirm
                 // TODO: C->S Player Position and Look
                 // TODO: C->S Client Status
                 // TODO: S->C inventories, entities, etc.
+                self.send_chat_message(format!(
+                    "Welcome {} to the server!",
+                    self.username.as_ref().unwrap_or(&"unknown".to_owned())
+                ))
+                .await;
             }
             NetworkClientState::Play => {
                 if self.last_keep_alive.elapsed() > Duration::from_secs(10) {
+                    self.send_chat_message("keep alive").await;
                     self.keep_alive().await;
                 }
             }
@@ -259,6 +266,13 @@ impl NetworkClient {
                 }
             }
         }
+    }
+
+    async fn send_chat_message<C: Into<MCChat>>(&mut self, message: C) {
+        let mut chatmessage = ClientboundChatMessage::new();
+        chatmessage.text = message.into();
+        chatmessage.write(&mut self.stream).await.unwrap();
+        debug!("{:?}", chatmessage);
     }
 
     async fn disconnect(&mut self, reason: Option<&str>) {

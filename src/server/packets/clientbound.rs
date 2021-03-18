@@ -510,3 +510,46 @@ impl Disconnect {
         Ok(())
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct ClientboundChatMessage {
+    pub text: MCChat,
+    pub position: MCByte, // 0: chat (chat box), 1: system message (chat box), 2: above hotbar
+}
+impl Into<Vec<u8>> for ClientboundChatMessage {
+    fn into(self) -> Vec<u8> {
+        let mut out = vec![];
+        let mut temp: Vec<u8> = MCVarInt::from(0x02).into(); // 0x02 Clientbound Chat Message.
+        temp.extend_from_slice(&Into::<Vec<u8>>::into(self.text));
+        temp.extend_from_slice(&Into::<Vec<u8>>::into(self.position));
+        out.extend_from_slice(&Into::<Vec<u8>>::into(MCVarInt::from(temp.len() as i32)));
+        out.extend_from_slice(&temp);
+        out
+    }
+}
+impl TryFrom<Vec<u8>> for ClientboundChatMessage {
+    type Error = &'static str;
+    fn try_from(_bytes: Vec<u8>) -> Result<Self, Self::Error> {
+        Err("unimplemented")
+    }
+}
+impl ClientboundChatMessage {
+    pub fn new() -> Self {
+        ClientboundChatMessage {
+            text: MCChat { text: "".into() },
+            position: 0.into(),
+        }
+    }
+    pub async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
+        let mut clientboundchatmessage = ClientboundChatMessage::new();
+        clientboundchatmessage.text = MCChat::read(t).await?;
+        clientboundchatmessage.position = MCByte::read(t).await?;
+        Ok(clientboundchatmessage)
+    }
+    pub async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
+        for b in Into::<Vec<u8>>::into(self.clone()) {
+            write_byte(t, b).await?;
+        }
+        Ok(())
+    }
+}

@@ -205,6 +205,38 @@ pub mod other {
     pub struct MCChat {
         pub text: MCString,
     }
+    impl From<&str> for MCChat {
+        fn from(s: &str) -> MCChat {
+            MCChat { text: s.into() }
+        }
+    }
+    impl From<String> for MCChat {
+        fn from(s: String) -> MCChat {
+            MCChat {
+                text: s.clone().into(),
+            }
+        }
+    }
+    impl Into<String> for MCChat {
+        fn into(self) -> String {
+            self.text.value
+        }
+    }
+    impl PartialEq<&str> for MCChat {
+        fn eq(&self, other: &&str) -> bool {
+            self.text.value == **other
+        }
+    }
+    impl PartialEq<String> for MCChat {
+        fn eq(&self, other: &String) -> bool {
+            self.text.value == *other
+        }
+    }
+    impl PartialEq<&String> for MCChat {
+        fn eq(&self, other: &&String) -> bool {
+            self.text.value == **other
+        }
+    }
     impl Clone for MCChat {
         fn clone(&self) -> Self {
             MCChat {
