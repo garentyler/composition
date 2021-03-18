@@ -271,29 +271,29 @@ impl HeldItemChange {
 pub struct EntityStatus {
     entity_id: MCInt,
     entity_status: MCByte, // See table below.
-    // 1:  Sent when resetting a mob spawn minecart's timer / Rabbit jump animation
-    // 2:  Living Entity hurt
-    // 3:  Living Entity dead
-    // 4:  Iron Golem throwing up arms
-    // 6:  Wolf/Ocelot/Horse taming — Spawn “heart” particles
-    // 7:  Wolf/Ocelot/Horse tamed — Spawn “smoke” particles
-    // 8:  Wolf shaking water — Trigger the shaking animation
-    // 9:  (of self) Eating accepted by server
-    // 10: Sheep eating grass
-    // 10: Play TNT ignite sound
-    // 11: Iron Golem handing over a rose
-    // 12: Villager mating — Spawn “heart” particles
-    // 13: Spawn particles indicating that a villager is angry and seeking revenge
-    // 14: Spawn happy particles near a villager
-    // 15: Witch animation — Spawn “magic” particles
-    // 16: Play zombie converting into a villager sound
-    // 17: Firework exploding
-    // 18: Animal in love (ready to mate) — Spawn “heart” particles
-    // 19: Reset squid rotation
-    // 20: Spawn explosion particle — works for some living entities
-    // 21: Play guardian sound — works for only for guardians
-    // 22: Enables reduced debug for players
-    // 23: Disables reduced debug for players
+                           // 1:  Sent when resetting a mob spawn minecart's timer / Rabbit jump animation
+                           // 2:  Living Entity hurt
+                           // 3:  Living Entity dead
+                           // 4:  Iron Golem throwing up arms
+                           // 6:  Wolf/Ocelot/Horse taming — Spawn “heart” particles
+                           // 7:  Wolf/Ocelot/Horse tamed — Spawn “smoke” particles
+                           // 8:  Wolf shaking water — Trigger the shaking animation
+                           // 9:  (of self) Eating accepted by server
+                           // 10: Sheep eating grass
+                           // 10: Play TNT ignite sound
+                           // 11: Iron Golem handing over a rose
+                           // 12: Villager mating — Spawn “heart” particles
+                           // 13: Spawn particles indicating that a villager is angry and seeking revenge
+                           // 14: Spawn happy particles near a villager
+                           // 15: Witch animation — Spawn “magic” particles
+                           // 16: Play zombie converting into a villager sound
+                           // 17: Firework exploding
+                           // 18: Animal in love (ready to mate) — Spawn “heart” particles
+                           // 19: Reset squid rotation
+                           // 20: Spawn explosion particle — works for some living entities
+                           // 21: Play guardian sound — works for only for guardians
+                           // 22: Enables reduced debug for players
+                           // 23: Disables reduced debug for players
 }
 impl Into<Vec<u8>> for EntityStatus {
     fn into(self) -> Vec<u8> {
@@ -401,7 +401,7 @@ impl Into<Vec<u8>> for SpawnPosition {
     fn into(self) -> Vec<u8> {
         let mut out = vec![];
         let mut temp: Vec<u8> = MCVarInt::from(0x05).into(); // 0x05 Spawn Position.
-        // temp.extend_from_slice(&Into::<Vec<u8>>::into(self.position));
+                                                             // temp.extend_from_slice(&Into::<Vec<u8>>::into(self.position));
         temp.extend_from_slice(&0u64.to_be_bytes());
         out.extend_from_slice(&Into::<Vec<u8>>::into(MCVarInt::from(temp.len() as i32)));
         out.extend_from_slice(&temp);
@@ -424,6 +424,43 @@ impl SpawnPosition {
         let mut spawnposition = SpawnPosition::new();
         spawnposition.position = MCPosition::read(t).await?;
         Ok(spawnposition)
+    }
+    pub async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
+        for b in Into::<Vec<u8>>::into(self.clone()) {
+            write_byte(t, b).await?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct KeepAlivePing {
+    payload: MCVarInt,
+}
+impl Into<Vec<u8>> for KeepAlivePing {
+    fn into(self) -> Vec<u8> {
+        let mut out = vec![];
+        let mut temp: Vec<u8> = MCVarInt::from(0x00).into(); // 0x00 Keep Alive.
+        temp.extend_from_slice(&Into::<Vec<u8>>::into(self.payload));
+        out.extend_from_slice(&Into::<Vec<u8>>::into(MCVarInt::from(temp.len() as i32)));
+        out.extend_from_slice(&temp);
+        out
+    }
+}
+impl TryFrom<Vec<u8>> for KeepAlivePing {
+    type Error = &'static str;
+    fn try_from(_bytes: Vec<u8>) -> Result<Self, Self::Error> {
+        Err("unimplemented")
+    }
+}
+impl KeepAlivePing {
+    pub fn new() -> Self {
+        KeepAlivePing { payload: 0.into() }
+    }
+    pub async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
+        let mut keepalive = KeepAlivePing::new();
+        keepalive.payload = MCVarInt::read(t).await?;
+        Ok(keepalive)
     }
     pub async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {

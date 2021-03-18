@@ -7,6 +7,7 @@ use log::{debug, info};
 use packets::*;
 use serde_json::json;
 use std::sync::mpsc::{self, Receiver, TryRecvError};
+use std::time::{Duration, Instant};
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
 
 /// The struct containing all the data and running all the updates.
@@ -101,6 +102,7 @@ pub struct NetworkClient {
     pub state: NetworkClientState,
     pub uuid: Option<String>,
     pub username: Option<String>,
+    pub last_keep_alive: Instant,
 }
 impl NetworkClient {
     /// Create a new `NetworkClient`
@@ -112,6 +114,7 @@ impl NetworkClient {
             state: NetworkClientState::Handshake,
             uuid: None,
             username: None,
+            last_keep_alive: Instant::now(),
         }
     }
 
@@ -237,16 +240,35 @@ impl NetworkClient {
                 let spawnposition = SpawnPosition::new();
                 spawnposition.write(&mut self.stream).await.unwrap();
                 debug!("{:?}", spawnposition);
+                // Send initial keep alive.
+                self.keep_alive().await;
                 // TODO: S->C Player Position and Look
                 // TODO: C->S Teleport Confirm
                 // TODO: C->S Player Position and Look
                 // TODO: C->S Client Status
                 // TODO: S->C inventories, entities, etc.
             }
-            NetworkClientState::Play => {}
+            NetworkClientState::Play => {
+                if self.last_keep_alive.elapsed() > Duration::from_secs(10) {
+                    self.keep_alive().await;
+                }
+            }
             NetworkClientState::Disconnected => {
                 self.connected = false;
             }
         }
+    }
+
+    /// Send a keep alive packet to the client.
+    async fn keep_alive(&mut self) {
+        // Keep alive ping to client.
+        let clientboundkeepalive = KeepAlivePing::new();
+        clientboundkeepalive.write(&mut self.stream).await.unwrap();
+        debug!("{:?}", clientboundkeepalive);
+        // Keep alive pong to server.
+        let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await.unwrap();
+        let serverboundkeepalive = KeepAlivePong::read(&mut self.stream).await.unwrap();
+        debug!("{:?}", serverboundkeepalive);
+        self.last_keep_alive = Instant::now();
     }
 }

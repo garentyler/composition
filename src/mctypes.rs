@@ -257,13 +257,7 @@ pub mod other {
     }
     impl Display for MCPosition {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(
-                f,
-                "({}, {}, {})",
-                self.x,
-                self.y,
-                self.z,
-            )
+            write!(f, "({}, {}, {})", self.x, self.y, self.z,)
         }
     }
     impl TryFrom<Vec<u8>> for MCPosition {
@@ -279,13 +273,10 @@ pub mod other {
             let mut out = vec![];
             let mut temp = vec![];
             temp.extend_from_slice(
-                &(
-                    (
-                        ((Into::<i64>::into(self.x) & 0x3FFFFFF) << 38)
-                            | ((Into::<i64>::into(self.y) & 0xFFF) << 26)
-                            | (Into::<i64>::into(self.z) & 0x3FFFFFF)
-                    ) as u64
-                ).to_be_bytes()
+                &((((Into::<i64>::into(self.x) & 0x3FFFFFF) << 38)
+                    | ((Into::<i64>::into(self.y) & 0xFFF) << 26)
+                    | (Into::<i64>::into(self.z) & 0x3FFFFFF)) as u64)
+                    .to_be_bytes(),
             );
             // temp.extend_from_slice(&"{\"text\": \"".to_owned().into_bytes());
             // temp.extend_from_slice(&self.text.value.into_bytes());
