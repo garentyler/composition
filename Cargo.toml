@@ -3,9 +3,11 @@ name = "composition"
 version = "0.1.0"
 authors = ["Garen Tyler <garentyler@gmail.com>"]
 edition = "2018"
+description = "An extremely fast 1.8.9 Minecraft server"
+license = "MIT"
 
 [dependencies]
-log = "*"
+log = "0.4"
 fern = { version = "0.6", features = ["colored"] }
 chrono = "0.4.13"
 serde = { version = "1.0.114", features = ["serde_derive"]}
