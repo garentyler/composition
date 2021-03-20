@@ -5,6 +5,7 @@ pub mod serverbound;
 
 use crate::mctypes::MCVarInt;
 pub use clientbound::*;
+use core::convert::TryFrom;
 pub use serverbound::*;
 use tokio::net::TcpStream;
 
@@ -13,4 +14,83 @@ pub async fn read_packet_header(t: &mut TcpStream) -> tokio::io::Result<(MCVarIn
     let length = MCVarInt::read(t).await?;
     let id = MCVarInt::read(t).await?;
     Ok((length, id))
+}
+
+/// A way to generically encode a packet.
+macro_rules! register_packets {
+    ($($name:ident),*) => {
+        #[derive(Debug, Clone)]
+        pub enum Packet {
+            $($name($name),)*
+            Null,
+        }
+        impl Packet {
+            pub fn new() -> Packet {
+                Packet::Null
+            }
+            pub async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
+                match self {
+                    $(
+                        Packet::$name(p) => p.write(t).await,
+                    )*
+                    Packet::Null => Ok(())
+                }
+            }
+        }
+        $(
+            impl $name {
+                pub fn into_packet(&self) -> Packet {
+                    Packet::$name(self.clone())
+                }
+            }
+            impl Into<Packet> for $name {
+                fn into(self) -> Packet {
+                    Packet::$name(self.clone())
+                }
+            }
+            impl TryFrom<Packet> for $name {
+                type Error = &'static str;
+                fn try_from(p: Packet) -> Result<Self, Self::Error> {
+                    match p {
+                        Packet::$name(i) => Ok(i),
+                        _ => Err("wrong kind"),
+                    }
+                }
+            }
+        )*
+    };
+}
+
+// Register all the packets.
+register_packets!(
+    // Clientbound.
+    StatusResponse,
+    StatusPong,
+    LoginSuccess,
+    LoginDisconnect,
+    JoinGame,
+    HeldItemChange,
+    EntityStatus,
+    PlayerPositionAndLook,
+    SpawnPosition,
+    KeepAlivePing,
+    Disconnect,
+    ClientboundChatMessage,
+    // Serverbound.
+    Handshake,
+    StatusRequest,
+    StatusPing,
+    LoginStart,
+    ClientSettings,
+    KeepAlivePong
+);
+
+#[async_trait::async_trait]
+pub trait PacketCommon
+where
+    Self: Sized,
+{
+    fn new() -> Self;
+    async fn read(t: &'_ mut TcpStream) -> tokio::io::Result<Self>;
+    async fn write(&self, t: &'_ mut TcpStream) -> tokio::io::Result<()>;
 }

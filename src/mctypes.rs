@@ -21,10 +21,25 @@ pub mod functions {
         t.read_exact(&mut buffer).await?;
         Ok(buffer[0])
     }
+    /// Read `l` bytes from the given `TcpStream`.
+    pub async fn read_bytes(t: &mut TcpStream, l: usize) -> tokio::io::Result<Vec<u8>> {
+        let mut buffer = vec![];
+        for _ in 0..l {
+            buffer.push(read_byte(t).await?);
+        }
+        Ok(buffer)
+    }
     /// Write a single byte to the given `TcpStream`.
-    pub async fn write_byte(t: &mut TcpStream, value: u8) -> tokio::io::Result<u8> {
+    pub async fn write_byte(t: &mut TcpStream, value: u8) -> tokio::io::Result<()> {
         t.write(&[value]).await?;
-        Ok(value)
+        Ok(())
+    }
+    /// Write multiple bytes to the given `TcpStream`.
+    pub async fn write_bytes(t: &mut TcpStream, bytes: &[u8]) -> tokio::io::Result<()> {
+        for b in bytes {
+            write_byte(t, *b).await?;
+        }
+        Ok(())
     }
     /// Take `l` bytes from the given `Vec<u8>`.
     pub fn get_bytes(v: Vec<u8>, l: usize) -> Box<[u8]> {

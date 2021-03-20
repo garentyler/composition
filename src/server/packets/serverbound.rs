@@ -1,3 +1,4 @@
+use super::PacketCommon;
 use crate::mctypes::*;
 use std::convert::{Into, TryFrom};
 use tokio::net::TcpStream;
@@ -29,8 +30,9 @@ impl TryFrom<Vec<u8>> for Handshake {
         Err("unimplemented")
     }
 }
-impl Handshake {
-    pub fn new() -> Self {
+#[async_trait::async_trait]
+impl PacketCommon for Handshake {
+    fn new() -> Self {
         Handshake {
             protocol_version: 0.into(),
             server_address: "".into(),
@@ -38,7 +40,7 @@ impl Handshake {
             next_state: 0.into(),
         }
     }
-    pub async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
+    async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut handshake = Handshake::new();
         handshake.protocol_version = MCVarInt::read(t).await?;
         handshake.server_address = MCString::read(t).await?;
@@ -46,7 +48,7 @@ impl Handshake {
         handshake.next_state = MCVarInt::read(t).await?;
         Ok(handshake)
     }
-    pub async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
+    async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b).await?;
         }
@@ -71,15 +73,16 @@ impl TryFrom<Vec<u8>> for StatusRequest {
         Err("unimplemented")
     }
 }
-impl StatusRequest {
-    pub fn new() -> Self {
+#[async_trait::async_trait]
+impl PacketCommon for StatusRequest {
+    fn new() -> Self {
         StatusRequest {}
     }
-    pub async fn read(_t: &mut TcpStream) -> tokio::io::Result<Self> {
+    async fn read(_t: &mut TcpStream) -> tokio::io::Result<Self> {
         let statusrequest = StatusRequest::new();
         Ok(statusrequest)
     }
-    pub async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
+    async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b).await?;
         }
@@ -107,16 +110,17 @@ impl TryFrom<Vec<u8>> for StatusPing {
         Err("unimplemented")
     }
 }
-impl StatusPing {
-    pub fn new() -> Self {
+#[async_trait::async_trait]
+impl PacketCommon for StatusPing {
+    fn new() -> Self {
         StatusPing { payload: 0.into() }
     }
-    pub async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
+    async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut statusping = StatusPing::new();
         statusping.payload = MCLong::read(t).await?;
         Ok(statusping)
     }
-    pub async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
+    async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b).await?;
         }
@@ -144,18 +148,19 @@ impl TryFrom<Vec<u8>> for LoginStart {
         Err("unimplemented")
     }
 }
-impl LoginStart {
-    pub fn new() -> Self {
+#[async_trait::async_trait]
+impl PacketCommon for LoginStart {
+    fn new() -> Self {
         LoginStart {
             player_name: "".into(),
         }
     }
-    pub async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
+    async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut loginstart = LoginStart::new();
         loginstart.player_name = MCString::read(t).await?;
         Ok(loginstart)
     }
-    pub async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
+    async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b).await?;
         }
@@ -199,8 +204,9 @@ impl TryFrom<Vec<u8>> for ClientSettings {
         Err("unimplemented")
     }
 }
-impl ClientSettings {
-    pub fn new() -> Self {
+#[async_trait::async_trait]
+impl PacketCommon for ClientSettings {
+    fn new() -> Self {
         ClientSettings {
             locale: "en_US".into(),
             view_distance: 8.into(), // 8 chunks.
@@ -209,7 +215,7 @@ impl ClientSettings {
             displayed_skin_parts: 0xff.into(), // Enable all parts.
         }
     }
-    pub async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
+    async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut clientsettings = ClientSettings::new();
         clientsettings.locale = MCString::read(t).await?;
         clientsettings.view_distance = MCByte::read(t).await?;
@@ -218,7 +224,7 @@ impl ClientSettings {
         clientsettings.displayed_skin_parts = MCUnsignedByte::read(t).await?;
         Ok(clientsettings)
     }
-    pub async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
+    async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b).await?;
         }
@@ -228,7 +234,7 @@ impl ClientSettings {
 
 #[derive(Debug, Clone)]
 pub struct KeepAlivePong {
-    payload: MCVarInt,
+    pub payload: MCVarInt,
 }
 impl Into<Vec<u8>> for KeepAlivePong {
     fn into(self) -> Vec<u8> {
@@ -246,16 +252,17 @@ impl TryFrom<Vec<u8>> for KeepAlivePong {
         Err("unimplemented")
     }
 }
-impl KeepAlivePong {
-    pub fn new() -> Self {
+#[async_trait::async_trait]
+impl PacketCommon for KeepAlivePong {
+    fn new() -> Self {
         KeepAlivePong { payload: 0.into() }
     }
-    pub async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
+    async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut keepalive = KeepAlivePong::new();
         keepalive.payload = MCVarInt::read(t).await?;
         Ok(keepalive)
     }
-    pub async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
+    async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b).await?;
         }
