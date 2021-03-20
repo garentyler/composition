@@ -10,7 +10,7 @@ pub mod server;
 /// The data types for blocks, chunks, dimensions, and world files.
 pub mod world;
 
-use log::warn;
+use log::*;
 pub use mctypes::*;
 use serde::{Deserialize, Serialize};
 use std::sync::mpsc::{self, Receiver};

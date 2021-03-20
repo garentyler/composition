@@ -1,10 +1,12 @@
 /// Definitions for all the packets in the Minecraft protocol.
 pub mod packets;
 
+use super::messages::*;
 use crate::{mctypes::*, CONFIG, FAVICON};
-use log::{debug, info};
+use log::*;
 use packets::*;
 use serde_json::json;
+use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
 use tokio::net::TcpStream;
 
@@ -30,12 +32,15 @@ pub struct NetworkClient {
     pub uuid: Option<String>,
     pub username: Option<String>,
     pub last_keep_alive: Instant,
-    pub packets_read: usize,
-    pub packets_sent: usize,
+    pub message_sender: Sender<ServerboundMessage>,
 }
 impl NetworkClient {
     /// Create a new `NetworkClient`
-    pub fn new(stream: TcpStream, id: u128) -> NetworkClient {
+    pub fn new(
+        stream: TcpStream,
+        id: u128,
+        message_sender: Sender<ServerboundMessage>,
+    ) -> NetworkClient {
         NetworkClient {
             id,
             connected: true,
@@ -44,8 +49,7 @@ impl NetworkClient {
             uuid: None,
             username: None,
             last_keep_alive: Instant::now(),
-            packets_read: 0,
-            packets_sent: 0,
+            message_sender,
         }
     }
 
@@ -160,11 +164,18 @@ impl NetworkClient {
                 // TODO: C->S Player Position and Look
                 // TODO: C->S Client Status
                 // TODO: S->C inventories, entities, etc.
-                self.send_chat_message(format!(
-                    "Welcome {} to the server!",
-                    self.username.as_ref().unwrap_or(&"unknown".to_owned())
-                ))
-                .await?;
+                self.message_sender
+                    .send(ServerboundMessage::PlayerJoin(
+                        self.uuid
+                            .as_ref()
+                            .unwrap_or(&"00000000-0000-3000-0000-000000000000".to_owned())
+                            .to_string(),
+                        self.username
+                            .as_ref()
+                            .unwrap_or(&"unknown".to_owned())
+                            .to_string(),
+                    ))
+                    .expect("Message receiver disconnected");
             }
             NetworkClientState::Play => {
                 if self.last_keep_alive.elapsed() > Duration::from_millis(1000) {
@@ -188,7 +199,9 @@ impl NetworkClient {
                         self.get_packet::<ServerboundChatMessage>().await?;
                     let reply = format!("<{}> {}", self.get_name(), serverboundchatmessage.text);
                     info!("{}", reply);
-                    self.send_chat_message(reply).await?;
+                    self.message_sender
+                        .send(ServerboundMessage::Chat(reply))
+                        .expect("Message receiver disconnected");
                 } else {
                     let _ = read_bytes(&mut self.stream, Into::<i32>::into(packet_length) as usize)
                         .await?;
@@ -196,7 +209,7 @@ impl NetworkClient {
             }
             NetworkClientState::Disconnected => {
                 if self.connected {
-                    self.disconnect(None).await?;
+                    self.disconnect("Disconnected").await?;
                 }
             }
         }
@@ -205,14 +218,12 @@ impl NetworkClient {
 
     /// Send a generic packet to the client.
     pub async fn send_packet<P: PacketCommon>(&mut self, packet: P) -> tokio::io::Result<()> {
-        self.packets_sent += 1;
         debug!("Sent {:?} {:#04X?} {:?}", self.state, P::id(), packet);
         packet.write(&mut self.stream).await
     }
 
     /// Read a generic packet from the network.
     pub async fn get_packet<T: PacketCommon>(&mut self) -> tokio::io::Result<T> {
-        self.packets_read += 1;
         let packet = T::read(&mut self.stream).await?;
         debug!("Got {:?} {:#04X?} {:?}", self.state, T::id(), packet);
         Ok(packet)
@@ -232,9 +243,9 @@ impl NetworkClient {
     /// Disconnect the client.
     ///
     /// Sends `0x40 Disconnect` then waits 10 seconds before forcing the connection closed.
-    pub async fn disconnect(&mut self, reason: Option<&str>) -> tokio::io::Result<()> {
+    pub async fn disconnect<S: Into<MCString>>(&mut self, reason: S) -> tokio::io::Result<()> {
         let mut disconnect = Disconnect::new();
-        disconnect.reason.text = reason.unwrap_or("Disconnected").into();
+        disconnect.reason.text = reason.into();
         self.send_packet(disconnect).await?;
         self.force_disconnect();
         Ok(())
@@ -258,10 +269,24 @@ impl NetworkClient {
         Ok(())
     }
 
+    /// Helper function to get the name of the player.
     pub fn get_name(&self) -> String {
         self.username
             .as_ref()
             .unwrap_or(&"unknown".to_owned())
             .to_string()
+    }
+
+    /// Receives broadcast messages from the server.
+    pub async fn handle_broadcast_message(
+        &mut self,
+        message: BroadcastMessage,
+    ) -> tokio::io::Result<()> {
+        use BroadcastMessage::*;
+        match message {
+            Chat(s) => self.send_chat_message(s).await?,
+            Disconnect(reason) => self.disconnect(reason).await?,
+        }
+        Ok(())
     }
 }

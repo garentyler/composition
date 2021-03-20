@@ -1,4 +1,4 @@
-use log::info;
+use log::*;
 use std::sync::mpsc::TryRecvError;
 use std::time::Duration;
 
