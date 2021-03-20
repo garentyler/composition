@@ -157,7 +157,6 @@ impl NetworkClient {
                 let spawnposition = SpawnPosition::new();
                 self.send_packet(spawnposition).await?;
                 // Send initial keep alive.
-                self.send_chat_message("keep alive").await?;
                 self.keep_alive().await?;
                 // TODO: S->C Player Position and Look
                 // TODO: C->S Teleport Confirm
@@ -179,7 +178,6 @@ impl NetworkClient {
             }
             NetworkClientState::Play => {
                 if self.last_keep_alive.elapsed() > Duration::from_millis(1000) {
-                    self.send_chat_message("keep alive").await?;
                     self.keep_alive().await?;
                 }
                 let (packet_length, packet_id) = read_packet_header(&mut self.stream).await?;
@@ -259,6 +257,9 @@ impl NetworkClient {
 
     /// Send a keep alive packet to the client.
     pub async fn keep_alive(&mut self) -> tokio::io::Result<()> {
+        if cfg!(debug_assertions) {
+            self.send_chat_message("keep alive").await?;
+        }
         // Keep alive ping to client.
         let clientboundkeepalive = KeepAlivePing::new();
         self.send_packet(clientboundkeepalive).await?;
