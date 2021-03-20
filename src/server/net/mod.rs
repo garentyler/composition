@@ -30,6 +30,8 @@ pub struct NetworkClient {
     pub uuid: Option<String>,
     pub username: Option<String>,
     pub last_keep_alive: Instant,
+    pub packets_read: usize,
+    pub packets_sent: usize,
 }
 impl NetworkClient {
     /// Create a new `NetworkClient`
@@ -42,6 +44,8 @@ impl NetworkClient {
             uuid: None,
             username: None,
             last_keep_alive: Instant::now(),
+            packets_read: 0,
+            packets_sent: 0,
         }
     }
 
@@ -204,12 +208,14 @@ impl NetworkClient {
 
     /// Send a generic packet to the client.
     pub async fn send_packet<P: PacketCommon>(&mut self, packet: P) -> tokio::io::Result<()> {
+        self.packets_sent += 1;
         debug!("Sent {:?} {:#04X?} {:?}", self.state, P::id(), packet);
         packet.write(&mut self.stream).await
     }
 
     /// Read a generic packet from the network.
     pub async fn get_packet<T: PacketCommon>(&mut self) -> tokio::io::Result<T> {
+        self.packets_read += 1;
         let packet = T::read(&mut self.stream).await?;
         debug!("Got {:?} {:#04X?} {:?}", self.state, T::id(), packet);
         Ok(packet)

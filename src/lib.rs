@@ -58,10 +58,13 @@ lazy_static! {
         file.read_to_end(&mut data)?;
         Ok(data)
     };
+    pub static ref START_TIME: std::time::Instant = std::time::Instant::now();
 }
 
 /// Set up logging, read the config file, etc.
 pub fn init() -> Receiver<()> {
+    // Load the START_TIME static - lazy_static lazy loads the value when first needed.
+    let _ = START_TIME.elapsed();
     // Set up fern logging.
     fern::Dispatch::new()
         .format(move |out, message, record| {

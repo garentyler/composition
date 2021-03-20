@@ -12,6 +12,8 @@ pub struct Server {
     network_clients: Vec<NetworkClient>,
     network_receiver: Receiver<NetworkClient>,
     pub players: Vec<Player>,
+    pub packets_read: usize,
+    pub packets_sent: usize,
 }
 impl Server {
     pub fn new<A: 'static + ToSocketAddrs + Send>(addr: A) -> Server {
@@ -36,6 +38,8 @@ impl Server {
             network_receiver: rx,
             network_clients: vec![],
             players: vec![],
+            packets_read: 0,
+            packets_sent: 0,
         }
     }
 
@@ -45,9 +49,18 @@ impl Server {
     pub async fn shutdown(&mut self) {
         info!("Server shutting down.");
         for client in self.network_clients.iter_mut() {
-            let _ = client.disconnect(Some("The server is shutting down")).await;
             // We don't care if it doesn't succeed in sending the packet.
+            let _ = client.disconnect(Some("The server is shutting down")).await;
+            // Count the number of packets from the remaining clients.
+            self.packets_read += client.packets_read;
+            self.packets_sent += client.packets_sent;
         }
+        info!(
+            "{} packets read and {} packets sent in {:?}",
+            self.packets_read,
+            self.packets_sent,
+            crate::START_TIME.elapsed()
+        );
     }
 
     /// Update the network server.
@@ -80,8 +93,22 @@ impl Server {
             }
         }
         // Remove disconnected clients.
-        self.network_clients
-            .retain(|nc| nc.state != NetworkClientState::Disconnected);
+        let mut index = 0;
+        loop {
+            if index >= self.network_clients.len() {
+                break;
+            }
+            if self.network_clients[index].state == NetworkClientState::Disconnected {
+                // Count the number of packets before removing it.
+                self.packets_read += self.network_clients[index].packets_read;
+                self.packets_sent += self.network_clients[index].packets_sent;
+                self.network_clients.remove(index);
+                continue;
+            }
+            index += 1;
+        }
+        // self.network_clients
+        //     .retain(|nc| nc.state != NetworkClientState::Disconnected);
 
         Ok(())
     }
