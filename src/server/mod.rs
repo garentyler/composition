@@ -143,6 +143,7 @@ impl NetworkClient {
         // println!("{:?}", self);
         match self.state {
             NetworkClientState::Handshake => {
+                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
                 let handshake = self.get_packet::<Handshake>().await?;
                 // Minecraft versions 1.8 - 1.8.9 use protocol version 47.
                 let compatible_versions = handshake.protocol_version == 47;
@@ -164,6 +165,7 @@ impl NetworkClient {
                 debug!("{:?}", handshake);
             }
             NetworkClientState::Status => {
+                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
                 let statusrequest = self.get_packet::<StatusRequest>().await?;
                 debug!("{:?}", statusrequest);
                 let mut statusresponse = StatusResponse::new();
@@ -190,7 +192,7 @@ impl NetworkClient {
                 .to_string()
                 .into();
                 self.send_packet(statusresponse).await?;
-
+                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
                 let statusping = self.get_packet::<StatusPing>().await?;
                 debug!("{:?}", statusping);
                 let mut statuspong = StatusPong::new();
@@ -199,6 +201,7 @@ impl NetworkClient {
                 self.state = NetworkClientState::Disconnected;
             }
             NetworkClientState::Login => {
+                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
                 let loginstart = self.get_packet::<LoginStart>().await?;
                 debug!("{:?}", loginstart);
                 // Offline mode skips encryption and compression.
@@ -215,7 +218,7 @@ impl NetworkClient {
                 let joingame = JoinGame::new();
                 // TODO: Fill out `joingame` with actual information.
                 self.send_packet(joingame).await?;
-
+                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
                 let clientsettings = self.get_packet::<ClientSettings>().await?;
                 // TODO: Actually use client settings.
                 debug!("{:?}", clientsettings);
@@ -255,7 +258,7 @@ impl NetworkClient {
                 .await?;
             }
             NetworkClientState::Play => {
-                if self.last_keep_alive.elapsed() > Duration::from_secs(10) {
+                if self.last_keep_alive.elapsed() > Duration::from_millis(1000) {
                     self.send_chat_message("keep alive").await?;
                     self.keep_alive().await?;
                 }
@@ -280,7 +283,6 @@ impl NetworkClient {
 
     /// Read a generic packet from the network.
     pub async fn get_packet<T: PacketCommon>(&mut self) -> tokio::io::Result<T> {
-        let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
         Ok(T::read(&mut self.stream).await?)
     }
 
@@ -315,7 +317,7 @@ impl NetworkClient {
         let clientboundkeepalive = KeepAlivePing::new();
         self.send_packet(clientboundkeepalive).await?;
         // Keep alive pong to server.
-
+        let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
         let serverboundkeepalive = self.get_packet::<KeepAlivePong>().await?;
         debug!("{:?}", serverboundkeepalive);
         self.last_keep_alive = Instant::now();
