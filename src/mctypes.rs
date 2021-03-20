@@ -4,8 +4,7 @@ pub use functions::*;
 pub use numbers::*;
 pub use other::*;
 use serde_json::json;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpStream;
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 // /// Make sure all types can serialize and deserialize to/from `Vec<u8>`.
 // pub trait MCType: Into<Vec<u8>> + TryFrom<Vec<u8>> + Display {
@@ -17,13 +16,16 @@ pub mod functions {
     use super::*;
 
     /// Read a single byte from the given `TcpStream`.
-    pub async fn read_byte(t: &mut TcpStream) -> tokio::io::Result<u8> {
+    pub async fn read_byte<T: AsyncRead + Unpin>(t: &mut T) -> tokio::io::Result<u8> {
         let mut buffer = [0u8; 1];
         t.read_exact(&mut buffer).await?;
         Ok(buffer[0])
     }
     /// Read `l` bytes from the given `TcpStream`.
-    pub async fn read_bytes(t: &mut TcpStream, l: usize) -> tokio::io::Result<Vec<u8>> {
+    pub async fn read_bytes<T: AsyncRead + Unpin>(
+        t: &mut T,
+        l: usize,
+    ) -> tokio::io::Result<Vec<u8>> {
         let mut buffer = vec![];
         for _ in 0..l {
             buffer.push(read_byte(t).await?);
@@ -31,12 +33,15 @@ pub mod functions {
         Ok(buffer)
     }
     /// Write a single byte to the given `TcpStream`.
-    pub async fn write_byte(t: &mut TcpStream, value: u8) -> tokio::io::Result<()> {
+    pub async fn write_byte<T: AsyncWrite + Unpin>(t: &mut T, value: u8) -> tokio::io::Result<()> {
         t.write(&[value]).await?;
         Ok(())
     }
     /// Write multiple bytes to the given `TcpStream`.
-    pub async fn write_bytes(t: &mut TcpStream, bytes: &[u8]) -> tokio::io::Result<()> {
+    pub async fn write_bytes<T: AsyncWrite + Unpin>(
+        t: &mut T,
+        bytes: &[u8],
+    ) -> tokio::io::Result<()> {
         for b in bytes {
             write_byte(t, *b).await?;
         }
@@ -127,7 +132,7 @@ pub mod other {
         }
     }
     impl MCBoolean {
-        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCBoolean> {
+        pub async fn read<T: AsyncRead + Unpin>(t: &mut T) -> tokio::io::Result<MCBoolean> {
             let b = read_byte(t).await?;
             Ok(MCBoolean::try_from(vec![b]).unwrap())
         }
@@ -212,10 +217,10 @@ pub mod other {
         }
     }
     impl MCString {
-        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
+        pub async fn read<T: AsyncRead + Unpin>(t: &mut T) -> tokio::io::Result<Self> {
             let str_len = MCVarInt::read(t).await?;
             let mut str_bytes = vec![];
-            for _ in 0..str_len.into() {
+            for _ in 0i32..str_len.into() {
                 str_bytes.push(read_byte(t).await?);
             }
             Ok(MCString {
@@ -296,7 +301,7 @@ pub mod other {
         }
     }
     impl MCChat {
-        pub async fn read(_t: &mut TcpStream) -> tokio::io::Result<Self> {
+        pub async fn read<T: AsyncRead + Unpin>(_t: &mut T) -> tokio::io::Result<Self> {
             Err(io_error("Cannot read MCChat from stream"))
         }
     }
@@ -347,7 +352,7 @@ pub mod other {
                 z: 0.into(),
             }
         }
-        pub async fn read(_t: &mut TcpStream) -> tokio::io::Result<Self> {
+        pub async fn read<T: AsyncRead + Unpin>(_t: &mut T) -> tokio::io::Result<Self> {
             Err(io_error("Cannot read MCPosition from stream"))
         }
     }
@@ -374,7 +379,7 @@ pub mod numbers {
         pub value: i8, // -128 to 127
     }
     impl MCByte {
-        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCByte> {
+        pub async fn read<T: AsyncRead + Unpin>(t: &mut T) -> tokio::io::Result<MCByte> {
             Ok(MCByte::from_bytes(vec![read_byte(t).await?]))
         }
         pub fn from_bytes(v: Vec<u8>) -> MCByte {
@@ -432,7 +437,7 @@ pub mod numbers {
         pub value: u8, // 0 to 255
     }
     impl MCUnsignedByte {
-        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCUnsignedByte> {
+        pub async fn read<T: AsyncRead + Unpin>(t: &mut T) -> tokio::io::Result<MCUnsignedByte> {
             Ok(MCUnsignedByte::from_bytes(vec![read_byte(t).await?]))
         }
         pub fn from_bytes(v: Vec<u8>) -> MCUnsignedByte {
@@ -490,7 +495,7 @@ pub mod numbers {
         pub value: i16, // -32768 to 32767
     }
     impl MCShort {
-        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCShort> {
+        pub async fn read<T: AsyncRead + Unpin>(t: &mut T) -> tokio::io::Result<MCShort> {
             let mut bytes = Vec::new();
             bytes.push(read_byte(t).await?); // MSD
             bytes.push(read_byte(t).await?); // LSD
@@ -553,7 +558,7 @@ pub mod numbers {
         pub value: u16, // 0 to 65535
     }
     impl MCUnsignedShort {
-        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCUnsignedShort> {
+        pub async fn read<T: AsyncRead + Unpin>(t: &mut T) -> tokio::io::Result<MCUnsignedShort> {
             let mut bytes = Vec::new();
             bytes.push(read_byte(t).await?); // MSD
             bytes.push(read_byte(t).await?); // LSD
@@ -616,7 +621,7 @@ pub mod numbers {
         pub value: i32, // -2147483648 to 2147483647
     }
     impl MCInt {
-        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCInt> {
+        pub async fn read<T: AsyncRead + Unpin>(t: &mut T) -> tokio::io::Result<MCInt> {
             let mut bytes = Vec::new();
             for _ in 0..4 {
                 bytes.push(read_byte(t).await?);
@@ -680,7 +685,7 @@ pub mod numbers {
         pub value: u32, // 0 to 4294967295
     }
     impl MCUnsignedInt {
-        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCUnsignedInt> {
+        pub async fn read<T: AsyncRead + Unpin>(t: &mut T) -> tokio::io::Result<MCUnsignedInt> {
             let mut bytes = Vec::new();
             for _ in 0..4 {
                 bytes.push(read_byte(t).await?);
@@ -744,7 +749,7 @@ pub mod numbers {
         pub value: i64, // -9223372036854775808 to 9223372036854775807
     }
     impl MCLong {
-        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCLong> {
+        pub async fn read<T: AsyncRead + Unpin>(t: &mut T) -> tokio::io::Result<MCLong> {
             let mut bytes = Vec::new();
             for _ in 0..8 {
                 bytes.push(read_byte(t).await?);
@@ -808,7 +813,7 @@ pub mod numbers {
         pub value: u64, // 0 to 18446744073709551615
     }
     impl MCUnsignedLong {
-        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCUnsignedLong> {
+        pub async fn read<T: AsyncRead + Unpin>(t: &mut T) -> tokio::io::Result<MCUnsignedLong> {
             let mut bytes = Vec::new();
             for _ in 0..8 {
                 bytes.push(read_byte(t).await?);
@@ -872,7 +877,7 @@ pub mod numbers {
         pub value: f32, // 32-bit floating point number
     }
     impl MCFloat {
-        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCFloat> {
+        pub async fn read<T: AsyncRead + Unpin>(t: &mut T) -> tokio::io::Result<MCFloat> {
             let mut bytes = Vec::new();
             for _ in 0..4 {
                 bytes.push(read_byte(t).await?);
@@ -936,7 +941,7 @@ pub mod numbers {
         pub value: f64, // 64-bit floating point number
     }
     impl MCDouble {
-        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCDouble> {
+        pub async fn read<T: AsyncRead + Unpin>(t: &mut T) -> tokio::io::Result<MCDouble> {
             let mut bytes = Vec::new();
             for _ in 0..8 {
                 bytes.push(read_byte(t).await?);
@@ -1000,7 +1005,7 @@ pub mod numbers {
         pub value: i32, // Variable length 32-bit integer
     }
     impl MCVarInt {
-        pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCVarInt> {
+        pub async fn read<T: AsyncRead + Unpin>(t: &mut T) -> tokio::io::Result<MCVarInt> {
             let mut num_read = 0;
             let mut result = 0i32;
             let mut read = 0u8;
