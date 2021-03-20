@@ -3,6 +3,7 @@
 pub use functions::*;
 pub use numbers::*;
 pub use other::*;
+use serde_json::json;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
@@ -68,7 +69,7 @@ pub mod functions {
 pub mod other {
     use super::*;
     use std::convert::{From, Into, TryFrom};
-    use std::fmt::Display;
+    use std::fmt::{Debug, Display};
 
     /// The equivalent of a `bool`.
     #[derive(Debug, Copy, Clone, PartialEq)]
@@ -133,7 +134,7 @@ pub mod other {
     }
 
     /// The equivalent of a `String`.
-    #[derive(Debug, PartialEq)]
+    #[derive(PartialEq)]
     pub struct MCString {
         pub value: String,
     }
@@ -176,9 +177,19 @@ pub mod other {
             }
         }
     }
+    impl Debug for MCString {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(
+                f,
+                "MCString {{ \"{}\" ({} chars) }}",
+                self.value,
+                self.value.len()
+            )
+        }
+    }
     impl Display for MCString {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "\"{}\" ({} chars)", self.value, self.value.len())
+            write!(f, "{}", self.value)
         }
     }
     impl TryFrom<Vec<u8>> for MCString {
@@ -275,14 +286,13 @@ pub mod other {
         fn into(self) -> Vec<u8> {
             // Just output
             // {"text": "<data>"}
-            let mut out = vec![];
-            let mut temp = vec![];
-            temp.extend_from_slice(&"{\"text\": \"".to_owned().into_bytes());
-            temp.extend_from_slice(&self.text.value.into_bytes());
-            temp.extend_from_slice(&"\"}".to_owned().into_bytes());
-            out.extend_from_slice(&Into::<Vec<u8>>::into(MCVarInt::from(temp.len() as i32)));
-            out.extend_from_slice(&temp);
-            out
+            Into::<MCString>::into(
+                json!({
+                    "text": self.text.value
+                })
+                .to_string(),
+            )
+            .into()
         }
     }
     impl MCChat {

@@ -2,7 +2,7 @@
 pub mod packets;
 
 use crate::{mctypes::*, CONFIG, FAVICON};
-use log::debug;
+use log::{debug, info};
 use packets::*;
 use serde_json::json;
 use std::time::{Duration, Instant};
@@ -186,12 +186,9 @@ impl NetworkClient {
                 } else if packet_id == ServerboundChatMessage::id() {
                     let serverboundchatmessage =
                         self.get_packet::<ServerboundChatMessage>().await?;
-                    self.send_chat_message(format!(
-                        "<{}> {}",
-                        self.username.as_ref().unwrap_or(&"unknown".to_owned()),
-                        serverboundchatmessage.text
-                    ))
-                    .await?;
+                    let reply = format!("<{}> {}", self.get_name(), serverboundchatmessage.text);
+                    info!("{}", reply);
+                    self.send_chat_message(reply).await?;
                 } else {
                     let _ = read_bytes(&mut self.stream, Into::<i32>::into(packet_length) as usize)
                         .await?;
@@ -250,7 +247,7 @@ impl NetworkClient {
     }
 
     /// Send a keep alive packet to the client.
-    async fn keep_alive(&mut self) -> tokio::io::Result<()> {
+    pub async fn keep_alive(&mut self) -> tokio::io::Result<()> {
         // Keep alive ping to client.
         let clientboundkeepalive = KeepAlivePing::new();
         self.send_packet(clientboundkeepalive).await?;
@@ -259,5 +256,12 @@ impl NetworkClient {
         let _serverboundkeepalive = self.get_packet::<KeepAlivePong>().await?;
         self.last_keep_alive = Instant::now();
         Ok(())
+    }
+
+    pub fn get_name(&self) -> String {
+        self.username
+            .as_ref()
+            .unwrap_or(&"unknown".to_owned())
+            .to_string()
     }
 }
