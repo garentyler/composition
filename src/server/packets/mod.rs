@@ -37,9 +37,14 @@ macro_rules! register_packets {
                 }
             }
         }
+        impl Default for Packet {
+            fn default() -> Self {
+                Packet::Null
+            }
+        }
         $(
             impl $name {
-                pub fn into_packet(&self) -> Packet {
+                pub fn as_packet(&self) -> Packet {
                     Packet::$name(self.clone())
                 }
             }

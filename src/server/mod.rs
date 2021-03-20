@@ -42,6 +42,17 @@ impl Server {
         }
     }
 
+    /// Shut down the server.
+    ///
+    /// Disconnects all clients.
+    pub async fn shutdown(&mut self) {
+        info!("Server shutting down.");
+        for client in self.network_clients.iter_mut() {
+            let _ = client.disconnect(Some("The server is shutting down")).await;
+            // We don't care if it doesn't succeed in sending the packet.
+        }
+    }
+
     /// Update the network server.
     ///
     /// Update each client in `self.network_clients`.
@@ -67,7 +78,9 @@ impl Server {
             }
         });
         for client in self.network_clients.iter_mut() {
-            client.update(num_players).await?;
+            if client.update(num_players).await.is_err() {
+                client.force_disconnect();
+            }
         }
         // Remove disconnected clients.
         self.network_clients
@@ -87,7 +100,7 @@ impl Server {
 
 /// The network client can only be in a few states,
 /// this enum keeps track of that.
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum NetworkClientState {
     Handshake,
     Status,
@@ -98,6 +111,7 @@ pub enum NetworkClientState {
 
 /// A wrapper to contain everything related
 /// to networking for the client.
+#[derive(Debug)]
 pub struct NetworkClient {
     pub id: u128,
     pub connected: bool,
@@ -126,6 +140,7 @@ impl NetworkClient {
     /// Updating could mean connecting new clients, reading packets,
     /// writing packets, or disconnecting clients.
     pub async fn update(&mut self, num_players: usize) -> tokio::io::Result<()> {
+        // println!("{:?}", self);
         match self.state {
             NetworkClientState::Handshake => {
                 let handshake = self.get_packet::<Handshake>().await?;
@@ -284,14 +299,12 @@ impl NetworkClient {
         let mut disconnect = Disconnect::new();
         disconnect.reason.text = reason.unwrap_or("Disconnected").into();
         self.send_packet(disconnect).await?;
-        // Give the client 10 seconds to disconnect before forcing it.
-        tokio::time::sleep(Duration::from_secs(10)).await;
         self.force_disconnect();
         Ok(())
     }
 
     /// Force disconnect the client by marking it for cleanup as disconnected.
-    async fn force_disconnect(&mut self) {
+    fn force_disconnect(&mut self) {
         self.connected = false;
         self.state = NetworkClientState::Disconnected;
     }

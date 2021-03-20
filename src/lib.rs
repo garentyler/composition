@@ -13,6 +13,7 @@ pub mod world;
 use log::warn;
 pub use mctypes::*;
 use serde::{Deserialize, Serialize};
+use std::sync::mpsc::{self, Receiver};
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
@@ -60,7 +61,7 @@ lazy_static! {
 }
 
 /// Set up logging, read the config file, etc.
-pub fn init() {
+pub fn init() -> Receiver<()> {
     // Set up fern logging.
     fern::Dispatch::new()
         .format(move |out, message, record| {
@@ -81,6 +82,13 @@ pub fn init() {
         .chain(fern::log_file("output.log").unwrap())
         .apply()
         .unwrap();
+    // Set up the ctrl-c handler.
+    let (ctrlc_tx, ctrlc_rx) = mpsc::channel();
+    ctrlc::set_handler(move || {
+        ctrlc_tx.send(()).expect("Ctrl-C receiver disconnected");
+    })
+    .expect("Error setting Ctrl-C handler");
+    ctrlc_rx
 }
 
 /// Start the server.

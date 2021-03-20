@@ -108,14 +108,12 @@ pub mod other {
     impl TryFrom<Vec<u8>> for MCBoolean {
         type Error = &'static str;
         fn try_from(bytes: Vec<u8>) -> Result<Self, Self::Error> {
-            if bytes.len() < 1 {
+            if bytes.is_empty() {
                 Err("Not enough bytes")
+            } else if bytes[0] == 1u8 {
+                Ok(MCBoolean::True)
             } else {
-                if bytes[0] == 1u8 {
-                    Ok(MCBoolean::True)
-                } else {
-                    Ok(MCBoolean::False)
-                }
+                Ok(MCBoolean::False)
             }
         }
     }
@@ -148,7 +146,7 @@ pub mod other {
     }
     impl From<String> for MCString {
         fn from(s: String) -> MCString {
-            MCString { value: s.clone() }
+            MCString { value: s }
         }
     }
     impl Into<String> for MCString {
@@ -227,9 +225,7 @@ pub mod other {
     }
     impl From<String> for MCChat {
         fn from(s: String) -> MCChat {
-            MCChat {
-                text: s.clone().into(),
-            }
+            MCChat { text: s.into() }
         }
     }
     impl Into<String> for MCChat {
@@ -345,6 +341,15 @@ pub mod other {
             Err(io_error("Cannot read MCPosition from stream"))
         }
     }
+    impl Default for MCPosition {
+        fn default() -> Self {
+            MCPosition {
+                x: 0.into(),
+                y: 0.into(),
+                z: 0.into(),
+            }
+        }
+    }
 }
 
 /// All the numbers, from `i8` and `u8` to `i64` and `u64`, plus `VarInt`s.
@@ -394,7 +399,7 @@ pub mod numbers {
     impl TryFrom<Vec<u8>> for MCByte {
         type Error = &'static str;
         fn try_from(bytes: Vec<u8>) -> Result<Self, Self::Error> {
-            if bytes.len() < 1 {
+            if bytes.is_empty() {
                 Err("Not enough bytes")
             } else {
                 let mut a = [0u8; 1];
@@ -452,7 +457,7 @@ pub mod numbers {
     impl TryFrom<Vec<u8>> for MCUnsignedByte {
         type Error = &'static str;
         fn try_from(bytes: Vec<u8>) -> Result<Self, Self::Error> {
-            if bytes.len() < 1 {
+            if bytes.is_empty() {
                 Err("Not enough bytes")
             } else {
                 let mut a = [0u8; 1];
@@ -1065,7 +1070,7 @@ pub mod numbers {
                 }
                 out.push(temp);
             }
-            return out;
+            out
         }
     }
 }
