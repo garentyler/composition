@@ -11,7 +11,7 @@ pub struct StatusResponse {
 impl Into<Vec<u8>> for StatusResponse {
     fn into(self) -> Vec<u8> {
         let mut out = vec![];
-        let mut temp: Vec<u8> = MCVarInt::from(0x00).into(); // 0x00 Status Response.
+        let mut temp: Vec<u8> = MCVarInt::from(Self::id()).into(); // 0x00 Status Response.
         temp.extend_from_slice(&Into::<Vec<u8>>::into(self.json_response));
         out.extend_from_slice(&Into::<Vec<u8>>::into(MCVarInt::from(temp.len() as i32)));
         out.extend_from_slice(&temp);
@@ -30,6 +30,9 @@ impl PacketCommon for StatusResponse {
         StatusResponse {
             json_response: MCString::from(""),
         }
+    }
+    fn id() -> u8 {
+        0x00
     }
     async fn read(t: &'_ mut TcpStream) -> tokio::io::Result<Self> {
         let mut statusresponse = StatusResponse::new();
@@ -51,7 +54,7 @@ pub struct StatusPong {
 impl Into<Vec<u8>> for StatusPong {
     fn into(self) -> Vec<u8> {
         let mut out = vec![];
-        let mut temp: Vec<u8> = MCVarInt::from(0x01).into(); // 0x01 Status Pong.
+        let mut temp: Vec<u8> = MCVarInt::from(Self::id()).into(); // 0x01 Status Pong.
         temp.extend_from_slice(&Into::<Vec<u8>>::into(self.payload));
         out.extend_from_slice(&Into::<Vec<u8>>::into(MCVarInt::from(temp.len() as i32)));
         out.extend_from_slice(&temp);
@@ -68,6 +71,9 @@ impl TryFrom<Vec<u8>> for StatusPong {
 impl PacketCommon for StatusPong {
     fn new() -> Self {
         StatusPong { payload: 0.into() }
+    }
+    fn id() -> u8 {
+        0x01
     }
     async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut statuspong = StatusPong::new();
@@ -90,7 +96,7 @@ pub struct LoginSuccess {
 impl Into<Vec<u8>> for LoginSuccess {
     fn into(self) -> Vec<u8> {
         let mut out = vec![];
-        let mut temp: Vec<u8> = MCVarInt::from(0x02).into(); // 0x02 Login Success.
+        let mut temp: Vec<u8> = MCVarInt::from(Self::id()).into(); // 0x02 Login Success.
         temp.extend_from_slice(&Into::<Vec<u8>>::into(self.uuid));
         temp.extend_from_slice(&Into::<Vec<u8>>::into(self.username));
         out.extend_from_slice(&Into::<Vec<u8>>::into(MCVarInt::from(temp.len() as i32)));
@@ -111,6 +117,9 @@ impl PacketCommon for LoginSuccess {
             uuid: MCString::from(""),
             username: MCString::from(""),
         }
+    }
+    fn id() -> u8 {
+        0x02
     }
     async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut loginsuccess = LoginSuccess::new();
@@ -133,7 +142,7 @@ pub struct LoginDisconnect {
 impl Into<Vec<u8>> for LoginDisconnect {
     fn into(self) -> Vec<u8> {
         let mut out = vec![];
-        let mut temp: Vec<u8> = MCVarInt::from(0x00).into(); // 0x00 Login Disconnect.
+        let mut temp: Vec<u8> = MCVarInt::from(Self::id()).into(); // 0x00 Login Disconnect.
         temp.extend_from_slice(&Into::<Vec<u8>>::into(self.reason));
         out.extend_from_slice(&Into::<Vec<u8>>::into(MCVarInt::from(temp.len() as i32)));
         out.extend_from_slice(&temp);
@@ -154,6 +163,9 @@ impl PacketCommon for LoginDisconnect {
                 text: MCString::from(""),
             },
         }
+    }
+    fn id() -> u8 {
+        0x00
     }
     async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut logindisconnect = LoginDisconnect::new();
@@ -183,7 +195,7 @@ pub struct JoinGame {
 impl Into<Vec<u8>> for JoinGame {
     fn into(self) -> Vec<u8> {
         let mut out = vec![];
-        let mut temp: Vec<u8> = MCVarInt::from(0x01).into(); // 0x01 Join Game.
+        let mut temp: Vec<u8> = MCVarInt::from(Self::id()).into(); // 0x01 Join Game.
         temp.extend_from_slice(&Into::<Vec<u8>>::into(self.entity_id));
         temp.extend_from_slice(&Into::<Vec<u8>>::into(self.gamemode));
         temp.extend_from_slice(&Into::<Vec<u8>>::into(self.dimension));
@@ -215,6 +227,9 @@ impl PacketCommon for JoinGame {
             reduced_debug_info: false.into(), // The debug info should be useful.
         }
     }
+    fn id() -> u8 {
+        0x01
+    }
     async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut joingame = JoinGame::new();
         joingame.entity_id = MCInt::read(t).await?;
@@ -241,7 +256,7 @@ pub struct HeldItemChange {
 impl Into<Vec<u8>> for HeldItemChange {
     fn into(self) -> Vec<u8> {
         let mut out = vec![];
-        let mut temp: Vec<u8> = MCVarInt::from(0x09).into(); // 0x09 Held Item Change.
+        let mut temp: Vec<u8> = MCVarInt::from(Self::id()).into(); // 0x09 Held Item Change.
         temp.extend_from_slice(&Into::<Vec<u8>>::into(self.selected_slot));
         out.extend_from_slice(&Into::<Vec<u8>>::into(MCVarInt::from(temp.len() as i32)));
         out.extend_from_slice(&temp);
@@ -260,6 +275,9 @@ impl PacketCommon for HeldItemChange {
         HeldItemChange {
             selected_slot: 0.into(),
         }
+    }
+    fn id() -> u8 {
+        0x09
     }
     async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut helditemchange = HeldItemChange::new();
@@ -305,7 +323,7 @@ pub struct EntityStatus {
 impl Into<Vec<u8>> for EntityStatus {
     fn into(self) -> Vec<u8> {
         let mut out = vec![];
-        let mut temp: Vec<u8> = MCVarInt::from(0x1a).into(); // 0x1a Entity Status.
+        let mut temp: Vec<u8> = MCVarInt::from(Self::id()).into(); // 0x1a Entity Status.
         temp.extend_from_slice(&Into::<Vec<u8>>::into(self.entity_id));
         temp.extend_from_slice(&Into::<Vec<u8>>::into(self.entity_status));
         out.extend_from_slice(&Into::<Vec<u8>>::into(MCVarInt::from(temp.len() as i32)));
@@ -327,6 +345,9 @@ impl PacketCommon for EntityStatus {
             entity_status: 0.into(),
         }
     }
+    fn id() -> u8 {
+        0x1a
+    }
     async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut entitystatus = EntityStatus::new();
         entitystatus.entity_id = MCInt::read(t).await?;
@@ -342,7 +363,7 @@ impl PacketCommon for EntityStatus {
 }
 
 #[derive(Debug, Clone)]
-pub struct PlayerPositionAndLook {
+pub struct ClientboundPlayerPositionAndLook {
     pub x: MCDouble,
     pub y: MCDouble,
     pub z: MCDouble,
@@ -350,10 +371,10 @@ pub struct PlayerPositionAndLook {
     pub pitch: MCFloat,
     pub flags: MCByte,
 }
-impl Into<Vec<u8>> for PlayerPositionAndLook {
+impl Into<Vec<u8>> for ClientboundPlayerPositionAndLook {
     fn into(self) -> Vec<u8> {
         let mut out = vec![];
-        let mut temp: Vec<u8> = MCVarInt::from(0x08).into(); // 0x08 Player Position and Look.
+        let mut temp: Vec<u8> = MCVarInt::from(Self::id()).into(); // 0x08 Player Position and Look.
         temp.extend_from_slice(&Into::<Vec<u8>>::into(self.x));
         temp.extend_from_slice(&Into::<Vec<u8>>::into(self.y));
         temp.extend_from_slice(&Into::<Vec<u8>>::into(self.z));
@@ -365,16 +386,16 @@ impl Into<Vec<u8>> for PlayerPositionAndLook {
         out
     }
 }
-impl TryFrom<Vec<u8>> for PlayerPositionAndLook {
+impl TryFrom<Vec<u8>> for ClientboundPlayerPositionAndLook {
     type Error = &'static str;
     fn try_from(_bytes: Vec<u8>) -> Result<Self, Self::Error> {
         Err("unimplemented")
     }
 }
 #[async_trait::async_trait]
-impl PacketCommon for PlayerPositionAndLook {
+impl PacketCommon for ClientboundPlayerPositionAndLook {
     fn new() -> Self {
-        PlayerPositionAndLook {
+        ClientboundPlayerPositionAndLook {
             x: 0.0.into(),
             y: 0.0.into(),
             z: 0.0.into(),
@@ -383,8 +404,11 @@ impl PacketCommon for PlayerPositionAndLook {
             flags: 0x00.into(),
         }
     }
+    fn id() -> u8 {
+        0x08
+    }
     async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
-        let mut playerpositionandlook = PlayerPositionAndLook::new();
+        let mut playerpositionandlook = ClientboundPlayerPositionAndLook::new();
         playerpositionandlook.x = MCDouble::read(t).await?;
         playerpositionandlook.y = MCDouble::read(t).await?;
         playerpositionandlook.z = MCDouble::read(t).await?;
@@ -409,8 +433,8 @@ pub struct SpawnPosition {
 impl Into<Vec<u8>> for SpawnPosition {
     fn into(self) -> Vec<u8> {
         let mut out = vec![];
-        let mut temp: Vec<u8> = MCVarInt::from(0x05).into(); // 0x05 Spawn Position.
-                                                             // temp.extend_from_slice(&Into::<Vec<u8>>::into(self.position));
+        let mut temp: Vec<u8> = MCVarInt::from(Self::id()).into(); // 0x05 Spawn Position.
+                                                                   // temp.extend_from_slice(&Into::<Vec<u8>>::into(self.position));
         temp.extend_from_slice(&0u64.to_be_bytes());
         out.extend_from_slice(&Into::<Vec<u8>>::into(MCVarInt::from(temp.len() as i32)));
         out.extend_from_slice(&temp);
@@ -429,6 +453,9 @@ impl PacketCommon for SpawnPosition {
         SpawnPosition {
             position: MCPosition::new(),
         }
+    }
+    fn id() -> u8 {
+        0x05
     }
     async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut spawnposition = SpawnPosition::new();
@@ -450,7 +477,7 @@ pub struct KeepAlivePing {
 impl Into<Vec<u8>> for KeepAlivePing {
     fn into(self) -> Vec<u8> {
         let mut out = vec![];
-        let mut temp: Vec<u8> = MCVarInt::from(0x00).into(); // 0x00 Keep Alive.
+        let mut temp: Vec<u8> = MCVarInt::from(Self::id()).into(); // 0x00 Keep Alive.
         temp.extend_from_slice(&Into::<Vec<u8>>::into(self.payload));
         out.extend_from_slice(&Into::<Vec<u8>>::into(MCVarInt::from(temp.len() as i32)));
         out.extend_from_slice(&temp);
@@ -467,6 +494,9 @@ impl TryFrom<Vec<u8>> for KeepAlivePing {
 impl PacketCommon for KeepAlivePing {
     fn new() -> Self {
         KeepAlivePing { payload: 0.into() }
+    }
+    fn id() -> u8 {
+        0x00
     }
     async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut keepalive = KeepAlivePing::new();
@@ -488,7 +518,7 @@ pub struct Disconnect {
 impl Into<Vec<u8>> for Disconnect {
     fn into(self) -> Vec<u8> {
         let mut out = vec![];
-        let mut temp: Vec<u8> = MCVarInt::from(0x40).into(); // 0x40 Disconnect.
+        let mut temp: Vec<u8> = MCVarInt::from(Self::id()).into(); // 0x40 Disconnect.
         temp.extend_from_slice(&Into::<Vec<u8>>::into(self.reason));
         out.extend_from_slice(&Into::<Vec<u8>>::into(MCVarInt::from(temp.len() as i32)));
         out.extend_from_slice(&temp);
@@ -509,6 +539,9 @@ impl PacketCommon for Disconnect {
                 text: "Disconnected".into(),
             },
         }
+    }
+    fn id() -> u8 {
+        0x40
     }
     async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut keepalive = Disconnect::new();
@@ -531,7 +564,7 @@ pub struct ClientboundChatMessage {
 impl Into<Vec<u8>> for ClientboundChatMessage {
     fn into(self) -> Vec<u8> {
         let mut out = vec![];
-        let mut temp: Vec<u8> = MCVarInt::from(0x02).into(); // 0x02 Clientbound Chat Message.
+        let mut temp: Vec<u8> = MCVarInt::from(Self::id()).into(); // 0x02 Clientbound Chat Message.
         temp.extend_from_slice(&Into::<Vec<u8>>::into(self.text));
         temp.extend_from_slice(&Into::<Vec<u8>>::into(self.position));
         out.extend_from_slice(&Into::<Vec<u8>>::into(MCVarInt::from(temp.len() as i32)));
@@ -552,6 +585,9 @@ impl PacketCommon for ClientboundChatMessage {
             text: MCChat { text: "".into() },
             position: 0.into(),
         }
+    }
+    fn id() -> u8 {
+        0x02
     }
     async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut clientboundchatmessage = ClientboundChatMessage::new();

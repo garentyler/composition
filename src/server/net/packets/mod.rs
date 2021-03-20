@@ -76,7 +76,7 @@ register_packets!(
     JoinGame,
     HeldItemChange,
     EntityStatus,
-    PlayerPositionAndLook,
+    ClientboundPlayerPositionAndLook,
     SpawnPosition,
     KeepAlivePing,
     Disconnect,
@@ -87,15 +87,21 @@ register_packets!(
     StatusPing,
     LoginStart,
     ClientSettings,
-    KeepAlivePong
+    KeepAlivePong,
+    ServerboundChatMessage,
+    Player,
+    PlayerPosition,
+    PlayerLook,
+    ServerboundPlayerPositionAndLook
 );
 
 #[async_trait::async_trait]
-pub trait PacketCommon
+pub trait PacketCommon: Into<Packet> + core::fmt::Debug
 where
     Self: Sized,
 {
     fn new() -> Self;
+    fn id() -> u8;
     async fn read(t: &'_ mut TcpStream) -> tokio::io::Result<Self>;
     async fn write(&self, t: &'_ mut TcpStream) -> tokio::io::Result<()>;
 }

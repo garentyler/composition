@@ -72,12 +72,10 @@ impl NetworkClient {
                     self.send_packet(logindisconnect).await?;
                     self.state = NetworkClientState::Disconnected;
                 }
-                debug!("{:?}", handshake);
             }
             NetworkClientState::Status => {
                 let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
-                let statusrequest = self.get_packet::<StatusRequest>().await?;
-                debug!("{:?}", statusrequest);
+                let _statusrequest = self.get_packet::<StatusRequest>().await?;
                 let mut statusresponse = StatusResponse::new();
                 statusresponse.json_response = json!({
                     "version": {
@@ -104,7 +102,6 @@ impl NetworkClient {
                 self.send_packet(statusresponse).await?;
                 let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
                 let statusping = self.get_packet::<StatusPing>().await?;
-                debug!("{:?}", statusping);
                 let mut statuspong = StatusPong::new();
                 statuspong.payload = statusping.payload;
                 self.send_packet(statuspong).await?;
@@ -113,7 +110,6 @@ impl NetworkClient {
             NetworkClientState::Login => {
                 let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
                 let loginstart = self.get_packet::<LoginStart>().await?;
-                debug!("{:?}", loginstart);
                 // Offline mode skips encryption and compression.
                 // TODO: Encryption and compression
                 let mut loginsuccess = LoginSuccess::new();
@@ -129,9 +125,8 @@ impl NetworkClient {
                 // TODO: Fill out `joingame` with actual information.
                 self.send_packet(joingame).await?;
                 let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
-                let clientsettings = self.get_packet::<ClientSettings>().await?;
+                let _clientsettings = self.get_packet::<ClientSettings>().await?;
                 // TODO: Actually use client settings.
-                debug!("{:?}", clientsettings);
                 let helditemchange = HeldItemChange::new();
                 // TODO: Retrieve selected slot from storage.
                 self.send_packet(helditemchange).await?;
@@ -141,7 +136,7 @@ impl NetworkClient {
                 // TODO: S->C Declare Commands (1.16?)
                 // TODO: S->C Unlock Recipes (1.16?)
                 // TODO: S->C Player Position and Look
-                let playerpositionandlook = PlayerPositionAndLook::new();
+                let playerpositionandlook = ClientboundPlayerPositionAndLook::new();
                 // TODO: Retrieve player position from storage.
                 self.send_packet(playerpositionandlook).await?;
                 // TODO: S->C Player Info (Add Player action) (1.16?)
@@ -172,6 +167,31 @@ impl NetworkClient {
                     self.send_chat_message("keep alive").await?;
                     self.keep_alive().await?;
                 }
+                let (packet_length, packet_id) = read_packet_header(&mut self.stream).await?;
+                // debug!("{}", packet_id);
+                if packet_id == Player::id() {
+                    let _player = self.get_packet::<Player>().await?;
+                } else if packet_id == PlayerPosition::id() {
+                    let _playerposition = self.get_packet::<PlayerPosition>().await?;
+                } else if packet_id == PlayerLook::id() {
+                    let _playerlook = self.get_packet::<PlayerLook>().await?;
+                } else if packet_id == ServerboundPlayerPositionAndLook::id() {
+                    let _playerpositionandlook = self
+                        .get_packet::<ServerboundPlayerPositionAndLook>()
+                        .await?;
+                } else if packet_id == ServerboundChatMessage::id() {
+                    let serverboundchatmessage =
+                        self.get_packet::<ServerboundChatMessage>().await?;
+                    self.send_chat_message(format!(
+                        "<{}> {}",
+                        self.username.as_ref().unwrap_or(&"unknown".to_owned()),
+                        serverboundchatmessage.text
+                    ))
+                    .await?;
+                } else {
+                    let _ = read_bytes(&mut self.stream, Into::<i32>::into(packet_length) as usize)
+                        .await?;
+                }
             }
             NetworkClientState::Disconnected => {
                 if self.connected {
@@ -183,17 +203,16 @@ impl NetworkClient {
     }
 
     /// Send a generic packet to the client.
-    pub async fn send_packet<P: Into<Packet> + core::fmt::Debug>(
-        &mut self,
-        packet: P,
-    ) -> tokio::io::Result<()> {
-        debug!("{:?}", packet);
-        Into::<Packet>::into(packet).write(&mut self.stream).await
+    pub async fn send_packet<P: PacketCommon>(&mut self, packet: P) -> tokio::io::Result<()> {
+        debug!("Sent {:?} {:#04X?} {:?}", self.state, P::id(), packet);
+        packet.write(&mut self.stream).await
     }
 
     /// Read a generic packet from the network.
     pub async fn get_packet<T: PacketCommon>(&mut self) -> tokio::io::Result<T> {
-        Ok(T::read(&mut self.stream).await?)
+        let packet = T::read(&mut self.stream).await?;
+        debug!("Got {:?} {:#04X?} {:?}", self.state, T::id(), packet);
+        Ok(packet)
     }
 
     /// Send the client a message in chat.
@@ -231,8 +250,7 @@ impl NetworkClient {
         self.send_packet(clientboundkeepalive).await?;
         // Keep alive pong to server.
         let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
-        let serverboundkeepalive = self.get_packet::<KeepAlivePong>().await?;
-        debug!("{:?}", serverboundkeepalive);
+        let _serverboundkeepalive = self.get_packet::<KeepAlivePong>().await?;
         self.last_keep_alive = Instant::now();
         Ok(())
     }

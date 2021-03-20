@@ -1014,6 +1014,21 @@ pub mod numbers {
             unimplemented!()
         }
     }
+    impl From<u8> for MCVarInt {
+        fn from(v: u8) -> MCVarInt {
+            MCVarInt { value: v as i32 }
+        }
+    }
+    impl Into<u8> for MCVarInt {
+        fn into(self) -> u8 {
+            self.value as u8
+        }
+    }
+    impl PartialEq<u8> for MCVarInt {
+        fn eq(&self, other: &u8) -> bool {
+            self.value == *other as i32
+        }
+    }
     impl From<i32> for MCVarInt {
         fn from(v: i32) -> MCVarInt {
             MCVarInt { value: v }
