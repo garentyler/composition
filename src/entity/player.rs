@@ -1,4 +1,4 @@
-use crate::server::NetworkClient;
+use crate::server::net::NetworkClient;
 use crate::world::location::Location;
 
 pub struct Player {
