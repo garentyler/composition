@@ -1,7 +1,7 @@
 use super::PacketCommon;
 use crate::mctypes::*;
 use std::convert::{Into, TryFrom};
-use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::net::TcpStream;
 
 /// Needed for every interaction with the server.
 #[derive(Debug, Clone)]
@@ -43,7 +43,7 @@ impl PacketCommon for Handshake {
     fn id() -> u8 {
         0x00
     }
-    async fn read<T: AsyncRead + Unpin + Send>(t: &mut T) -> tokio::io::Result<Self> {
+    async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut handshake = Handshake::new();
         handshake.protocol_version = MCVarInt::read(t).await?;
         handshake.server_address = MCString::read(t).await?;
@@ -51,7 +51,7 @@ impl PacketCommon for Handshake {
         handshake.next_state = MCVarInt::read(t).await?;
         Ok(handshake)
     }
-    async fn write<T: AsyncWrite + Unpin + Send>(&self, t: &mut T) -> tokio::io::Result<()> {
+    async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b).await?;
         }
@@ -84,11 +84,11 @@ impl PacketCommon for StatusRequest {
     fn id() -> u8 {
         0x00
     }
-    async fn read<T: AsyncRead + Unpin + Send>(_t: &mut T) -> tokio::io::Result<Self> {
+    async fn read(_t: &mut TcpStream) -> tokio::io::Result<Self> {
         let statusrequest = StatusRequest::new();
         Ok(statusrequest)
     }
-    async fn write<T: AsyncWrite + Unpin + Send>(&self, t: &mut T) -> tokio::io::Result<()> {
+    async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b).await?;
         }
@@ -124,12 +124,12 @@ impl PacketCommon for StatusPing {
     fn id() -> u8 {
         0x01
     }
-    async fn read<T: AsyncRead + Unpin + Send>(t: &mut T) -> tokio::io::Result<Self> {
+    async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut statusping = StatusPing::new();
         statusping.payload = MCLong::read(t).await?;
         Ok(statusping)
     }
-    async fn write<T: AsyncWrite + Unpin + Send>(&self, t: &mut T) -> tokio::io::Result<()> {
+    async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b).await?;
         }
@@ -167,12 +167,12 @@ impl PacketCommon for LoginStart {
     fn id() -> u8 {
         0x00
     }
-    async fn read<T: AsyncRead + Unpin + Send>(t: &mut T) -> tokio::io::Result<Self> {
+    async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut loginstart = LoginStart::new();
         loginstart.player_name = MCString::read(t).await?;
         Ok(loginstart)
     }
-    async fn write<T: AsyncWrite + Unpin + Send>(&self, t: &mut T) -> tokio::io::Result<()> {
+    async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b).await?;
         }
@@ -230,7 +230,7 @@ impl PacketCommon for ClientSettings {
     fn id() -> u8 {
         0x15
     }
-    async fn read<T: AsyncRead + Unpin + Send>(t: &mut T) -> tokio::io::Result<Self> {
+    async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut clientsettings = ClientSettings::new();
         clientsettings.locale = MCString::read(t).await?;
         clientsettings.view_distance = MCByte::read(t).await?;
@@ -239,7 +239,7 @@ impl PacketCommon for ClientSettings {
         clientsettings.displayed_skin_parts = MCUnsignedByte::read(t).await?;
         Ok(clientsettings)
     }
-    async fn write<T: AsyncWrite + Unpin + Send>(&self, t: &mut T) -> tokio::io::Result<()> {
+    async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b).await?;
         }
@@ -275,12 +275,12 @@ impl PacketCommon for KeepAlivePong {
     fn id() -> u8 {
         0x00
     }
-    async fn read<T: AsyncRead + Unpin + Send>(t: &mut T) -> tokio::io::Result<Self> {
+    async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut keepalive = KeepAlivePong::new();
         keepalive.payload = MCVarInt::read(t).await?;
         Ok(keepalive)
     }
-    async fn write<T: AsyncWrite + Unpin + Send>(&self, t: &mut T) -> tokio::io::Result<()> {
+    async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b).await?;
         }
@@ -316,12 +316,12 @@ impl PacketCommon for ServerboundChatMessage {
     fn id() -> u8 {
         0x01
     }
-    async fn read<T: AsyncRead + Unpin + Send>(t: &mut T) -> tokio::io::Result<Self> {
+    async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut serverboundchatmessage = ServerboundChatMessage::new();
         serverboundchatmessage.text = MCString::read(t).await?;
         Ok(serverboundchatmessage)
     }
-    async fn write<T: AsyncWrite + Unpin + Send>(&self, t: &mut T) -> tokio::io::Result<()> {
+    async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b).await?;
         }
@@ -359,12 +359,12 @@ impl PacketCommon for Player {
     fn id() -> u8 {
         0x03
     }
-    async fn read<T: AsyncRead + Unpin + Send>(t: &mut T) -> tokio::io::Result<Self> {
+    async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut player = Player::new();
         player.on_ground = MCBoolean::read(t).await?;
         Ok(player)
     }
-    async fn write<T: AsyncWrite + Unpin + Send>(&self, t: &mut T) -> tokio::io::Result<()> {
+    async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b).await?;
         }
@@ -411,7 +411,7 @@ impl PacketCommon for PlayerPosition {
     fn id() -> u8 {
         0x04
     }
-    async fn read<T: AsyncRead + Unpin + Send>(t: &mut T) -> tokio::io::Result<Self> {
+    async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut playerposition = PlayerPosition::new();
         playerposition.x = MCDouble::read(t).await?;
         playerposition.y = MCDouble::read(t).await?;
@@ -419,7 +419,7 @@ impl PacketCommon for PlayerPosition {
         playerposition.on_ground = MCBoolean::read(t).await?;
         Ok(playerposition)
     }
-    async fn write<T: AsyncWrite + Unpin + Send>(&self, t: &mut T) -> tokio::io::Result<()> {
+    async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b).await?;
         }
@@ -463,14 +463,14 @@ impl PacketCommon for PlayerLook {
     fn id() -> u8 {
         0x05
     }
-    async fn read<T: AsyncRead + Unpin + Send>(t: &mut T) -> tokio::io::Result<Self> {
+    async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut playerlook = PlayerLook::new();
         playerlook.yaw = MCFloat::read(t).await?;
         playerlook.pitch = MCFloat::read(t).await?;
         playerlook.on_ground = MCBoolean::read(t).await?;
         Ok(playerlook)
     }
-    async fn write<T: AsyncWrite + Unpin + Send>(&self, t: &mut T) -> tokio::io::Result<()> {
+    async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b).await?;
         }
@@ -523,7 +523,7 @@ impl PacketCommon for ServerboundPlayerPositionAndLook {
     fn id() -> u8 {
         0x06
     }
-    async fn read<T: AsyncRead + Unpin + Send>(t: &mut T) -> tokio::io::Result<Self> {
+    async fn read(t: &mut TcpStream) -> tokio::io::Result<Self> {
         let mut playerpositionandlook = ServerboundPlayerPositionAndLook::new();
         playerpositionandlook.x = MCDouble::read(t).await?;
         playerpositionandlook.y = MCDouble::read(t).await?;
@@ -533,7 +533,7 @@ impl PacketCommon for ServerboundPlayerPositionAndLook {
         playerpositionandlook.on_ground = MCBoolean::read(t).await?;
         Ok(playerpositionandlook)
     }
-    async fn write<T: AsyncWrite + Unpin + Send>(&self, t: &mut T) -> tokio::io::Result<()> {
+    async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
         for b in Into::<Vec<u8>>::into(self.clone()) {
             write_byte(t, b).await?;
         }

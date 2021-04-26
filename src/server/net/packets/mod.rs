@@ -7,10 +7,10 @@ use crate::mctypes::MCVarInt;
 pub use clientbound::*;
 use core::convert::TryFrom;
 pub use serverbound::*;
-use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::net::TcpStream;
 
 /// A helper function to read the packet header.
-pub async fn read_packet_header<T: AsyncRead + Unpin>(t: &mut T) -> tokio::io::Result<(MCVarInt, MCVarInt)> {
+pub async fn read_packet_header(t: &mut TcpStream) -> tokio::io::Result<(MCVarInt, MCVarInt)> {
     let length = MCVarInt::read(t).await?;
     let id = MCVarInt::read(t).await?;
     Ok((length, id))
@@ -28,7 +28,7 @@ macro_rules! register_packets {
             pub fn new() -> Packet {
                 Packet::Null
             }
-            pub async fn write<T: AsyncWrite + Unpin + Send>(&self, t: &mut T) -> tokio::io::Result<()> {
+            pub async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()> {
                 match self {
                     $(
                         Packet::$name(p) => p.write(t).await,
@@ -102,6 +102,6 @@ where
 {
     fn new() -> Self;
     fn id() -> u8;
-    async fn read<T: AsyncRead + Unpin + Send>(t: &'_ mut T) -> tokio::io::Result<Self>;
-    async fn write<T: AsyncWrite + Unpin + Send>(&self, t: &'_ mut T) -> tokio::io::Result<()>;
+    async fn read(t: &mut TcpStream) -> tokio::io::Result<Self>;
+    async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()>;
 }
