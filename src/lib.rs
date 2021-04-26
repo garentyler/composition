@@ -3,15 +3,14 @@ extern crate lazy_static;
 
 /// Data types for every entity in the game.
 pub mod entity;
-/// Implementations of the data types needed for the Minecraft protocol.
+/// Data types needed for the Minecraft protocol.
 pub mod mctypes;
 /// The logic for the server.
 pub mod server;
-/// The data types for blocks, chunks, dimensions, and world files.
+/// Data types for blocks, chunks, dimensions, and world files.
 pub mod world;
 
 use log::*;
-pub use mctypes::*;
 use serde::{Deserialize, Serialize};
 use std::sync::mpsc::{self, Receiver};
 
