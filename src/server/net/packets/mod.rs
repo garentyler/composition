@@ -96,12 +96,30 @@ register_packets!(
 );
 
 #[async_trait::async_trait]
-pub trait PacketCommon: Into<Packet> + core::fmt::Debug
+pub trait PacketCommon: Into<Packet> + core::fmt::Debug + Clone
 where
     Self: Sized,
 {
     fn new() -> Self;
     fn id() -> u8;
+    fn as_packet(&self) -> Packet {
+        self.clone().into()
+    }
     async fn read(t: &mut TcpStream) -> tokio::io::Result<Self>;
     async fn write(&self, t: &mut TcpStream) -> tokio::io::Result<()>;
+}
+#[async_trait::async_trait]
+impl PacketCommon for Packet {
+    fn new() -> Self {
+        Packet::new()
+    }
+    fn id() -> u8 {
+        255 // The generic `Packet` doesn't really have an id, but I can't leave it blank.
+    }
+    async fn read(_t: &mut TcpStream) -> tokio::io::Result<Self> {
+        panic!("cannot PacketCommon::read a generic Packet")
+    }
+    async fn write(&self, _t: &mut TcpStream) -> tokio::io::Result<()> {
+        panic!("cannot PacketCommon::write a generic Packet")
+    }
 }

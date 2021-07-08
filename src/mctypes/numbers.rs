@@ -636,26 +636,28 @@ pub struct MCVarInt {
 impl MCVarInt {
     pub async fn read(t: &mut TcpStream) -> tokio::io::Result<MCVarInt> {
         let mut num_read = 0;
-        let mut result = 0i32;
+        let mut result = 0i128;
         let mut read = 0u8;
         let mut run_once = false;
         while (read & 0b10000000) != 0 || !run_once {
             run_once = true;
             read = read_byte(t).await?;
-            let value = (read & 0b01111111) as i32;
+            let value = (read & 0b01111111) as i128;
             result |= value << (7 * num_read);
             num_read += 1;
             if num_read > 5 {
                 return Err(io_error("MCVarInt is too big"));
             }
         }
-        Ok(MCVarInt { value: result })
+        Ok(MCVarInt {
+            value: result as i32,
+        })
     }
     pub fn from_bytes(_v: Vec<u8>) -> MCVarInt {
         unimplemented!()
     }
     pub fn to_bytes(&self) -> Vec<u8> {
-        unimplemented!()
+        Into::<Vec<u8>>::into(*self)
     }
 }
 impl From<u8> for MCVarInt {

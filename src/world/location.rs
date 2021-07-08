@@ -1,4 +1,5 @@
 /// Used to store a point in a world.
+#[derive(Debug, Clone, PartialEq)]
 pub struct Location {
     pub x: f64,
     pub y: f64,

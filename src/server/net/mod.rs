@@ -2,12 +2,15 @@
 pub mod packets;
 
 use super::messages::*;
-use crate::{mctypes::*, CONFIG, FAVICON};
+use crate::mctypes::*;
 use log::*;
 use packets::*;
-use serde_json::json;
-use std::sync::mpsc::Sender;
-use std::time::{Duration, Instant};
+// use serde_json::json;
+use std::{
+    collections::VecDeque,
+    sync::mpsc::Sender,
+    time::{Duration, Instant},
+};
 use tokio::net::TcpStream;
 
 /// The network client can only be in a few states,
@@ -29,10 +32,10 @@ pub struct NetworkClient {
     pub connected: bool,
     pub stream: TcpStream,
     pub state: NetworkClientState,
-    pub uuid: Option<String>,
-    pub username: Option<String>,
     pub last_keep_alive: Instant,
     pub message_sender: Sender<ServerboundMessage>,
+    packets: VecDeque<Packet>,
+    pub player: Option<crate::entity::player::Player>,
 }
 impl NetworkClient {
     /// Create a new `NetworkClient`
@@ -46,172 +49,99 @@ impl NetworkClient {
             connected: true,
             stream,
             state: NetworkClientState::Handshake,
-            uuid: None,
-            username: None,
             last_keep_alive: Instant::now(),
             message_sender,
+            packets: VecDeque::new(),
+            player: None,
         }
     }
 
-    /// Update the client.
-    ///
-    /// Updating could mean connecting new clients, reading packets,
-    /// writing packets, or disconnecting clients.
-    pub async fn update(&mut self, num_players: usize) -> tokio::io::Result<()> {
-        // println!("{:?}", self);
-        match self.state {
-            NetworkClientState::Handshake => {
-                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
-                let handshake = self.get_packet::<Handshake>().await?;
-                // Minecraft versions 1.8 - 1.8.9 use protocol version 47.
-                let compatible_versions = handshake.protocol_version == 47;
-                let next_state = match handshake.next_state.into() {
-                    1 => NetworkClientState::Status,
-                    2 => NetworkClientState::Login,
-                    _ => NetworkClientState::Disconnected,
-                };
-                self.state = next_state;
-                // If incompatible versions or wrong next state
-                if !compatible_versions {
-                    let mut logindisconnect = LoginDisconnect::new();
-                    logindisconnect.reason = MCChat {
-                        text: MCString::from("Incompatible client! Server is on 1.8.9"),
-                    };
-                    self.send_packet(logindisconnect).await?;
-                    self.state = NetworkClientState::Disconnected;
+    /// Try to read a new packet into the processing queue.
+    pub async fn update(&mut self) -> tokio::io::Result<()> {
+        // Don't try to read packets if disconnected.
+        if self.state == NetworkClientState::Disconnected {
+            return Ok(());
+        }
+        if self.stream.peek(&mut [0u8; 4096]).await? > 0 {
+            // Read the packet header.
+            let (_packet_length, packet_id) = read_packet_header(&mut self.stream).await?;
+            // Get the packet based on packet_id.
+            let packet = match packet_id.value {
+                0x00 => match self.state {
+                    NetworkClientState::Handshake => {
+                        Some(self.get_wrapped_packet::<Handshake>().await)
+                    }
+                    NetworkClientState::Status => {
+                        Some(self.get_wrapped_packet::<StatusRequest>().await)
+                    }
+                    NetworkClientState::Login => {
+                        Some(self.get_wrapped_packet::<LoginStart>().await)
+                    }
+                    NetworkClientState::Play => {
+                        Some(self.get_wrapped_packet::<KeepAlivePong>().await)
+                    }
+                    _ => None,
+                },
+                0x01 => {
+                    match self.state {
+                        NetworkClientState::Status => {
+                            Some(self.get_wrapped_packet::<StatusPing>().await)
+                        }
+                        NetworkClientState::Login => None, // TODO: 0x01 Encryption Response
+                        NetworkClientState::Play => {
+                            Some(self.get_wrapped_packet::<ServerboundChatMessage>().await)
+                        }
+                        _ => None,
+                    }
                 }
-            }
-            NetworkClientState::Status => {
-                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
-                let _statusrequest = self.get_packet::<StatusRequest>().await?;
-                let mut statusresponse = StatusResponse::new();
-                statusresponse.json_response = json!({
-                    "version": {
-                        "name": "1.8.9",
-                        "protocol": 47,
-                    },
-                    "players": {
-                        "max": CONFIG.max_players,
-                        "online": num_players,
-                        "sample": [
-                            {
-                                "name": "shvr",
-                                "id": "e3f58380-60bb-4714-91f2-151d525e64aa"
-                            }
-                        ]
-                    },
-                    "description": {
-                        "text": CONFIG.motd
-                    },
-                    "favicon": format!("data:image/png;base64,{}", if FAVICON.is_ok() { radix64::STD.encode(FAVICON.as_ref().unwrap().as_slice()) } else { "".to_owned() })
-                })
-                .to_string()
-                .into();
-                self.send_packet(statusresponse).await?;
-                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
-                let statusping = self.get_packet::<StatusPing>().await?;
-                let mut statuspong = StatusPong::new();
-                statuspong.payload = statusping.payload;
-                self.send_packet(statuspong).await?;
-                self.state = NetworkClientState::Disconnected;
-            }
-            NetworkClientState::Login => {
-                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
-                let loginstart = self.get_packet::<LoginStart>().await?;
-                // Offline mode skips encryption and compression.
-                // TODO: Encryption and compression
-                let mut loginsuccess = LoginSuccess::new();
-                // We're in offline mode, so this is a temporary uuid.
-                // TODO: Get uuid and username from Mojang servers.
-                loginsuccess.uuid = "00000000-0000-3000-0000-000000000000".into();
-                loginsuccess.username = loginstart.player_name;
-                self.uuid = Some(loginsuccess.uuid.clone().into());
-                self.username = Some(loginsuccess.username.clone().into());
-                self.send_packet(loginsuccess).await?;
-                self.state = NetworkClientState::Play;
-                let joingame = JoinGame::new();
-                // TODO: Fill out `joingame` with actual information.
-                self.send_packet(joingame).await?;
-                let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
-                let _clientsettings = self.get_packet::<ClientSettings>().await?;
-                // TODO: Actually use client settings.
-                let helditemchange = HeldItemChange::new();
-                // TODO: Retrieve selected slot from storage.
-                self.send_packet(helditemchange).await?;
-                // TODO: S->C Declare Recipes (1.16?)
-                // TODO: S->C Tags (1.16?)
-                // TODO: S->C Entity Status (optional?)
-                // TODO: S->C Declare Commands (1.16?)
-                // TODO: S->C Unlock Recipes (1.16?)
-                // TODO: S->C Player Position and Look
-                let playerpositionandlook = ClientboundPlayerPositionAndLook::new();
-                // TODO: Retrieve player position from storage.
-                self.send_packet(playerpositionandlook).await?;
-                // TODO: S->C Player Info (Add Player action) (1.16?)
-                // TODO: S->C Player Info (Update latency action) (1.16?)
-                // TODO: S->C Update View Position (1.16?)
-                // TODO: S->C Update Light (1.16?)
-                // TODO: S->C Chunk Data
-                // TODO: S->C World Border
-                // TODO: S->C Spawn Position
-                let spawnposition = SpawnPosition::new();
-                self.send_packet(spawnposition).await?;
-                // Send initial keep alive.
-                self.keep_alive().await?;
-                // TODO: S->C Player Position and Look
-                // TODO: C->S Teleport Confirm
-                // TODO: C->S Player Position and Look
-                // TODO: C->S Client Status
-                // TODO: S->C inventories, entities, etc.
-                self.message_sender
-                    .send(ServerboundMessage::PlayerJoin(
-                        self.uuid
-                            .as_ref()
-                            .unwrap_or(&"00000000-0000-3000-0000-000000000000".to_owned())
-                            .to_string(),
-                        self.username
-                            .as_ref()
-                            .unwrap_or(&"unknown".to_owned())
-                            .to_string(),
-                    ))
-                    .expect("Message receiver disconnected");
-            }
-            NetworkClientState::Play => {
-                if self.last_keep_alive.elapsed() > Duration::from_millis(1000) {
-                    self.keep_alive().await?;
-                }
-                let (packet_length, packet_id) = read_packet_header(&mut self.stream).await?;
-                // debug!("{}", packet_id);
-                if packet_id == Player::id() {
-                    let _player = self.get_packet::<Player>().await?;
-                } else if packet_id == PlayerPosition::id() {
-                    let _playerposition = self.get_packet::<PlayerPosition>().await?;
-                } else if packet_id == PlayerLook::id() {
-                    let _playerlook = self.get_packet::<PlayerLook>().await?;
-                } else if packet_id == ServerboundPlayerPositionAndLook::id() {
-                    let _playerpositionandlook = self
-                        .get_packet::<ServerboundPlayerPositionAndLook>()
-                        .await?;
-                } else if packet_id == ServerboundChatMessage::id() {
-                    let serverboundchatmessage =
-                        self.get_packet::<ServerboundChatMessage>().await?;
-                    let reply = format!("<{}> {}", self.get_name(), serverboundchatmessage.text);
-                    info!("{}", reply);
-                    self.message_sender
-                        .send(ServerboundMessage::Chat(reply))
-                        .expect("Message receiver disconnected");
-                } else {
-                    let _ = read_bytes(&mut self.stream, Into::<i32>::into(packet_length) as usize)
-                        .await?;
-                }
-            }
-            NetworkClientState::Disconnected => {
-                if self.connected {
-                    self.disconnect("Disconnected").await?;
-                }
+                // The rest of the packets are all always in the play state.
+                0x02 => None, // TODO: 0x02 Use Entity
+                0x03 => Some(self.get_wrapped_packet::<Player>().await),
+                0x04 => Some(self.get_wrapped_packet::<PlayerPosition>().await),
+                0x05 => Some(self.get_wrapped_packet::<PlayerLook>().await),
+                0x06 => Some(
+                    self.get_wrapped_packet::<ServerboundPlayerPositionAndLook>()
+                        .await,
+                ),
+                0x07 => None, // TODO: 0x07 Player Digging
+                0x08 => None, // TODO: 0x08 Player Block Placement
+                0x09 => None, // TODO: 0x09 Held Item Change
+                0x0a => None, // TODO: 0x0a Animation
+                0x0b => None, // TODO: 0x0b Entity Action
+                0x0c => None, // TODO: 0x0c Steer Vehicle
+                0x0d => None, // TODO: 0x0d Close Window
+                0x0e => None, // TODO: 0x0e Click Window
+                0x0f => None, // TODO: 0x0f Confirm Transaction
+                0x10 => None, // TODO: 0x10 Creative Inventory Action
+                0x11 => None, // TODO: 0x11 Enchant Item
+                0x12 => None, // TODO: 0x12 Update Sign
+                0x13 => None, // TODO: 0x13 Player Abilities
+                0x14 => None, // TODO: 0x14 Tab-Complete
+                0x15 => Some(self.get_wrapped_packet::<ClientSettings>().await),
+                0x16 => None, // TODO: 0x16 Client Status
+                0x17 => None, // TODO: 0x17 Plugin Message
+                0x18 => None, // TODO: 0x18 Spectate
+                0x19 => None, // TODO: 0x19 Resource Pack Status
+                _ => None,
+            };
+            if let Some(Ok(packet)) = packet {
+                // Add it to the internal queue to be processed.
+                self.packets.push_back(packet);
             }
         }
+        if self.last_keep_alive.elapsed() > Duration::from_millis(1000) {
+            debug!(
+                "Sending keep alive, last one was {:?} ago",
+                self.last_keep_alive.elapsed()
+            );
+            self.keep_alive().await?;
+        }
         Ok(())
+    }
+
+    /// Pop a packet from the queue.
+    pub fn read_packet(&mut self) -> Option<Packet> {
+        self.packets.pop_front()
     }
 
     /// Send a generic packet to the client.
@@ -221,10 +151,17 @@ impl NetworkClient {
     }
 
     /// Read a generic packet from the network.
-    pub async fn get_packet<T: PacketCommon>(&mut self) -> tokio::io::Result<T> {
+    async fn get_packet<T: PacketCommon>(&mut self) -> tokio::io::Result<T> {
         let packet = T::read(&mut self.stream).await?;
         debug!("Got {:?} {:#04X?} {:?}", self.state, T::id(), packet);
         Ok(packet)
+    }
+
+    /// Read a generic packet from the network and wrap it in `Packet`.
+    async fn get_wrapped_packet<T: PacketCommon>(&mut self) -> tokio::io::Result<Packet> {
+        let packet = T::read(&mut self.stream).await?;
+        debug!("Got {:?} {:#04X?} {:?}", self.state, T::id(), packet);
+        Ok(packet.as_packet())
     }
 
     /// Send the client a message in chat.
@@ -258,32 +195,20 @@ impl NetworkClient {
     /// Send a keep alive packet to the client.
     pub async fn keep_alive(&mut self) -> tokio::io::Result<()> {
         if cfg!(debug_assertions) {
-            self.send_chat_message("keep alive").await?;
+            // self.send_chat_message("keep alive").await?;
         }
         // Keep alive ping to client.
-        let clientboundkeepalive = KeepAlivePing::new();
-        self.send_packet(clientboundkeepalive).await?;
+        self.send_packet(KeepAlivePing::new()).await?;
         // Keep alive pong to server.
         let (_packet_length, _packet_id) = read_packet_header(&mut self.stream).await?;
-        let _serverboundkeepalive = self.get_packet::<KeepAlivePong>().await?;
+        let _ = self.get_packet::<KeepAlivePong>().await?;
         self.last_keep_alive = Instant::now();
         Ok(())
     }
 
-    /// Helper function to get the name of the player.
-    pub fn get_name(&self) -> String {
-        self.username
-            .as_ref()
-            .unwrap_or(&"unknown".to_owned())
-            .to_string()
-    }
-
-    /// Receives broadcast messages from the server.
-    pub async fn handle_broadcast_message(
-        &mut self,
-        message: BroadcastMessage,
-    ) -> tokio::io::Result<()> {
-        use BroadcastMessage::*;
+    /// Receives messages from the server.
+    pub async fn handle_message(&mut self, message: ClientboundMessage) -> tokio::io::Result<()> {
+        use ClientboundMessage::*;
         match message {
             Chat(s) => self.send_chat_message(s).await?,
             Disconnect(reason) => self.disconnect(reason).await?,
