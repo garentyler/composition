@@ -1,17 +1,11 @@
 #[macro_use]
 extern crate lazy_static;
 
-/// Data types for every entity in the game.
-pub mod entity;
-/// Data types needed for the Minecraft protocol.
 pub mod mctypes;
-/// The logic for the server.
+pub mod net;
 pub mod server;
-/// Data types for blocks, chunks, dimensions, and world files.
-pub mod world;
 
-use log::*;
-use serde::{Deserialize, Serialize};
+use crate::prelude::*;
 use std::sync::mpsc::{self, Receiver};
 
 #[derive(Serialize, Deserialize)]
@@ -23,7 +17,7 @@ pub struct Config {
 }
 
 lazy_static! {
-    static ref CONFIG: Config = {
+    pub static ref CONFIG: Config = {
         let config_from_file = || -> std::io::Result<Config> {
             use std::{fs::File, io::prelude::*};
             let mut data = String::new();
@@ -50,7 +44,7 @@ lazy_static! {
             }
         }
     };
-    static ref FAVICON: std::io::Result<Vec<u8>> = {
+    pub static ref FAVICON: std::io::Result<Vec<u8>> = {
         use std::{fs::File, io::prelude::*};
         let mut data = vec![];
         let mut file = File::open(CONFIG.favicon.clone())?;
@@ -96,4 +90,20 @@ pub fn init() -> Receiver<()> {
 /// Start the server.
 pub async fn start_server() -> server::Server {
     server::Server::new(format!("0.0.0.0:{}", CONFIG.port))
+}
+
+pub mod prelude {
+    pub use crate::{mctypes::*, CONFIG, FAVICON};
+    pub use log::*;
+    pub use serde::{Deserialize, Serialize};
+    pub type JSON = serde_json::Value;
+    pub type NBT = fastnbt::Value;
+    pub use std::collections::VecDeque;
+    #[derive(Clone, Debug, PartialEq)]
+    pub enum ParseError {
+        NotEnoughData,
+        InvalidData,
+        VarIntTooBig,
+    }
+    pub type ParseResult<T> = Result<(T, usize), ParseError>;
 }
