@@ -74,13 +74,11 @@ pub fn parse_varint(data: &[u8]) -> ParseResult<i32> {
     Ok((output, bytes_read as usize))
 }
 pub fn serialize_varint(value: i32) -> Vec<u8> {
-    println!("serializing {}", value);
     let mut value = value as u32;
     let mut output = vec![];
     loop {
         let data = (value & 0x7f) as u8;
         value >>= 7;
-        println!("\tvalue: {}", value);
 
         if value == 0 {
             output.push(data);

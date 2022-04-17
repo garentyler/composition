@@ -13,7 +13,7 @@ pub async fn main() {
     loop {
         match ctrlc_rx.try_recv() {
             Ok(_) => {
-                server.shutdown().await;
+                let _ = server.shutdown().await;
                 break; // Exit the loop.
             }
             Err(TryRecvError::Empty) => {} // Doesn't matter if there's nothing for us.

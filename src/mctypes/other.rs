@@ -36,8 +36,13 @@ pub fn serialize_string(value: &str) -> Vec<u8> {
 }
 
 pub fn parse_json(data: &[u8]) -> ParseResult<JSON> {
-    unimplemented!()
+    let (value_string, offset) = parse_string(data)?;
+    if let Ok(value) = serde_json::from_str(&value_string) {
+        Ok((value, offset))
+    } else {
+        Err(ParseError::InvalidData)
+    }
 }
 pub fn serialize_json(value: JSON) -> Vec<u8> {
-    unimplemented!()
+    serialize_string(&serde_json::to_string(&value).expect("Could not serialize JSON"))
 }

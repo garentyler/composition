@@ -13,7 +13,11 @@ pub enum Packet {
 
     // Status
     CS00Response {
-        json_response: JSON,
+        version_name: String,
+        protocol_version: i32,
+        max_players: usize,
+        current_players: usize,
+        description: JSON,
     },
     CS01Pong {
         payload: i64,
@@ -50,12 +54,12 @@ impl Packet {
                     let (next_state, offset_delta) = parse_varint(&data[offset..])?;
                     offset += offset_delta;
                     let next_state = match next_state {
-                        0 => NetworkClientState::Status,
-                        1 => NetworkClientState::Login,
+                        1 => NetworkClientState::Status,
+                        2 => NetworkClientState::Login,
                         _ => return Err(ParseError::InvalidData),
                     };
                     Ok((
-                        Packet::SH00Handshake {
+                        SH00Handshake {
                             protocol_version,
                             server_address,
                             server_port,
@@ -70,14 +74,16 @@ impl Packet {
             Status => match id {
                 0x00 => {
                     if serverbound {
-                        unimplemented!("Parse SS00Request")
+                        Ok((SS00Request, offset))
                     } else {
                         unimplemented!("Parse CS00Response")
                     }
                 }
                 0x01 => {
                     if serverbound {
-                        unimplemented!("Parse SS01Ping")
+                        let (payload, offset_delta) = parse_long(&data[offset..])?;
+                        offset += offset_delta;
+                        Ok((SS01Ping { payload }, offset))
                     } else {
                         unimplemented!("Parse CS01Pong")
                     }
@@ -91,7 +97,28 @@ impl Packet {
     pub fn serialize(&self) -> Vec<u8> {
         use Packet::*;
         let (id, mut body): (usize, Vec<u8>) = match self {
-            CS00Response { json_response } => (0x00, serialize_json(json_response.clone())),
+            CS00Response {
+                version_name,
+                protocol_version,
+                max_players,
+                current_players,
+                description,
+            } => (
+                0x00,
+                serialize_json(serde_json::json!({
+                    "version": {
+                        "name": version_name,
+                        "protocol": protocol_version,
+                    },
+                    "players": {
+                        "max": max_players,
+                        "online": current_players,
+                    },
+                    "description": description,
+                    // TODO: Add base64 favicon
+                    "favicon": format!("data:image/png;base64,{}", radix64::STD_NO_PAD.encode(FAVICON.as_ref().unwrap())),
+                })),
+            ),
             CS01Pong { payload } => (0x01, serialize_long(payload.clone()).to_vec()),
             _ => unimplemented!(),
         };

@@ -1,26 +1,26 @@
 [package]
+authors = ["Garen Tyler <garentyler@garen.dev>"]
+description = "An extremely fast Minecraft server"
+edition = "2021"
+license = "MIT"
 name = "composition"
 version = "0.1.0"
-authors = ["Garen Tyler <garentyler@gmail.com>"]
-edition = "2018"
-description = "An extremely fast 1.8.9 Minecraft server"
-license = "MIT"
 
 [dependencies]
-log = "0.4"
-fern = { version = "0.6", features = ["colored"] }
-chrono = "0.4.13"
-serde = { version = "1.0.114", features = ["serde_derive"]}
-serde_json = "1.0.59"
-toml = "0.5"
-radix64 = "0.3.0"
-tokio = { version = "1", features = ["full"] }
 async-trait = "0.1.48"
-lazy_static = "1.4.0"
+chrono = "0.4.13"
 ctrlc = "3.1.8"
-futures = "0.3.13"
-uuid = "0.8.2"
 fastnbt = "*"
+fern = {version = "0.6", features = ["colored"]}
+futures = "0.3.13"
+lazy_static = "1.4.0"
+log = "0.4"
+radix64 = "0.6.2"
+serde = {version = "1.0.114", features = ["serde_derive"]}
+serde_json = "1.0.59"
+tokio = {version = "1", features = ["full"]}
+toml = "0.5"
+uuid = "0.8.2"
 
 # colorful = "0.2.1"
 # ozelot = "0.9.0" # Ozelot 0.9.0 supports protocol version 578 (1.15.2)

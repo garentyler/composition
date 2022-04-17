@@ -16,6 +16,7 @@ pub struct Config {
     pub favicon: String,
 }
 
+pub static PROTOCOL_VERSION: i32 = 757;
 lazy_static! {
     pub static ref CONFIG: Config = {
         let config_from_file = || -> std::io::Result<Config> {
@@ -89,16 +90,18 @@ pub fn init() -> Receiver<()> {
 
 /// Start the server.
 pub async fn start_server() -> server::Server {
-    server::Server::new(format!("0.0.0.0:{}", CONFIG.port))
+    server::Server::new(format!("0.0.0.0:{}", CONFIG.port)).await
 }
 
 pub mod prelude {
-    pub use crate::{mctypes::*, CONFIG, FAVICON};
+    pub use crate::{mctypes::*, CONFIG, FAVICON, PROTOCOL_VERSION, START_TIME};
     pub use log::*;
     pub use serde::{Deserialize, Serialize};
+    pub use serde_json::json;
     pub type JSON = serde_json::Value;
     pub type NBT = fastnbt::Value;
     pub use std::collections::VecDeque;
+    pub use tokio::io::{AsyncReadExt, AsyncWriteExt};
     #[derive(Clone, Debug, PartialEq)]
     pub enum ParseError {
         NotEnoughData,
