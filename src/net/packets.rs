@@ -1,4 +1,4 @@
-use super::NetworkClientState;
+use super::{mctypes::*, NetworkClientState};
 use crate::prelude::*;
 
 #[derive(Clone, PartialEq, Debug)]

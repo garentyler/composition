@@ -1,50 +1,16 @@
 #[macro_use]
 extern crate lazy_static;
 
-pub mod mctypes;
+pub mod config;
 pub mod net;
 pub mod server;
 
 use crate::prelude::*;
 use std::sync::mpsc::{self, Receiver};
 
-#[derive(Serialize, Deserialize)]
-pub struct Config {
-    pub port: u16,
-    pub max_players: usize,
-    pub motd: String,
-    pub favicon: String,
-}
-
 pub static PROTOCOL_VERSION: i32 = 757;
 lazy_static! {
-    pub static ref CONFIG: Config = {
-        let config_from_file = || -> std::io::Result<Config> {
-            use std::{fs::File, io::prelude::*};
-            let mut data = String::new();
-            let mut file = File::open("composition.toml")?;
-            file.read_to_string(&mut data)?;
-            if let Ok(c) = toml::from_str::<Config>(&data) {
-                Ok(c)
-            } else {
-                Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "Could not parse toml",
-                ))
-            }
-        };
-        if let Ok(c) = config_from_file() {
-            c
-        } else {
-            warn!("Could not load config from file, using default");
-            Config {
-                port: 25565,
-                max_players: 20,
-                motd: "Hello world!".to_owned(),
-                favicon: "server-icon.png".to_owned(),
-            }
-        }
-    };
+    pub static ref CONFIG: Config = Config::from_file("composition.toml");
     pub static ref FAVICON: std::io::Result<Vec<u8>> = {
         use std::{fs::File, io::prelude::*};
         let mut data = vec![];
@@ -70,15 +36,12 @@ pub fn init() -> Receiver<()> {
                 message = message,
             ))
         })
-        .level(if cfg!(debug_assertions) {
-            log::LevelFilter::Debug
-        } else {
-            log::LevelFilter::Info
-        })
+        .level(log::LevelFilter::Trace)
         .chain(std::io::stdout())
         .chain(fern::log_file("output.log").unwrap())
         .apply()
         .unwrap();
+    log::set_max_level(CONFIG.log_level);
     // Set up the ctrl-c handler.
     let (ctrlc_tx, ctrlc_rx) = mpsc::channel();
     ctrlc::set_handler(move || {
@@ -94,7 +57,7 @@ pub async fn start_server() -> server::Server {
 }
 
 pub mod prelude {
-    pub use crate::{mctypes::*, CONFIG, FAVICON, PROTOCOL_VERSION, START_TIME};
+    pub use crate::{config::Config, CONFIG, FAVICON, PROTOCOL_VERSION, START_TIME};
     pub use log::*;
     pub use serde::{Deserialize, Serialize};
     pub use serde_json::json;
@@ -102,6 +65,7 @@ pub mod prelude {
     pub type JSON = serde_json::Value;
     pub type NBT = fastnbt::Value;
     pub use std::collections::VecDeque;
+    pub use substring::Substring;
     pub use tokio::io::{AsyncReadExt, AsyncWriteExt};
     #[derive(Clone, Debug, PartialEq)]
     pub enum ParseError {

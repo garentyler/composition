@@ -1,6 +1,8 @@
+pub mod mctypes;
 pub mod packets;
 
 use crate::prelude::*;
+use mctypes::*;
 pub use packets::Packet;
 use std::time::Instant;
 use tokio::net::TcpStream;

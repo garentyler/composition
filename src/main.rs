@@ -5,7 +5,7 @@ use std::time::Duration;
 #[tokio::main]
 pub async fn main() {
     let ctrlc_rx = composition::init();
-    info!("Starting server...");
+    info!("Starting {}", composition::CONFIG.server_version);
     let mut server = composition::start_server().await;
     info!("Done! Start took {:?}", composition::START_TIME.elapsed());
 
