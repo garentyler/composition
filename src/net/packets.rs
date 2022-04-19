@@ -32,7 +32,7 @@ pub enum Packet {
 impl Packet {
     pub fn parse_body(
         data: &[u8],
-        length: usize,
+        _length: usize,
         id: usize,
         state: NetworkClientState,
         serverbound: bool,
@@ -119,7 +119,7 @@ impl Packet {
                     "favicon": format!("data:image/png;base64,{}", radix64::STD_NO_PAD.encode(FAVICON.as_ref().unwrap())),
                 })),
             ),
-            CS01Pong { payload } => (0x01, serialize_long(payload.clone()).to_vec()),
+            CS01Pong { payload } => (0x01, serialize_long(*payload).to_vec()),
             _ => unimplemented!(),
         };
         let mut id_and_body = serialize_varint(id as i32);

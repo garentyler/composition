@@ -60,7 +60,7 @@ pub fn parse_varint(data: &[u8]) -> ParseResult<i32> {
             return Err(ParseError::NotEnoughData);
         }
 
-        output |= (((data[offset] & 0x7f) as i32) << bytes_read * 7) as i32;
+        output |= (((data[offset] & 0x7f) as i32) << (bytes_read * 7)) as i32;
         bytes_read += 1;
         if data[offset] & 0x80 != 0x80 {
             break;

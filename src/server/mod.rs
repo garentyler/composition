@@ -66,7 +66,7 @@ impl Server {
                 match client.read_packet() {
                     Ok(_) => {}
                     Err(ParseError::NotEnoughData) => break 'packet,
-                    Err(e) => {}
+                    Err(_) => {}
                 }
             }
         }

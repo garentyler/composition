@@ -2,7 +2,7 @@ pub mod packets;
 
 use crate::prelude::*;
 pub use packets::Packet;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use tokio::net::TcpStream;
 
 #[derive(PartialEq, Copy, Clone, Debug)]
@@ -49,7 +49,7 @@ impl NetworkClient {
                 }
                 Err(ref e) if e.kind() == tokio::io::ErrorKind::WouldBlock => break,
                 Err(e) => {
-                    return Err(e.into());
+                    return Err(e);
                 }
             }
         }
