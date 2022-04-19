@@ -98,6 +98,7 @@ pub mod prelude {
     pub use log::*;
     pub use serde::{Deserialize, Serialize};
     pub use serde_json::json;
+    pub use uuid::Uuid;
     pub type JSON = serde_json::Value;
     pub type NBT = fastnbt::Value;
     pub use std::collections::VecDeque;

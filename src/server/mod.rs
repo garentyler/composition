@@ -93,7 +93,6 @@ impl Server {
                 current_players += 1;
             }
         }
-        // TODO: Make this count the number in the play state.
         let client = &mut self.clients[client_index];
         match packet {
             SH00Handshake {
@@ -107,7 +106,7 @@ impl Server {
                         "Disconnecting client {} for mismatched protocols: {} (expected {})",
                         client.id, protocol_version, PROTOCOL_VERSION
                     );
-                    client.disconnect();
+                    client.disconnect(None).await;
                     return Err(());
                 }
                 client.state = next_state;
@@ -128,7 +127,28 @@ impl Server {
             SS01Ping { payload } => {
                 let _ = client.send_packet(CS01Pong { payload }).await;
                 debug!("Disconnecting client {}, SLP completed", client.id);
-                client.disconnect();
+                client.disconnect(None).await;
+            }
+            SL00LoginStart { username } => {
+                debug!(
+                    "Client {} is connecting with username {}",
+                    client.id, username
+                );
+                if current_players >= CONFIG.max_players {
+                    client
+                        .disconnect(Some(json!({ "text": "Server full!" })))
+                        .await;
+                }
+                // TODO: Authentication
+                // TODO: Encryption
+                // TODO: Compression
+                let _ = client
+                    .send_packet(CL02LoginSuccess {
+                        uuid: client.id,
+                        username,
+                    })
+                    .await;
+                client.state = NetworkClientState::Play;
             }
             _ => unimplemented!("Handling unknown packet"),
         }

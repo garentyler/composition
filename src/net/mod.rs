@@ -77,6 +77,8 @@ impl NetworkClient {
         Ok(())
     }
     pub async fn send_packet(&mut self, packet: Packet) -> Result<(), tokio::io::Error> {
+        trace!("NetworkClient.send_packet()");
+        debug!("Sending packet {:?} to client {}", packet, self.id);
         let bytes = packet.serialize();
         self.stream.write(&bytes).await?;
         Ok(())
@@ -90,7 +92,12 @@ impl NetworkClient {
         let _ = self.read_data().await;
         let _ = self.read_packet();
     }
-    pub fn disconnect(&mut self) {
+    pub async fn disconnect(&mut self, reason: Option<JSON>) {
+        if let Some(reason) = reason {
+            if self.state == NetworkClientState::Login {
+                let _ = self.send_packet(Packet::CL00Disconnect { reason }).await;
+            }
+        }
         self.state = NetworkClientState::Disconnected;
     }
 }

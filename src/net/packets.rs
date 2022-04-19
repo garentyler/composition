@@ -26,7 +26,40 @@ pub enum Packet {
     SS01Ping {
         payload: i64,
     },
+
     // Login
+    CL00Disconnect {
+        reason: JSON,
+    },
+    CL01EncryptionRequest {
+        server_id: String,
+        public_key: Vec<u8>,
+        verify_token: Vec<u8>,
+    },
+    CL02LoginSuccess {
+        uuid: u128,
+        username: String,
+    },
+    CL03SetCompression {
+        threshold: usize,
+    },
+    CL04LoginPluginRequest {
+        message_id: i32,
+        channel: String,
+        data: Vec<u8>,
+    },
+    SL00LoginStart {
+        username: String,
+    },
+    SL01EncryptionResponse {
+        shared_secret: Vec<u8>,
+        verify_token: Vec<u8>,
+    },
+    SL02LoginPluginResponse {
+        message_id: i32,
+        successful: bool,
+        data: Option<Vec<u8>>,
+    },
     // Play
 }
 impl Packet {
@@ -90,7 +123,46 @@ impl Packet {
                 }
                 _ => Err(ParseError::InvalidData),
             },
-            Login => unimplemented!("Parse Login packet"),
+            Login => match id {
+                0x00 => {
+                    if serverbound {
+                        let (username, offset_delta) = parse_string(&data[offset..])?;
+                        offset += offset_delta;
+                        Ok((SL00LoginStart { username }, offset))
+                    } else {
+                        unimplemented!("Parse CL00Disconnect")
+                    }
+                }
+                0x01 => {
+                    if serverbound {
+                        unimplemented!("Parse SL01EncryptionResponse")
+                    } else {
+                        unimplemented!("Parse CL01EncryptionRequest")
+                    }
+                }
+                0x02 => {
+                    if serverbound {
+                        unimplemented!("Parse SL02LoginPluginResponse")
+                    } else {
+                        unimplemented!("Parse CL02LoginSuccess")
+                    }
+                }
+                0x03 => {
+                    if serverbound {
+                        Err(ParseError::InvalidData)
+                    } else {
+                        unimplemented!("Parse CL03SetCompression")
+                    }
+                }
+                0x04 => {
+                    if serverbound {
+                        Err(ParseError::InvalidData)
+                    } else {
+                        unimplemented!("Parse CL04LoginPluginRequest")
+                    }
+                }
+                _ => Err(ParseError::InvalidData),
+            },
             Play => unimplemented!("Parse Play packet"),
         }
     }
@@ -105,7 +177,7 @@ impl Packet {
                 description,
             } => (
                 0x00,
-                serialize_json(serde_json::json!({
+                serialize_json(json!({
                     "version": {
                         "name": version_name,
                         "protocol": protocol_version,
@@ -120,7 +192,17 @@ impl Packet {
                 })),
             ),
             CS01Pong { payload } => (0x01, serialize_long(*payload).to_vec()),
-            _ => unimplemented!(),
+            CL00Disconnect { reason } => (0x00, serialize_json(reason.clone())),
+            // CL01EncryptionRequest
+            CL02LoginSuccess { uuid, username } => (0x02, {
+                let mut out = vec![];
+                out.extend(uuid.to_be_bytes());
+                out.extend(serialize_string(username));
+                out
+            }),
+            // CL03SetCompression
+            // CL04LoginPluginRequest
+            _ => unimplemented!("Serializing unknown packet"),
         };
         let mut id_and_body = serialize_varint(id as i32);
         id_and_body.append(&mut body);
