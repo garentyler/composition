@@ -1,4 +1,4 @@
 favicon = "server-icon.png"
 max_players = 20
-motd = "Composition MOTD"
+motd = "Hello world!"
 port = 25565

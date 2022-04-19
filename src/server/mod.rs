@@ -120,7 +120,7 @@ impl Server {
                         max_players: CONFIG.max_players,
                         current_players,
                         description: json!({
-                            "text": "Hello world!"
+                            "text": CONFIG.motd
                         }),
                     })
                     .await;
