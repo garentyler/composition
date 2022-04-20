@@ -60,7 +60,42 @@ pub enum Packet {
         successful: bool,
         data: Option<Vec<u8>>,
     },
+
     // Play
+    CP14WindowItems {
+        window_id: u8,
+        state_id: i32,
+        slots: Vec<NBT>,
+        carried_item: NBT,
+    },
+    CP26JoinGame,
+    CP48HeldItemChange,
+    CP66DeclareRecipes,
+    CP67Tags,
+    CP1BEntityStatus,
+    CP12DeclareCommands,
+    CP39UnlockRecipes,
+    CP22ChunkDataAndUpdateLight,
+    CP38PlayerPositionAndLook {
+        x: (f64, bool),
+        y: (f64, bool),
+        z: (f64, bool),
+        yaw: (f32, bool),
+        pitch: (f32, bool),
+        teleport_id: i32,
+        dismount_vehicle: bool,
+    },
+    CP36PlayerInfo,
+    CP49UpdateViewPosition,
+    CP25UpdateLight,
+    CP4BSpawnPosition {
+        location: Position,
+        angle: f32,
+    },
+    CP00TeleportConfirm,
+
+    SP05ClientSettings,
+    SP04ClientStatus,
 }
 impl Packet {
     pub fn parse_body(
@@ -193,15 +228,69 @@ impl Packet {
             ),
             CS01Pong { payload } => (0x01, serialize_long(*payload).to_vec()),
             CL00Disconnect { reason } => (0x00, serialize_json(reason.clone())),
-            // CL01EncryptionRequest
             CL02LoginSuccess { uuid, username } => (0x02, {
                 let mut out = vec![];
                 out.extend(uuid.to_be_bytes());
                 out.extend(serialize_string(username));
                 out
             }),
-            // CL03SetCompression
-            // CL04LoginPluginRequest
+            CP14WindowItems {
+                window_id,
+                state_id,
+                slots,
+                carried_item,
+            } => (0x14, {
+                let mut out = vec![*window_id];
+                out.extend(serialize_varint(*state_id));
+                out.extend(serialize_varint(slots.len() as i32));
+                for slot in slots {
+                    out.extend(serialize_nbt(slot.clone()));
+                }
+                out.extend(serialize_nbt(carried_item.clone()));
+                out
+            }),
+            CP38PlayerPositionAndLook {
+                x,
+                y,
+                z,
+                yaw,
+                pitch,
+                teleport_id,
+                dismount_vehicle,
+            } => (0x38, {
+                let mut out = vec![];
+                out.extend(serialize_double(x.0));
+                out.extend(serialize_double(y.0));
+                out.extend(serialize_double(z.0));
+                out.extend(serialize_float(yaw.0));
+                out.extend(serialize_float(pitch.0));
+                let mut flags = 0x00;
+                if x.1 {
+                    flags |= 0x01;
+                }
+                if y.1 {
+                    flags |= 0x02;
+                }
+                if z.1 {
+                    flags |= 0x04;
+                }
+                if yaw.1 {
+                    flags |= 0x10;
+                }
+                if pitch.1 {
+                    flags |= 0x08;
+                }
+                out.push(flags);
+                out.extend(serialize_varint(*teleport_id));
+                out.extend(serialize_bool(*dismount_vehicle));
+                out
+            }),
+            CP4BSpawnPosition { location, angle } => (0x4b, {
+                let mut out = vec![];
+                out.extend(location.serialize());
+                out.extend(serialize_float(*angle));
+                out
+            }),
             _ => unimplemented!("Serializing unknown packet"),
         };
         let mut id_and_body = serialize_varint(id as i32);

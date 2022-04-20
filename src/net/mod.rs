@@ -36,7 +36,7 @@ impl NetworkClient {
         }
     }
     pub async fn read_data(&mut self) -> Result<(), tokio::io::Error> {
-        trace!("NetworkClient.read_data()");
+        trace!("NetworkClient.read_data() id {}", self.id);
         // Try to read 4kb at a time until there is no more data.
         loop {
             let mut buf = [0; 4096];
@@ -45,6 +45,7 @@ impl NetworkClient {
                 Ok(0) => break,
                 // Data was read.
                 Ok(n) => {
+                    trace!("Setting last_data_time for client {}", self.id);
                     self.last_data_time = Instant::now();
                     self.buffer.extend(&buf[0..n]);
                     debug!("Read {} bytes from client {}", n, self.id);
@@ -58,7 +59,7 @@ impl NetworkClient {
         Ok(())
     }
     pub fn read_packet(&mut self) -> Result<(), ParseError> {
-        trace!("NetworkClient.read_packet()");
+        trace!("NetworkClient.read_packet() id {}", self.id);
         self.buffer.make_contiguous();
         if let (data, &[]) = self.buffer.as_slices() {
             let mut offset = 0;
@@ -84,15 +85,6 @@ impl NetworkClient {
         let bytes = packet.serialize();
         self.stream.write(&bytes).await?;
         Ok(())
-    }
-    pub async fn update(&mut self) {
-        // if self.state == NetworkClientState::Disconnected {
-        //     return Err(tokio::io::Error::from(tokio::io::ErrorKind::BrokenPipe));
-        // } else if self.last_data_time.elapsed() > Duration::from_secs(10) {
-        //     return self.disconnect(tokio::io::ErrorKind::TimedOut);
-        // }
-        let _ = self.read_data().await;
-        let _ = self.read_packet();
     }
     pub async fn disconnect(&mut self, reason: Option<JSON>) {
         if let Some(reason) = reason {

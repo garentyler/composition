@@ -46,3 +46,47 @@ pub fn parse_json(data: &[u8]) -> ParseResult<JSON> {
 pub fn serialize_json(value: JSON) -> Vec<u8> {
     serialize_string(&serde_json::to_string(&value).expect("Could not serialize JSON"))
 }
+
+pub fn parse_nbt(data: &[u8]) -> ParseResult<NBT> {
+    use quartz_nbt::io::{read_nbt, Flavor};
+    use std::io::Cursor;
+    let mut data = Cursor::new(data);
+    // let (value_string, offset) = parse_string(data)?;
+    if let Ok(value) = read_nbt(&mut data, Flavor::Uncompressed) {
+        Ok((value.0, data.position() as usize))
+    } else {
+        Err(ParseError::InvalidData)
+    }
+}
+pub fn serialize_nbt(value: NBT) -> Vec<u8> {
+    use quartz_nbt::io::{write_nbt, Flavor};
+    // serialize_string(&fastnbt::to_string(&value).expect("Could not serialize JSON"))
+    let mut out = vec![];
+    write_nbt(&mut out, None, &value, Flavor::Uncompressed).expect("Could not serialize NBT");
+    out
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct Position {
+    pub x: i32,
+    pub y: i16,
+    pub z: i32,
+}
+impl Position {
+    pub fn new(x: i32, y: i16, z: i32) -> Position {
+        Position { x, y, z }
+    }
+    pub fn parse(data: &[u8]) -> ParseResult<Position> {
+        let (value, offset) = parse_unsigned_long(data)?;
+        let x = (value >> 38) as i32;
+        let y = (value & 0xFFF) as i16;
+        let z = ((value >> 12) & 0x3FFFFFF) as i32;
+        Ok((Position::new(x, y, z), offset))
+    }
+    pub fn serialize(&self) -> [u8; 8] {
+        (((self.x as u64 & 0x3FFFFFF) << 38)
+            | ((self.z as u64 & 0x3FFFFFF) << 12)
+            | (self.y as u64 & 0xFFF))
+            .to_be_bytes()
+    }
+}

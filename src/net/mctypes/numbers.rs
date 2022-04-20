@@ -8,8 +8,8 @@ pub fn parse_byte(data: &[u8]) -> ParseResult<i8> {
         Ok((value, 1))
     }
 }
-pub fn serialize_byte(num: i8) -> [u8; 1] {
-    num.to_be_bytes()
+pub fn serialize_byte(value: i8) -> [u8; 1] {
+    value.to_be_bytes()
 }
 
 pub fn parse_short(data: &[u8]) -> ParseResult<i16> {
@@ -20,8 +20,8 @@ pub fn parse_short(data: &[u8]) -> ParseResult<i16> {
         Ok((value, 2))
     }
 }
-pub fn serialize_short(num: i16) -> [u8; 2] {
-    num.to_be_bytes()
+pub fn serialize_short(value: i16) -> [u8; 2] {
+    value.to_be_bytes()
 }
 
 pub fn parse_int(data: &[u8]) -> ParseResult<i32> {
@@ -32,8 +32,8 @@ pub fn parse_int(data: &[u8]) -> ParseResult<i32> {
         Ok((value, 4))
     }
 }
-pub fn serialize_int(num: i32) -> [u8; 4] {
-    num.to_be_bytes()
+pub fn serialize_int(value: i32) -> [u8; 4] {
+    value.to_be_bytes()
 }
 
 pub fn parse_long(data: &[u8]) -> ParseResult<i64> {
@@ -46,8 +46,8 @@ pub fn parse_long(data: &[u8]) -> ParseResult<i64> {
         Ok((value, 8))
     }
 }
-pub fn serialize_long(num: i64) -> [u8; 8] {
-    num.to_be_bytes()
+pub fn serialize_long(value: i64) -> [u8; 8] {
+    value.to_be_bytes()
 }
 
 pub fn parse_varint(data: &[u8]) -> ParseResult<i32> {
@@ -90,6 +90,32 @@ pub fn serialize_varint(value: i32) -> Vec<u8> {
     output
 }
 
+pub fn parse_float(data: &[u8]) -> ParseResult<f32> {
+    if data.len() < 4 {
+        Err(ParseError::NotEnoughData)
+    } else {
+        let value = f32::from_be_bytes([data[0], data[1], data[2], data[3]]);
+        Ok((value, 4))
+    }
+}
+pub fn serialize_float(value: f32) -> [u8; 4] {
+    value.to_be_bytes()
+}
+
+pub fn parse_double(data: &[u8]) -> ParseResult<f64> {
+    if data.len() < 8 {
+        Err(ParseError::NotEnoughData)
+    } else {
+        let value = f64::from_be_bytes([
+            data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7],
+        ]);
+        Ok((value, 4))
+    }
+}
+pub fn serialize_double(value: f64) -> [u8; 8] {
+    value.to_be_bytes()
+}
+
 pub fn parse_unsigned_byte(data: &[u8]) -> ParseResult<u8> {
     if data.is_empty() {
         Err(ParseError::NotEnoughData)
@@ -98,8 +124,8 @@ pub fn parse_unsigned_byte(data: &[u8]) -> ParseResult<u8> {
         Ok((value, 1))
     }
 }
-pub fn serialize_unsigned_byte(num: u8) -> [u8; 1] {
-    num.to_be_bytes()
+pub fn serialize_unsigned_byte(value: u8) -> [u8; 1] {
+    value.to_be_bytes()
 }
 
 pub fn parse_unsigned_short(data: &[u8]) -> ParseResult<u16> {
@@ -110,8 +136,8 @@ pub fn parse_unsigned_short(data: &[u8]) -> ParseResult<u16> {
         Ok((value, 2))
     }
 }
-pub fn serialize_unsigned_short(num: u16) -> [u8; 2] {
-    num.to_be_bytes()
+pub fn serialize_unsigned_short(value: u16) -> [u8; 2] {
+    value.to_be_bytes()
 }
 
 pub fn parse_unsigned_int(data: &[u8]) -> ParseResult<u32> {
@@ -122,8 +148,8 @@ pub fn parse_unsigned_int(data: &[u8]) -> ParseResult<u32> {
         Ok((value, 4))
     }
 }
-pub fn serialize_unsigned_int(num: u32) -> [u8; 4] {
-    num.to_be_bytes()
+pub fn serialize_unsigned_int(value: u32) -> [u8; 4] {
+    value.to_be_bytes()
 }
 
 pub fn parse_unsigned_long(data: &[u8]) -> ParseResult<u64> {
@@ -136,8 +162,8 @@ pub fn parse_unsigned_long(data: &[u8]) -> ParseResult<u64> {
         Ok((value, 8))
     }
 }
-pub fn serialize_unsigned_long(num: u64) -> [u8; 8] {
-    num.to_be_bytes()
+pub fn serialize_unsigned_long(value: u64) -> [u8; 8] {
+    value.to_be_bytes()
 }
 
 #[cfg(test)]

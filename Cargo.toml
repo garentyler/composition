@@ -11,7 +11,7 @@ build = "build.rs"
 async-trait = "0.1.48"
 chrono = "0.4.13"
 ctrlc = "3.1.8"
-fastnbt = "*"
+# fastnbt = "*"
 fern = {version = "0.6", features = ["colored"]}
 futures = "0.3.13"
 lazy_static = "1.4.0"
@@ -23,6 +23,7 @@ tokio = {version = "1", features = ["full"]}
 toml = "0.5"
 uuid = "0.8.2"
 substring = "1.4.5"
+quartz_nbt = {version = "0.2.6", features = ["serde"]}
 
 # colorful = "0.2.1"
 # ozelot = "0.9.0" # Ozelot 0.9.0 supports protocol version 578 (1.15.2)

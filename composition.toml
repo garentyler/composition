@@ -1,5 +1,5 @@
 favicon = "server-icon.png"
-max_players = 20
-motd = "Hello world!"
+max_players = 4294967295
+motd = "Hell world!"
 port = 25565
 log_level = "debug"

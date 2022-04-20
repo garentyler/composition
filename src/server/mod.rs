@@ -1,4 +1,8 @@
-use crate::{net::*, prelude::*};
+use crate::{
+    net::{mctypes::Position, *},
+    prelude::*,
+};
+use std::time::Duration;
 use tokio::{
     net::{TcpListener, ToSocketAddrs},
     sync::mpsc::{self, error::TryRecvError, UnboundedReceiver},
@@ -52,6 +56,9 @@ impl Server {
             if self.clients[i].state == NetworkClientState::Disconnected {
                 debug!("Removed client {}", self.clients[i].id);
                 self.clients.remove(i);
+            } else if self.clients[i].last_data_time.elapsed() > Duration::from_secs(10) {
+                debug!("Client {} timed out", self.clients[i].id);
+                self.clients[i].disconnect(None).await;
             } else {
                 i += 1;
             }
@@ -149,6 +156,32 @@ impl Server {
                     })
                     .await;
                 client.state = NetworkClientState::Play;
+                // Log them in.
+                let _ = client
+                    .send_packet(CP4BSpawnPosition {
+                        location: Position::new(0, 0, 0),
+                        angle: 0.0,
+                    })
+                    .await;
+                let _ = client
+                    .send_packet(CP14WindowItems {
+                        window_id: 0,
+                        state_id: 0,
+                        slots: vec![quartz_nbt::compound! {}; 44],
+                        carried_item: quartz_nbt::compound! {},
+                    })
+                    .await;
+                let _ = client
+                    .send_packet(CP38PlayerPositionAndLook {
+                        x: (0.0, false),
+                        y: (0.0, false),
+                        z: (0.0, false),
+                        yaw: (0.0, false),
+                        pitch: (0.0, false),
+                        teleport_id: 0,
+                        dismount_vehicle: false,
+                    })
+                    .await;
             }
             _ => unimplemented!("Handling unknown packet"),
         }

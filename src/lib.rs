@@ -63,7 +63,7 @@ pub mod prelude {
     pub use serde_json::json;
     pub use uuid::Uuid;
     pub type JSON = serde_json::Value;
-    pub type NBT = fastnbt::Value;
+    pub type NBT = quartz_nbt::NbtCompound;
     pub use std::collections::VecDeque;
     pub use substring::Substring;
     pub use tokio::io::{AsyncReadExt, AsyncWriteExt};
