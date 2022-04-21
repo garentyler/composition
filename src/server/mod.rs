@@ -108,10 +108,12 @@ impl Server {
                 server_port: _,
                 next_state,
             } => {
-                if protocol_version != PROTOCOL_VERSION {
+                if protocol_version != CONFIG.protocol_version
+                    && next_state == NetworkClientState::Login
+                {
                     debug!(
                         "Disconnecting client {} for mismatched protocols: {} (expected {})",
-                        client.id, protocol_version, PROTOCOL_VERSION
+                        client.id, protocol_version, CONFIG.protocol_version
                     );
                     client.disconnect(None).await;
                     return Err(());
@@ -121,8 +123,8 @@ impl Server {
             SS00Request => {
                 let _ = client
                     .send_packet(CS00Response {
-                        version_name: "1.18.1".to_owned(),
-                        protocol_version: PROTOCOL_VERSION,
+                        version_name: CONFIG.game_version.clone(),
+                        protocol_version: CONFIG.protocol_version,
                         max_players: CONFIG.max_players,
                         current_players,
                         description: json!({

@@ -222,8 +222,7 @@ impl Packet {
                         "online": current_players,
                     },
                     "description": description,
-                    // TODO: Add base64 favicon
-                    "favicon": format!("data:image/png;base64,{}", radix64::STD_NO_PAD.encode(FAVICON.as_ref().unwrap())),
+                    "favicon": format!("data:image/png;base64,{}", radix64::STD_NO_PAD.encode(&CONFIG.server_icon_bytes)),
                 })),
             ),
             CS01Pong { payload } => (0x01, serialize_long(*payload).to_vec()),

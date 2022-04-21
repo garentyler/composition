@@ -8,22 +8,13 @@ pub mod server;
 use crate::prelude::*;
 use std::sync::mpsc::{self, Receiver};
 
-pub static PROTOCOL_VERSION: i32 = 757;
 lazy_static! {
-    pub static ref CONFIG: Config = Config::from_file("composition.toml");
-    pub static ref FAVICON: std::io::Result<Vec<u8>> = {
-        use std::{fs::File, io::prelude::*};
-        let mut data = vec![];
-        let mut file = File::open(CONFIG.favicon.clone())?;
-        file.read_to_end(&mut data)?;
-        Ok(data)
-    };
+    pub static ref CONFIG: Config = Config::load();
     pub static ref START_TIME: std::time::Instant = std::time::Instant::now();
 }
 
 /// Set up logging, read the config file, etc.
 pub fn init() -> Receiver<()> {
-    // Load the START_TIME static - lazy_static lazy loads the value when first needed.
     let _ = START_TIME.elapsed();
     // Set up fern logging.
     fern::Dispatch::new()
@@ -57,7 +48,7 @@ pub async fn start_server() -> server::Server {
 }
 
 pub mod prelude {
-    pub use crate::{config::Config, CONFIG, FAVICON, PROTOCOL_VERSION, START_TIME};
+    pub use crate::{config::Config, CONFIG, START_TIME};
     pub use log::*;
     pub use serde::{Deserialize, Serialize};
     pub use serde_json::json;
@@ -65,8 +56,9 @@ pub mod prelude {
     pub type JSON = serde_json::Value;
     pub type NBT = quartz_nbt::NbtCompound;
     pub use std::collections::VecDeque;
+    pub use std::io::{Read, Write};
     pub use substring::Substring;
-    pub use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    pub use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
     #[derive(Clone, Debug, PartialEq)]
     pub enum ParseError {
         NotEnoughData,

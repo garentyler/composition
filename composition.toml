@@ -1,5 +1,6 @@
-favicon = "server-icon.png"
+log_level = "debug"
 max_players = 20
 motd = "Hello world!"
+ping_game_version = "1.18.1"
 port = 25565
-log_level = "debug"
+server_icon = "server-icon.png"
