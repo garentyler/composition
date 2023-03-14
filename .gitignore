@@ -1,5 +1,5 @@
 .DS_Store
-composition/output.log
 target
-composition/world
+/output.log
+/world
 /.cargo

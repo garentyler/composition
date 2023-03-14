@@ -1,9 +1,0 @@
-[2023-03-14 17:09:13][composition_core::config][WARN] Server icon file does not exist, creating server-icon.png
-[2023-03-14 17:09:13][composition][INFO] Starting composition/0.1.0 (cc68d3a9) on port 25565
-[2023-03-14 17:09:13][composition][INFO] Done! Start took 709.336µs
-[2023-03-14 17:09:31][composition][INFO] Starting composition/0.1.0 (cc68d3a9) on port 25565
-[2023-03-14 17:09:31][composition][INFO] Done! Start took 487.541µs
-[2023-03-14 17:09:53][composition][INFO] Starting composition/0.1.0 (cc68d3a9) on port 25565
-[2023-03-14 17:09:53][composition][INFO] Done! Start took 567.591µs
-[2023-03-14 17:10:08][composition][INFO] Starting composition/0.1.0 (cc68d3a9) on port 25565
-[2023-03-14 17:10:08][composition][INFO] Done! Start took 2.56877ms
