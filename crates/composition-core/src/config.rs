@@ -39,8 +39,8 @@ impl Default for Config {
             } else {
                 log::LevelFilter::Info
             },
-            protocol_version: 756,
-            game_version: "1.18.1".to_owned(),
+            protocol_version: 761,
+            game_version: "1.19.3".to_owned(),
             server_version,
         }
     }
