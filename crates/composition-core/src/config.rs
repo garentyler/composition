@@ -32,7 +32,7 @@ impl Default for Config {
             max_players: 20,
             motd: "Hello world!".to_owned(),
             server_icon: "server-icon.png".to_owned(),
-            server_icon_bytes: include_bytes!("../server-icon.png").to_vec(),
+            server_icon_bytes: include_bytes!("./server-icon.png").to_vec(),
             server_string: server_version.clone(),
             log_level: if cfg!(debug_assertions) {
                 log::LevelFilter::Debug

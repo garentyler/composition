@@ -1,0 +1,9 @@
+[package]
+name = "packet_logger"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.69"
+composition-protocol = { path = "../../" }
+tokio = { version = "1.26.0", features = [ "full" ] }

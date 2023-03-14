@@ -1,5 +1,5 @@
 .DS_Store
-/output.log
-/target
-/world
+composition/output.log
+target
+composition/world
 /.cargo

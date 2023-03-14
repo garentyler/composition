@@ -1,17 +1,20 @@
-use log::*;
+use log::info;
 use std::sync::mpsc::TryRecvError;
 use std::time::Duration;
 
 #[tokio::main]
 pub async fn main() {
-    let ctrlc_rx = composition::init();
+    let ctrlc_rx = composition_core::init();
     info!(
         "Starting {} on port {}",
-        composition::CONFIG.server_version,
-        composition::CONFIG.port
+        composition_core::CONFIG.server_version,
+        composition_core::CONFIG.port
     );
-    let mut server = composition::start_server().await;
-    info!("Done! Start took {:?}", composition::START_TIME.elapsed());
+    let mut server = composition_core::start_server().await;
+    info!(
+        "Done! Start took {:?}",
+        composition_core::START_TIME.elapsed()
+    );
 
     // The main server loop.
     loop {
