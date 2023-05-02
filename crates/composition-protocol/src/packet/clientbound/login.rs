@@ -1,74 +1,38 @@
-use crate::{
-    packet::{GenericPacket, Packet, PacketId},
-    util::{
-        parse_json, parse_string, parse_uuid, parse_varint, serialize_json, serialize_string,
-        serialize_uuid, serialize_varint,
-    },
-    Chat, Uuid,
-};
+use crate::{util::*, Chat, Uuid};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CL00Disconnect {
-    reason: Chat,
+    pub reason: Chat,
 }
-impl Packet for CL00Disconnect {
-    fn id() -> PacketId {
-        0x00
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Login
-    }
-    fn serverbound() -> bool {
-        false
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
+crate::packet::packet!(
+    CL00Disconnect,
+    0x00,
+    crate::ClientState::Login,
+    false,
+    |data: &'data [u8]| -> ParseResult<'data, CL00Disconnect> {
         let (data, reason) = parse_json(data)?;
         Ok((data, CL00Disconnect { reason }))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
-        serialize_json(&self.reason)
-    }
-}
-impl From<CL00Disconnect> for GenericPacket {
-    fn from(value: CL00Disconnect) -> Self {
-        GenericPacket::CL00Disconnect(value)
-    }
-}
-impl TryFrom<GenericPacket> for CL00Disconnect {
-    type Error = ();
-
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::CL00Disconnect(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
+    },
+    |packet: &CL00Disconnect| -> Vec<u8> { serialize_json(&packet.reason) }
+);
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CL01EncryptionRequest {
-    server_id: String,
-    public_key: Vec<u8>,
-    verify_token: Vec<u8>,
+    pub server_id: String,
+    pub public_key: Vec<u8>,
+    pub verify_token: Vec<u8>,
 }
-impl Packet for CL01EncryptionRequest {
-    fn id() -> PacketId {
-        0x01
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Login
-    }
-    fn serverbound() -> bool {
-        false
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
+crate::packet::packet!(
+    CL01EncryptionRequest,
+    0x01,
+    crate::ClientState::Login,
+    false,
+    |data: &'data [u8]| -> ParseResult<'data, CL01EncryptionRequest> {
         let (data, server_id) = parse_string(data)?;
         let (data, public_key_len) = parse_varint(data)?;
-        let (data, public_key) = nom::bytes::streaming::take(public_key_len as usize)(data)?;
+        let (data, public_key) = take_bytes(public_key_len as usize)(data)?;
         let (data, verify_token_len) = parse_varint(data)?;
-        let (data, verify_token) = nom::bytes::streaming::take(verify_token_len as usize)(data)?;
+        let (data, verify_token) = take_bytes(verify_token_len as usize)(data)?;
 
         Ok((
             data,
@@ -78,50 +42,35 @@ impl Packet for CL01EncryptionRequest {
                 verify_token: verify_token.to_vec(),
             },
         ))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
+    },
+    |packet: &CL01EncryptionRequest| -> Vec<u8> {
         let mut output = vec![];
-        output.extend_from_slice(&serialize_string(&self.server_id));
-        output.extend_from_slice(&serialize_varint(self.public_key.len() as i32));
-        output.extend_from_slice(&self.public_key);
-        output.extend_from_slice(&serialize_varint(self.verify_token.len() as i32));
-        output.extend_from_slice(&self.verify_token);
+        output.extend_from_slice(&serialize_string(&packet.server_id));
+        output.extend_from_slice(&serialize_varint(packet.public_key.len() as i32));
+        output.extend_from_slice(&packet.public_key);
+        output.extend_from_slice(&serialize_varint(packet.verify_token.len() as i32));
+        output.extend_from_slice(&packet.verify_token);
         output
     }
-}
-impl From<CL01EncryptionRequest> for GenericPacket {
-    fn from(value: CL01EncryptionRequest) -> Self {
-        GenericPacket::CL01EncryptionRequest(value)
-    }
-}
-impl TryFrom<GenericPacket> for CL01EncryptionRequest {
-    type Error = ();
-
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::CL01EncryptionRequest(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
+);
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CL02LoginSuccess {
-    uuid: Uuid,
-    username: String,
-    properties: Vec<CL02LoginSuccessProperty>,
+    pub uuid: Uuid,
+    pub username: String,
+    pub properties: Vec<CL02LoginSuccessProperty>,
 }
 #[derive(Clone, Debug, PartialEq)]
 pub struct CL02LoginSuccessProperty {
-    name: String,
-    value: String,
-    signature: Option<String>,
+    pub name: String,
+    pub value: String,
+    pub signature: Option<String>,
 }
 impl CL02LoginSuccessProperty {
-    pub fn parse(data: &[u8]) -> nom::IResult<&[u8], Self> {
+    pub fn parse(data: &[u8]) -> ParseResult<'_, Self> {
         let (data, name) = parse_string(data)?;
         let (data, value) = parse_string(data)?;
-        let (data, is_signed) = nom::bytes::streaming::take(1usize)(data)?;
+        let (data, is_signed) = take_bytes(1usize)(data)?;
         if is_signed == [0x01] {
             let (data, signature) = parse_string(data)?;
             Ok((
@@ -157,18 +106,12 @@ impl CL02LoginSuccessProperty {
         output
     }
 }
-impl Packet for CL02LoginSuccess {
-    fn id() -> PacketId {
-        0x02
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Login
-    }
-    fn serverbound() -> bool {
-        false
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
+crate::packet::packet!(
+    CL02LoginSuccess,
+    0x02,
+    crate::ClientState::Login,
+    false,
+    |data: &'data [u8]| -> ParseResult<'data, CL02LoginSuccess> {
         let (data, uuid) = parse_uuid(data)?;
         let (data, username) = parse_string(data)?;
         let (mut data, properties_len) = parse_varint(data)?;
@@ -187,91 +130,47 @@ impl Packet for CL02LoginSuccess {
                 properties,
             },
         ))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
+    },
+    |packet: &CL02LoginSuccess| -> Vec<u8> {
         let mut output = vec![];
-        output.extend_from_slice(&serialize_uuid(&self.uuid));
-        output.extend_from_slice(&serialize_string(&self.username));
-        output.extend_from_slice(&serialize_varint(self.properties.len() as i32));
-        for property in &self.properties {
+        output.extend_from_slice(&serialize_uuid(&packet.uuid));
+        output.extend_from_slice(&serialize_string(&packet.username));
+        output.extend_from_slice(&serialize_varint(packet.properties.len() as i32));
+        for property in &packet.properties {
             output.extend_from_slice(&property.serialize());
         }
         output
     }
-}
-impl From<CL02LoginSuccess> for GenericPacket {
-    fn from(value: CL02LoginSuccess) -> Self {
-        GenericPacket::CL02LoginSuccess(value)
-    }
-}
-impl TryFrom<GenericPacket> for CL02LoginSuccess {
-    type Error = ();
+);
 
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::CL02LoginSuccess(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct CL03SetCompression {
-    threshold: i32,
+    pub threshold: i32,
 }
-impl Packet for CL03SetCompression {
-    fn id() -> PacketId {
-        0x03
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Login
-    }
-    fn serverbound() -> bool {
-        false
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
+crate::packet::packet!(
+    CL03SetCompression,
+    0x03,
+    crate::ClientState::Login,
+    false,
+    |data: &'data [u8]| -> ParseResult<'data, CL03SetCompression> {
         let (data, threshold) = parse_varint(data)?;
         Ok((data, CL03SetCompression { threshold }))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
-        serialize_varint(self.threshold)
-    }
-}
-impl From<CL03SetCompression> for GenericPacket {
-    fn from(value: CL03SetCompression) -> Self {
-        GenericPacket::CL03SetCompression(value)
-    }
-}
-impl TryFrom<GenericPacket> for CL03SetCompression {
-    type Error = ();
-
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::CL03SetCompression(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
+    },
+    |packet: &CL03SetCompression| -> Vec<u8> { serialize_varint(packet.threshold) }
+);
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CL04LoginPluginRequest {
-    message_id: i32,
-    channel: String,
-    data: Vec<u8>,
+    pub message_id: i32,
+    pub channel: String,
+    pub data: Vec<u8>,
 }
-impl Packet for CL04LoginPluginRequest {
-    fn id() -> PacketId {
-        0x04
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Login
-    }
-    fn serverbound() -> bool {
-        false
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
+crate::packet::packet!(
+    CL04LoginPluginRequest,
+    0x04,
+    crate::ClientState::Login,
+    false,
+    |data: &'data [u8]| -> ParseResult<'data, CL04LoginPluginRequest> {
         let (data, message_id) = parse_varint(data)?;
         let (data, channel) = parse_string(data)?;
         Ok((
@@ -282,27 +181,12 @@ impl Packet for CL04LoginPluginRequest {
                 data: data.to_vec(),
             },
         ))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
+    },
+    |packet: &CL04LoginPluginRequest| -> Vec<u8> {
         let mut output = vec![];
-        output.extend_from_slice(&serialize_varint(self.message_id));
-        output.extend_from_slice(&serialize_string(&self.channel));
-        output.extend_from_slice(&self.data);
+        output.extend_from_slice(&serialize_varint(packet.message_id));
+        output.extend_from_slice(&serialize_string(&packet.channel));
+        output.extend_from_slice(&packet.data);
         output
     }
-}
-impl From<CL04LoginPluginRequest> for GenericPacket {
-    fn from(value: CL04LoginPluginRequest) -> Self {
-        GenericPacket::CL04LoginPluginRequest(value)
-    }
-}
-impl TryFrom<GenericPacket> for CL04LoginPluginRequest {
-    type Error = ();
-
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::CL04LoginPluginRequest(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
+);

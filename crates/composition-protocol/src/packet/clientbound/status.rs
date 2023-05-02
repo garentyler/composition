@@ -1,83 +1,37 @@
-use crate::{
-    packet::{GenericPacket, Packet, PacketId},
-    util::{parse_json, serialize_json},
-    Json,
-};
+use crate::{util::*, Json, ProtocolError};
+use byteorder::{BigEndian, ReadBytesExt};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CS00StatusResponse {
-    response: Json,
+    pub response: Json,
 }
-impl Packet for CS00StatusResponse {
-    fn id() -> PacketId {
-        0x00
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Status
-    }
-    fn serverbound() -> bool {
-        false
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
+crate::packet::packet!(
+    CS00StatusResponse,
+    0x00,
+    crate::ClientState::Status,
+    false,
+    |data: &'data [u8]| -> ParseResult<'data, CS00StatusResponse> {
         let (data, response) = parse_json(data)?;
         Ok((data, CS00StatusResponse { response }))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
-        serialize_json(&self.response)
-    }
-}
-impl From<CS00StatusResponse> for GenericPacket {
-    fn from(value: CS00StatusResponse) -> Self {
-        GenericPacket::CS00StatusResponse(value)
-    }
-}
-impl TryFrom<GenericPacket> for CS00StatusResponse {
-    type Error = ();
-
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::CS00StatusResponse(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
+    },
+    |packet: &CS00StatusResponse| -> Vec<u8> { serialize_json(&packet.response) }
+);
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct CS01PingResponse {
-    payload: i64,
+    pub payload: i64,
 }
-impl Packet for CS01PingResponse {
-    fn id() -> PacketId {
-        0x01
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Status
-    }
-    fn serverbound() -> bool {
-        false
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
-        let (data, payload) = nom::number::streaming::be_i64(data)?;
+crate::packet::packet!(
+    CS01PingResponse,
+    0x01,
+    crate::ClientState::Status,
+    false,
+    |data: &'data [u8]| -> ParseResult<'data, CS01PingResponse> {
+        let (data, mut bytes) = take_bytes(8)(data)?;
+        let payload = bytes
+            .read_i64::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
         Ok((data, CS01PingResponse { payload }))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
-        self.payload.to_be_bytes().to_vec()
-    }
-}
-impl From<CS01PingResponse> for GenericPacket {
-    fn from(value: CS01PingResponse) -> Self {
-        GenericPacket::CS01PingResponse(value)
-    }
-}
-impl TryFrom<GenericPacket> for CS01PingResponse {
-    type Error = ();
-
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::CS01PingResponse(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
+    },
+    |packet: &CS01PingResponse| -> Vec<u8> { packet.payload.to_be_bytes().to_vec() }
+);

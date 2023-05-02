@@ -1,6 +1,7 @@
 .DS_Store
 target
-/output.log
+/*.log
+/logs
 /world
 /server-icon.png
 /composition.toml

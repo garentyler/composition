@@ -11,6 +11,7 @@ Composition is broken up into multiple crates to speed up build times and improv
 - `composition-core` implements the main server logic, such as handling clients and loading world chunks.
 - `composition-protocol` handles the types and packets needed for network communication.
   The library was designed to be able to used by anyone looking to implement a Minecraft server.
+- `composition-config` handles the server configuration files and command line argument parsing.
 
 ## Useful Resources
 - [Protocol Specification](https://wiki.vg/Protocol)

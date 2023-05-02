@@ -1,30 +1,18 @@
-use crate::{
-    packet::{GenericPacket, Packet, PacketId},
-    util::{
-        parse_string, parse_uuid, parse_varint, serialize_string, serialize_uuid, serialize_varint,
-    },
-    Uuid,
-};
+use crate::{util::*, Uuid};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SL00LoginStart {
-    name: String,
-    uuid: Option<Uuid>,
+    pub name: String,
+    pub uuid: Option<Uuid>,
 }
-impl Packet for SL00LoginStart {
-    fn id() -> PacketId {
-        0x00
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Login
-    }
-    fn serverbound() -> bool {
-        true
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
+crate::packet::packet!(
+    SL00LoginStart,
+    0x00,
+    crate::ClientState::Login,
+    true,
+    |data: &'data [u8]| -> ParseResult<'data, SL00LoginStart> {
         let (data, name) = parse_string(data)?;
-        let (data, has_uuid) = nom::bytes::streaming::take(1usize)(data)?;
+        let (data, has_uuid) = take_bytes(1usize)(data)?;
         if has_uuid == [0x01] {
             let (data, uuid) = parse_uuid(data)?;
             Ok((
@@ -37,11 +25,11 @@ impl Packet for SL00LoginStart {
         } else {
             Ok((data, SL00LoginStart { name, uuid: None }))
         }
-    }
-    fn serialize_body(&self) -> Vec<u8> {
+    },
+    |packet: &SL00LoginStart| -> Vec<u8> {
         let mut output = vec![];
-        output.extend_from_slice(&serialize_string(&self.name));
-        match self.uuid {
+        output.extend_from_slice(&serialize_string(&packet.name));
+        match packet.uuid {
             Some(uuid) => {
                 output.push(0x01);
                 output.extend_from_slice(&serialize_uuid(&uuid));
@@ -50,44 +38,23 @@ impl Packet for SL00LoginStart {
         }
         output
     }
-}
-impl From<SL00LoginStart> for GenericPacket {
-    fn from(value: SL00LoginStart) -> Self {
-        GenericPacket::SL00LoginStart(value)
-    }
-}
-impl TryFrom<GenericPacket> for SL00LoginStart {
-    type Error = ();
-
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::SL00LoginStart(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
+);
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SL01EncryptionResponse {
-    shared_secret: Vec<u8>,
-    verify_token: Vec<u8>,
+    pub shared_secret: Vec<u8>,
+    pub verify_token: Vec<u8>,
 }
-impl Packet for SL01EncryptionResponse {
-    fn id() -> PacketId {
-        0x01
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Login
-    }
-    fn serverbound() -> bool {
-        true
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
+crate::packet::packet!(
+    SL01EncryptionResponse,
+    0x01,
+    crate::ClientState::Login,
+    true,
+    |data: &'data [u8]| -> ParseResult<'data, SL01EncryptionResponse> {
         let (data, shared_secret_len) = parse_varint(data)?;
-        let (data, shared_secret) = nom::bytes::streaming::take(shared_secret_len as usize)(data)?;
+        let (data, shared_secret) = take_bytes(shared_secret_len as usize)(data)?;
         let (data, verify_token_len) = parse_varint(data)?;
-        let (data, verify_token) = nom::bytes::streaming::take(verify_token_len as usize)(data)?;
+        let (data, verify_token) = take_bytes(verify_token_len as usize)(data)?;
 
         Ok((
             data,
@@ -96,52 +63,31 @@ impl Packet for SL01EncryptionResponse {
                 verify_token: verify_token.to_vec(),
             },
         ))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
+    },
+    |packet: &SL01EncryptionResponse| -> Vec<u8> {
         let mut output = vec![];
-        output.extend_from_slice(&serialize_varint(self.shared_secret.len() as i32));
-        output.extend_from_slice(&self.shared_secret);
-        output.extend_from_slice(&serialize_varint(self.verify_token.len() as i32));
-        output.extend_from_slice(&self.verify_token);
+        output.extend_from_slice(&serialize_varint(packet.shared_secret.len() as i32));
+        output.extend_from_slice(&packet.shared_secret);
+        output.extend_from_slice(&serialize_varint(packet.verify_token.len() as i32));
+        output.extend_from_slice(&packet.verify_token);
         output
     }
-}
-impl From<SL01EncryptionResponse> for GenericPacket {
-    fn from(value: SL01EncryptionResponse) -> Self {
-        GenericPacket::SL01EncryptionResponse(value)
-    }
-}
-impl TryFrom<GenericPacket> for SL01EncryptionResponse {
-    type Error = ();
-
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::SL01EncryptionResponse(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
+);
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SL02LoginPluginResponse {
-    message_id: i32,
-    successful: bool,
-    data: Vec<u8>,
+    pub message_id: i32,
+    pub successful: bool,
+    pub data: Vec<u8>,
 }
-impl Packet for SL02LoginPluginResponse {
-    fn id() -> PacketId {
-        0x02
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Login
-    }
-    fn serverbound() -> bool {
-        true
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
+crate::packet::packet!(
+    SL02LoginPluginResponse,
+    0x02,
+    crate::ClientState::Login,
+    true,
+    |data: &'data [u8]| -> ParseResult<'data, SL02LoginPluginResponse> {
         let (data, message_id) = parse_varint(data)?;
-        let (data, successful) = nom::bytes::streaming::take(1usize)(data)?;
+        let (data, successful) = take_bytes(1usize)(data)?;
         let successful = successful == [0x01];
         Ok((
             data,
@@ -154,31 +100,16 @@ impl Packet for SL02LoginPluginResponse {
                 },
             },
         ))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
+    },
+    |packet: &SL02LoginPluginResponse| -> Vec<u8> {
         let mut output = vec![];
-        output.extend_from_slice(&serialize_varint(self.message_id));
-        if self.successful {
+        output.extend_from_slice(&serialize_varint(packet.message_id));
+        if packet.successful {
             output.push(0x01);
-            output.extend_from_slice(&self.data);
+            output.extend_from_slice(&packet.data);
         } else {
             output.push(0x00);
         }
         output
     }
-}
-impl From<SL02LoginPluginResponse> for GenericPacket {
-    fn from(value: SL02LoginPluginResponse) -> Self {
-        GenericPacket::SL02LoginPluginResponse(value)
-    }
-}
-impl TryFrom<GenericPacket> for SL02LoginPluginResponse {
-    type Error = ();
-
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::SL02LoginPluginResponse(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
+);

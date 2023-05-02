@@ -2,13 +2,13 @@
 name = "composition-protocol"
 version = "0.1.0"
 edition = "2021"
+authors = ["Garen Tyler <garentyler@garen.dev>"]
+description = "The Minecraft protocol implemented in a network-agnostic way"
+license = "MIT"
 
 [dependencies]
-nom = "7"
-serde_json = "1.0.94"
 anyhow = "1.0.69"
+tracing = { workspace = true }
+byteorder = "1"
+serde_json = "1.0.94"
 thiserror = "1.0.39"
-
-[[example]]
-name = "packet_logger"
-path = "examples/packet_logger/src/main.rs"

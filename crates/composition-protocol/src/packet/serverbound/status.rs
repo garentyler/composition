@@ -1,76 +1,32 @@
-use crate::packet::{GenericPacket, Packet, PacketId};
+use crate::{util::*, ProtocolError};
+use byteorder::{BigEndian, ReadBytesExt};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct SS00StatusRequest;
-impl Packet for SS00StatusRequest {
-    fn id() -> PacketId {
-        0x00
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Status
-    }
-    fn serverbound() -> bool {
-        true
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
-        Ok((data, SS00StatusRequest))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
-        vec![]
-    }
-}
-impl From<SS00StatusRequest> for GenericPacket {
-    fn from(value: SS00StatusRequest) -> Self {
-        GenericPacket::SS00StatusRequest(value)
-    }
-}
-impl TryFrom<GenericPacket> for SS00StatusRequest {
-    type Error = ();
-
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::SS00StatusRequest(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
+crate::packet::packet!(
+    SS00StatusRequest,
+    0x00,
+    crate::ClientState::Status,
+    true,
+    |data: &'data [u8]| -> ParseResult<'data, SS00StatusRequest> { Ok((data, SS00StatusRequest)) },
+    |_packet: &SS00StatusRequest| -> Vec<u8> { vec![] }
+);
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct SS01PingRequest {
-    payload: i64,
+    pub payload: i64,
 }
-impl Packet for SS01PingRequest {
-    fn id() -> PacketId {
-        0x01
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Status
-    }
-    fn serverbound() -> bool {
-        true
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
-        let (data, payload) = nom::number::streaming::be_i64(data)?;
+crate::packet::packet!(
+    SS01PingRequest,
+    0x01,
+    crate::ClientState::Status,
+    true,
+    |data: &'data [u8]| -> ParseResult<'data, SS01PingRequest> {
+        let (data, mut bytes) = take_bytes(8)(data)?;
+        let payload = bytes
+            .read_i64::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
         Ok((data, SS01PingRequest { payload }))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
-        self.payload.to_be_bytes().to_vec()
-    }
-}
-impl From<SS01PingRequest> for GenericPacket {
-    fn from(value: SS01PingRequest) -> Self {
-        GenericPacket::SS01PingRequest(value)
-    }
-}
-impl TryFrom<GenericPacket> for SS01PingRequest {
-    type Error = ();
-
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::SS01PingRequest(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
+    },
+    |packet: &SS01PingRequest| -> Vec<u8> { packet.payload.to_be_bytes().to_vec() }
+);

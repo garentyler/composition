@@ -1,25 +1,17 @@
-use crate::{
-    packet::{GenericPacket, Packet, PacketId},
-    util::{parse_string, parse_varint, serialize_string, serialize_varint},
-};
+use crate::{util::*, ProtocolError};
+use byteorder::{BigEndian, ReadBytesExt};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SP08CommandSuggestionsRequest {
-    transaction_id: i32,
-    text: String,
+    pub transaction_id: i32,
+    pub text: String,
 }
-impl Packet for SP08CommandSuggestionsRequest {
-    fn id() -> PacketId {
-        0x08
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Play
-    }
-    fn serverbound() -> bool {
-        true
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
+crate::packet::packet!(
+    SP08CommandSuggestionsRequest,
+    0x08,
+    crate::ClientState::Play,
+    true,
+    |data: &'data [u8]| -> ParseResult<'data, SP08CommandSuggestionsRequest> {
         let (data, transaction_id) = parse_varint(data)?;
         let (data, text) = parse_string(data)?;
         Ok((
@@ -29,147 +21,109 @@ impl Packet for SP08CommandSuggestionsRequest {
                 text,
             },
         ))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
+    },
+    |packet: &SP08CommandSuggestionsRequest| -> Vec<u8> {
         let mut output = vec![];
-        output.extend_from_slice(&serialize_varint(self.transaction_id));
-        output.extend_from_slice(&serialize_string(&self.text));
+        output.extend_from_slice(&serialize_varint(packet.transaction_id));
+        output.extend_from_slice(&serialize_string(&packet.text));
         output
     }
-}
-impl From<SP08CommandSuggestionsRequest> for GenericPacket {
-    fn from(value: SP08CommandSuggestionsRequest) -> Self {
-        GenericPacket::SP08CommandSuggestionsRequest(value)
-    }
-}
-impl TryFrom<GenericPacket> for SP08CommandSuggestionsRequest {
-    type Error = ();
-
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::SP08CommandSuggestionsRequest(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
+);
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct SP11KeepAlive {
-    payload: i64,
+    pub payload: i64,
 }
-impl Packet for SP11KeepAlive {
-    fn id() -> PacketId {
-        0x11
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Play
-    }
-    fn serverbound() -> bool {
-        true
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
-        let (data, payload) = nom::number::streaming::be_i64(data)?;
+crate::packet::packet!(
+    SP11KeepAlive,
+    0x11,
+    crate::ClientState::Play,
+    true,
+    |data: &'data [u8]| -> ParseResult<'data, SP11KeepAlive> {
+        let (data, mut bytes) = take_bytes(8)(data)?;
+        let payload = bytes
+            .read_i64::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
         Ok((data, SP11KeepAlive { payload }))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
-        self.payload.to_be_bytes().to_vec()
-    }
-}
-impl From<SP11KeepAlive> for GenericPacket {
-    fn from(value: SP11KeepAlive) -> Self {
-        GenericPacket::SP11KeepAlive(value)
-    }
-}
-impl TryFrom<GenericPacket> for SP11KeepAlive {
-    type Error = ();
-
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::SP11KeepAlive(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
+    },
+    |packet: &SP11KeepAlive| -> Vec<u8> { packet.payload.to_be_bytes().to_vec() }
+);
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct SP13SetPlayerPosition {
-    x: f64,
-    y: f64,
-    z: f64,
-    on_ground: bool,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub on_ground: bool,
 }
-impl Packet for SP13SetPlayerPosition {
-    fn id() -> PacketId {
-        0x13
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Play
-    }
-    fn serverbound() -> bool {
-        true
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
-        let (data, x) = nom::number::streaming::be_f64(data)?;
-        let (data, y) = nom::number::streaming::be_f64(data)?;
-        let (data, z) = nom::number::streaming::be_f64(data)?;
-        let (data, on_ground) = nom::bytes::streaming::take(1usize)(data)?;
+crate::packet::packet!(
+    SP13SetPlayerPosition,
+    0x13,
+    crate::ClientState::Play,
+    true,
+    |data: &'data [u8]| -> ParseResult<'data, SP13SetPlayerPosition> {
+        let (data, mut bytes) = take_bytes(8)(data)?;
+        let x = bytes
+            .read_f64::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
+        let (data, mut bytes) = take_bytes(8)(data)?;
+        let y = bytes
+            .read_f64::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
+        let (data, mut bytes) = take_bytes(8)(data)?;
+        let z = bytes
+            .read_f64::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
+        let (data, on_ground) = take_bytes(1usize)(data)?;
         let on_ground = on_ground == [0x01];
         Ok((data, SP13SetPlayerPosition { x, y, z, on_ground }))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
+    },
+    |packet: &SP13SetPlayerPosition| -> Vec<u8> {
         let mut output = vec![];
-        output.extend_from_slice(&self.x.to_be_bytes());
-        output.extend_from_slice(&self.y.to_be_bytes());
-        output.extend_from_slice(&self.z.to_be_bytes());
-        output.push(if self.on_ground { 0x01 } else { 0x00 });
+        output.extend_from_slice(&packet.x.to_be_bytes());
+        output.extend_from_slice(&packet.y.to_be_bytes());
+        output.extend_from_slice(&packet.z.to_be_bytes());
+        output.push(if packet.on_ground { 0x01 } else { 0x00 });
         output
     }
-}
-impl From<SP13SetPlayerPosition> for GenericPacket {
-    fn from(value: SP13SetPlayerPosition) -> Self {
-        GenericPacket::SP13SetPlayerPosition(value)
-    }
-}
-impl TryFrom<GenericPacket> for SP13SetPlayerPosition {
-    type Error = ();
-
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::SP13SetPlayerPosition(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
+);
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct SP14SetPlayerPositionAndRotation {
-    x: f64,
-    y: f64,
-    z: f64,
-    yaw: f32,
-    pitch: f32,
-    on_ground: bool,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub yaw: f32,
+    pub pitch: f32,
+    pub on_ground: bool,
 }
-impl Packet for SP14SetPlayerPositionAndRotation {
-    fn id() -> PacketId {
-        0x14
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Play
-    }
-    fn serverbound() -> bool {
-        true
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
-        let (data, x) = nom::number::streaming::be_f64(data)?;
-        let (data, y) = nom::number::streaming::be_f64(data)?;
-        let (data, z) = nom::number::streaming::be_f64(data)?;
-        let (data, yaw) = nom::number::streaming::be_f32(data)?;
-        let (data, pitch) = nom::number::streaming::be_f32(data)?;
-        let (data, on_ground) = nom::bytes::streaming::take(1usize)(data)?;
+crate::packet::packet!(
+    SP14SetPlayerPositionAndRotation,
+    0x14,
+    crate::ClientState::Play,
+    true,
+    |data: &'data [u8]| -> ParseResult<'data, SP14SetPlayerPositionAndRotation> {
+        let (data, mut bytes) = take_bytes(8)(data)?;
+        let x = bytes
+            .read_f64::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
+        let (data, mut bytes) = take_bytes(8)(data)?;
+        let y = bytes
+            .read_f64::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
+        let (data, mut bytes) = take_bytes(8)(data)?;
+        let z = bytes
+            .read_f64::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
+        let (data, mut bytes) = take_bytes(4)(data)?;
+        let yaw = bytes
+            .read_f32::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
+        let (data, mut bytes) = take_bytes(4)(data)?;
+        let pitch = bytes
+            .read_f32::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
+        let (data, on_ground) = take_bytes(1usize)(data)?;
         let on_ground = on_ground == [0x01];
         Ok((
             data,
@@ -182,55 +136,40 @@ impl Packet for SP14SetPlayerPositionAndRotation {
                 on_ground,
             },
         ))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
+    },
+    |packet: &SP14SetPlayerPositionAndRotation| -> Vec<u8> {
         let mut output = vec![];
-        output.extend_from_slice(&self.x.to_be_bytes());
-        output.extend_from_slice(&self.y.to_be_bytes());
-        output.extend_from_slice(&self.z.to_be_bytes());
-        output.extend_from_slice(&self.yaw.to_be_bytes());
-        output.extend_from_slice(&self.pitch.to_be_bytes());
-        output.push(if self.on_ground { 0x01 } else { 0x00 });
+        output.extend_from_slice(&packet.x.to_be_bytes());
+        output.extend_from_slice(&packet.y.to_be_bytes());
+        output.extend_from_slice(&packet.z.to_be_bytes());
+        output.extend_from_slice(&packet.yaw.to_be_bytes());
+        output.extend_from_slice(&packet.pitch.to_be_bytes());
+        output.push(if packet.on_ground { 0x01 } else { 0x00 });
         output
     }
-}
-impl From<SP14SetPlayerPositionAndRotation> for GenericPacket {
-    fn from(value: SP14SetPlayerPositionAndRotation) -> Self {
-        GenericPacket::SP14SetPlayerPositionAndRotation(value)
-    }
-}
-impl TryFrom<GenericPacket> for SP14SetPlayerPositionAndRotation {
-    type Error = ();
-
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::SP14SetPlayerPositionAndRotation(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
+);
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct SP15SetPlayerRotation {
-    yaw: f32,
-    pitch: f32,
-    on_ground: bool,
+    pub yaw: f32,
+    pub pitch: f32,
+    pub on_ground: bool,
 }
-impl Packet for SP15SetPlayerRotation {
-    fn id() -> PacketId {
-        0x15
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Play
-    }
-    fn serverbound() -> bool {
-        true
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
-        let (data, yaw) = nom::number::streaming::be_f32(data)?;
-        let (data, pitch) = nom::number::streaming::be_f32(data)?;
-        let (data, on_ground) = nom::bytes::streaming::take(1usize)(data)?;
+crate::packet::packet!(
+    SP15SetPlayerRotation,
+    0x15,
+    crate::ClientState::Play,
+    true,
+    |data: &'data [u8]| -> ParseResult<'data, SP15SetPlayerRotation> {
+        let (data, mut bytes) = take_bytes(4)(data)?;
+        let yaw = bytes
+            .read_f32::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
+        let (data, mut bytes) = take_bytes(4)(data)?;
+        let pitch = bytes
+            .read_f32::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
+        let (data, on_ground) = take_bytes(1usize)(data)?;
         let on_ground = on_ground == [0x01];
         Ok((
             data,
@@ -240,27 +179,12 @@ impl Packet for SP15SetPlayerRotation {
                 on_ground,
             },
         ))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
+    },
+    |packet: &SP15SetPlayerRotation| -> Vec<u8> {
         let mut output = vec![];
-        output.extend_from_slice(&self.yaw.to_be_bytes());
-        output.extend_from_slice(&self.pitch.to_be_bytes());
-        output.push(if self.on_ground { 0x01 } else { 0x00 });
+        output.extend_from_slice(&packet.yaw.to_be_bytes());
+        output.extend_from_slice(&packet.pitch.to_be_bytes());
+        output.push(if packet.on_ground { 0x01 } else { 0x00 });
         output
     }
-}
-impl From<SP15SetPlayerRotation> for GenericPacket {
-    fn from(value: SP15SetPlayerRotation) -> Self {
-        GenericPacket::SP15SetPlayerRotation(value)
-    }
-}
-impl TryFrom<GenericPacket> for SP15SetPlayerRotation {
-    type Error = ();
-
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::SP15SetPlayerRotation(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
+);

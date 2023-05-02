@@ -38,12 +38,10 @@ impl TryFrom<u8> for Difficulty {
 
 #[derive(Error, Debug)]
 pub enum ProtocolError {
-    #[error("invalid packet data")]
-    InvalidPacket,
+    #[error("invalid data")]
+    InvalidData,
     #[error("not enough data")]
     NotEnoughData,
-    #[error("unexpected end of file")]
-    UnexpectedEOF,
     #[error("stream timed out")]
     Timeout,
     #[error("communicating to disconnected client")]

@@ -1,8 +1,5 @@
-use crate::{
-    packet::{GenericPacket, Packet, PacketId},
-    util::{parse_string, parse_varint, serialize_string, serialize_varint},
-    ClientState,
-};
+use crate::{util::*, ClientState, ProtocolError};
+use byteorder::{BigEndian, ReadBytesExt};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SH00Handshake {
@@ -11,21 +8,18 @@ pub struct SH00Handshake {
     pub server_port: u16,
     pub next_state: ClientState,
 }
-impl Packet for SH00Handshake {
-    fn id() -> PacketId {
-        0x00
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Handshake
-    }
-    fn serverbound() -> bool {
-        true
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
+crate::packet::packet!(
+    SH00Handshake,
+    0x00,
+    ClientState::Handshake,
+    true,
+    |data: &'data [u8]| -> ParseResult<'data, SH00Handshake> {
         let (data, protocol_version) = parse_varint(data)?;
         let (data, server_address) = parse_string(data)?;
-        let (data, server_port) = nom::number::streaming::be_u16(data)?;
+        let (data, mut bytes) = take_bytes(2)(data)?;
+        let server_port = bytes
+            .read_u16::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
         let (data, next_state) = parse_varint(data)?;
 
         Ok((
@@ -41,32 +35,17 @@ impl Packet for SH00Handshake {
                 },
             },
         ))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
+    },
+    |packet: &SH00Handshake| -> Vec<u8> {
         let mut output = vec![];
-        output.extend_from_slice(&self.protocol_version.to_be_bytes());
-        output.extend_from_slice(&serialize_string(&self.server_address));
-        output.extend_from_slice(&self.server_port.to_be_bytes());
-        output.extend_from_slice(&serialize_varint(match self.next_state {
+        output.extend_from_slice(&packet.protocol_version.to_be_bytes());
+        output.extend_from_slice(&serialize_string(&packet.server_address));
+        output.extend_from_slice(&packet.server_port.to_be_bytes());
+        output.extend_from_slice(&serialize_varint(match packet.next_state {
             ClientState::Status => 0x01,
             ClientState::Login => 0x02,
             _ => panic!("invalid SH00Handshake next_state"),
         }));
         output
     }
-}
-impl From<SH00Handshake> for GenericPacket {
-    fn from(value: SH00Handshake) -> Self {
-        GenericPacket::SH00Handshake(value)
-    }
-}
-impl TryFrom<GenericPacket> for SH00Handshake {
-    type Error = ();
-
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::SH00Handshake(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
+);

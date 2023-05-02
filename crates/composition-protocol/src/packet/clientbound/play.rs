@@ -1,51 +1,58 @@
-use crate::{
-    packet::{GenericPacket, Packet, PacketId},
-    util::{
-        parse_json, parse_uuid, parse_varint, serialize_json, serialize_uuid, serialize_varint,
-        Position,
-    },
-    Chat, Difficulty, Uuid,
-};
+use crate::{util::*, Chat, Difficulty, ProtocolError, Uuid};
+use byteorder::{BigEndian, ReadBytesExt};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct CP00SpawnEntity {
-    entity_id: i32,
-    entity_uuid: Uuid,
-    kind: i32,
-    x: f64,
-    y: f64,
-    z: f64,
-    pitch: u8,
-    yaw: u8,
-    head_yaw: u8,
-    data: i32,
-    velocity_x: i16,
-    velocity_y: i16,
-    velocity_z: i16,
+    pub entity_id: i32,
+    pub entity_uuid: Uuid,
+    pub kind: i32,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub pitch: u8,
+    pub yaw: u8,
+    pub head_yaw: u8,
+    pub data: i32,
+    pub velocity_x: i16,
+    pub velocity_y: i16,
+    pub velocity_z: i16,
 }
-impl Packet for CP00SpawnEntity {
-    fn id() -> PacketId {
-        0x00
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Play
-    }
-    fn serverbound() -> bool {
-        false
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
+crate::packet::packet!(
+    CP00SpawnEntity,
+    0x00,
+    crate::ClientState::Play,
+    false,
+    |data: &'data [u8]| -> ParseResult<'data, CP00SpawnEntity> {
         let (data, entity_id) = parse_varint(data)?;
         let (data, entity_uuid) = parse_uuid(data)?;
         let (data, kind) = parse_varint(data)?;
-        let (data, x) = nom::number::streaming::be_f64(data)?;
-        let (data, y) = nom::number::streaming::be_f64(data)?;
-        let (data, z) = nom::number::streaming::be_f64(data)?;
-        let (data, t) = nom::bytes::streaming::take(3usize)(data)?;
+        let (data, mut bytes) = take_bytes(8)(data)?;
+        let x = bytes
+            .read_f64::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
+        let (data, mut bytes) = take_bytes(8)(data)?;
+        let y = bytes
+            .read_f64::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
+        let (data, mut bytes) = take_bytes(8)(data)?;
+        let z = bytes
+            .read_f64::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
+        let (data, t) = take_bytes(3usize)(data)?;
         let (data, d) = parse_varint(data)?;
-        let (data, velocity_x) = nom::number::streaming::be_i16(data)?;
-        let (data, velocity_y) = nom::number::streaming::be_i16(data)?;
-        let (data, velocity_z) = nom::number::streaming::be_i16(data)?;
+        let (data, mut bytes) = take_bytes(2)(data)?;
+        let velocity_x = bytes
+            .read_i16::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
+        let (data, mut bytes) = take_bytes(2)(data)?;
+        let velocity_y = bytes
+            .read_i16::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
+        let (data, mut bytes) = take_bytes(2)(data)?;
+        let velocity_z = bytes
+            .read_i16::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
+
         Ok((
             data,
             CP00SpawnEntity {
@@ -64,64 +71,43 @@ impl Packet for CP00SpawnEntity {
                 velocity_z,
             },
         ))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
+    },
+    |packet: &CP00SpawnEntity| -> Vec<u8> {
         let mut output = vec![];
-        output.extend_from_slice(&serialize_varint(self.entity_id));
-        output.extend_from_slice(&serialize_uuid(&self.entity_uuid));
-        output.extend_from_slice(&serialize_varint(self.kind));
-        output.extend_from_slice(&self.x.to_be_bytes());
-        output.extend_from_slice(&self.y.to_be_bytes());
-        output.extend_from_slice(&self.z.to_be_bytes());
-        output.push(self.pitch);
-        output.push(self.yaw);
-        output.push(self.head_yaw);
-        output.extend_from_slice(&serialize_varint(self.data));
-        output.extend_from_slice(&self.velocity_x.to_be_bytes());
-        output.extend_from_slice(&self.velocity_y.to_be_bytes());
-        output.extend_from_slice(&self.velocity_z.to_be_bytes());
+        output.extend_from_slice(&serialize_varint(packet.entity_id));
+        output.extend_from_slice(&serialize_uuid(&packet.entity_uuid));
+        output.extend_from_slice(&serialize_varint(packet.kind));
+        output.extend_from_slice(&packet.x.to_be_bytes());
+        output.extend_from_slice(&packet.y.to_be_bytes());
+        output.extend_from_slice(&packet.z.to_be_bytes());
+        output.push(packet.pitch);
+        output.push(packet.yaw);
+        output.push(packet.head_yaw);
+        output.extend_from_slice(&serialize_varint(packet.data));
+        output.extend_from_slice(&packet.velocity_x.to_be_bytes());
+        output.extend_from_slice(&packet.velocity_y.to_be_bytes());
+        output.extend_from_slice(&packet.velocity_z.to_be_bytes());
         output
     }
-}
-impl From<CP00SpawnEntity> for GenericPacket {
-    fn from(value: CP00SpawnEntity) -> Self {
-        GenericPacket::CP00SpawnEntity(value)
-    }
-}
-impl TryFrom<GenericPacket> for CP00SpawnEntity {
-    type Error = ();
+);
 
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::CP00SpawnEntity(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct CP0BChangeDifficulty {
-    difficulty: Difficulty,
-    is_locked: bool,
+    pub difficulty: Difficulty,
+    pub is_locked: bool,
 }
-impl Packet for CP0BChangeDifficulty {
-    fn id() -> PacketId {
-        0x0b
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Play
-    }
-    fn serverbound() -> bool {
-        false
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
-        let (data, difficulty) = nom::number::streaming::be_u8(data)?;
-        let difficulty: Difficulty = difficulty
+crate::packet::packet!(
+    CP0BChangeDifficulty,
+    0x0b,
+    crate::ClientState::Play,
+    false,
+    |data: &'data [u8]| -> ParseResult<'data, CP0BChangeDifficulty> {
+        let (data, difficulty) = take_bytes(1)(data)?;
+        let difficulty: Difficulty = difficulty[0]
             .try_into()
             .expect("TODO: handle incorrect difficulty");
-        let (data, is_locked) = nom::number::streaming::be_u8(data)?;
-        let is_locked = is_locked > 0;
+        let (data, is_locked) = take_bytes(1)(data)?;
+        let is_locked = is_locked[0] > 0;
         Ok((
             data,
             CP0BChangeDifficulty {
@@ -129,131 +115,73 @@ impl Packet for CP0BChangeDifficulty {
                 is_locked,
             },
         ))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
+    },
+    |packet: &CP0BChangeDifficulty| -> Vec<u8> {
         let mut output = vec![];
-        output.push(self.difficulty as u8);
-        output.push(if self.is_locked { 0x01 } else { 0x00 });
+        output.push(packet.difficulty as u8);
+        output.push(if packet.is_locked { 0x01 } else { 0x00 });
         output
     }
-}
-impl From<CP0BChangeDifficulty> for GenericPacket {
-    fn from(value: CP0BChangeDifficulty) -> Self {
-        GenericPacket::CP0BChangeDifficulty(value)
-    }
-}
-impl TryFrom<GenericPacket> for CP0BChangeDifficulty {
-    type Error = ();
-
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::CP0BChangeDifficulty(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
+);
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CP17Disconnect {
-    reason: Chat,
+    pub reason: Chat,
 }
-impl Packet for CP17Disconnect {
-    fn id() -> PacketId {
-        0x17
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Play
-    }
-    fn serverbound() -> bool {
-        false
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
+crate::packet::packet!(
+    CP17Disconnect,
+    0x17,
+    crate::ClientState::Play,
+    false,
+    |data: &'data [u8]| -> ParseResult<'data, CP17Disconnect> {
         let (data, reason) = parse_json(data)?;
         Ok((data, CP17Disconnect { reason }))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
-        serialize_json(&self.reason)
-    }
-}
-impl From<CP17Disconnect> for GenericPacket {
-    fn from(value: CP17Disconnect) -> Self {
-        GenericPacket::CP17Disconnect(value)
-    }
-}
-impl TryFrom<GenericPacket> for CP17Disconnect {
-    type Error = ();
-
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::CP17Disconnect(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
+    },
+    |packet: &CP17Disconnect| -> Vec<u8> { serialize_json(&packet.reason) }
+);
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct CP1FKeepAlive {
-    payload: i64,
+    pub payload: i64,
 }
-impl Packet for CP1FKeepAlive {
-    fn id() -> PacketId {
-        0x1f
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Play
-    }
-    fn serverbound() -> bool {
-        false
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
-        let (data, payload) = nom::number::streaming::be_i64(data)?;
+crate::packet::packet!(
+    CP1FKeepAlive,
+    0x1f,
+    crate::ClientState::Play,
+    false,
+    |data: &'data [u8]| -> ParseResult<'data, CP1FKeepAlive> {
+        let (data, mut bytes) = take_bytes(8)(data)?;
+        let payload = bytes
+            .read_i64::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
         Ok((data, CP1FKeepAlive { payload }))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
-        self.payload.to_be_bytes().to_vec()
-    }
-}
-impl From<CP1FKeepAlive> for GenericPacket {
-    fn from(value: CP1FKeepAlive) -> Self {
-        GenericPacket::CP1FKeepAlive(value)
-    }
-}
-impl TryFrom<GenericPacket> for CP1FKeepAlive {
-    type Error = ();
-
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::CP1FKeepAlive(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
+    },
+    |packet: &CP1FKeepAlive| -> Vec<u8> { packet.payload.to_be_bytes().to_vec() }
+);
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct CP21WorldEvent {
-    event: i32,
-    location: Position,
-    data: i32,
-    disable_relative_volume: bool,
+    pub event: i32,
+    pub location: Position,
+    pub data: i32,
+    pub disable_relative_volume: bool,
 }
-impl Packet for CP21WorldEvent {
-    fn id() -> PacketId {
-        0x21
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Play
-    }
-    fn serverbound() -> bool {
-        false
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
-        let (data, event) = nom::number::streaming::be_i32(data)?;
+crate::packet::packet!(
+    CP21WorldEvent,
+    0x21,
+    crate::ClientState::Play,
+    false,
+    |data: &'data [u8]| -> ParseResult<'data, CP21WorldEvent> {
+        let (data, mut bytes) = take_bytes(4)(data)?;
+        let event = bytes
+            .read_i32::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
         let (data, location) = Position::parse(data)?;
-        let (data, d) = nom::number::streaming::be_i32(data)?;
-        let (data, disable_relative_volume) = nom::bytes::streaming::take(1usize)(data)?;
+        let (data, mut bytes) = take_bytes(4)(data)?;
+        let d = bytes
+            .read_i32::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
+        let (data, disable_relative_volume) = take_bytes(1usize)(data)?;
         let disable_relative_volume = disable_relative_volume == [0x01];
         Ok((
             data,
@@ -264,59 +192,47 @@ impl Packet for CP21WorldEvent {
                 disable_relative_volume,
             },
         ))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
+    },
+    |packet: &CP21WorldEvent| -> Vec<u8> {
         let mut output = vec![];
-        output.extend_from_slice(&self.event.to_be_bytes());
-        output.extend_from_slice(&self.location.serialize());
-        output.extend_from_slice(&self.data.to_be_bytes());
-        output.push(if self.disable_relative_volume {
+        output.extend_from_slice(&packet.event.to_be_bytes());
+        output.extend_from_slice(&packet.location.serialize());
+        output.extend_from_slice(&packet.data.to_be_bytes());
+        output.push(if packet.disable_relative_volume {
             0x01
         } else {
             0x00
         });
         output
     }
-}
-impl From<CP21WorldEvent> for GenericPacket {
-    fn from(value: CP21WorldEvent) -> Self {
-        GenericPacket::CP21WorldEvent(value)
-    }
-}
-impl TryFrom<GenericPacket> for CP21WorldEvent {
-    type Error = ();
+);
 
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::CP21WorldEvent(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct CP50SetEntityVelocity {
-    entity_id: i32,
-    velocity_x: i16,
-    velocity_y: i16,
-    velocity_z: i16,
+    pub entity_id: i32,
+    pub velocity_x: i16,
+    pub velocity_y: i16,
+    pub velocity_z: i16,
 }
-impl Packet for CP50SetEntityVelocity {
-    fn id() -> PacketId {
-        0x50
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Play
-    }
-    fn serverbound() -> bool {
-        false
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
+crate::packet::packet!(
+    CP50SetEntityVelocity,
+    0x50,
+    crate::ClientState::Play,
+    false,
+    |data: &'data [u8]| -> ParseResult<'data, CP50SetEntityVelocity> {
         let (data, entity_id) = parse_varint(data)?;
-        let (data, velocity_x) = nom::number::streaming::be_i16(data)?;
-        let (data, velocity_y) = nom::number::streaming::be_i16(data)?;
-        let (data, velocity_z) = nom::number::streaming::be_i16(data)?;
+        let (data, mut bytes) = take_bytes(2)(data)?;
+        let velocity_x = bytes
+            .read_i16::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
+        let (data, mut bytes) = take_bytes(2)(data)?;
+        let velocity_y = bytes
+            .read_i16::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
+        let (data, mut bytes) = take_bytes(2)(data)?;
+        let velocity_z = bytes
+            .read_i16::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
         Ok((
             data,
             CP50SetEntityVelocity {
@@ -326,51 +242,33 @@ impl Packet for CP50SetEntityVelocity {
                 velocity_z,
             },
         ))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
+    },
+    |packet: &CP50SetEntityVelocity| -> Vec<u8> {
         let mut output = vec![];
-        output.extend_from_slice(&serialize_varint(self.entity_id));
-        output.extend_from_slice(&self.velocity_x.to_be_bytes());
-        output.extend_from_slice(&self.velocity_y.to_be_bytes());
-        output.extend_from_slice(&self.velocity_z.to_be_bytes());
+        output.extend_from_slice(&serialize_varint(packet.entity_id));
+        output.extend_from_slice(&packet.velocity_x.to_be_bytes());
+        output.extend_from_slice(&packet.velocity_y.to_be_bytes());
+        output.extend_from_slice(&packet.velocity_z.to_be_bytes());
         output
     }
-}
-impl From<CP50SetEntityVelocity> for GenericPacket {
-    fn from(value: CP50SetEntityVelocity) -> Self {
-        GenericPacket::CP50SetEntityVelocity(value)
-    }
-}
-impl TryFrom<GenericPacket> for CP50SetEntityVelocity {
-    type Error = ();
+);
 
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::CP50SetEntityVelocity(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct CP52SetExperience {
-    experience_bar: f32,
-    total_experience: i32,
-    level: i32,
+    pub experience_bar: f32,
+    pub total_experience: i32,
+    pub level: i32,
 }
-impl Packet for CP52SetExperience {
-    fn id() -> PacketId {
-        0x52
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Play
-    }
-    fn serverbound() -> bool {
-        false
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
-        let (data, experience_bar) = nom::number::streaming::be_f32(data)?;
+crate::packet::packet!(
+    CP52SetExperience,
+    0x52,
+    crate::ClientState::Play,
+    false,
+    |data: &'data [u8]| -> ParseResult<'data, CP52SetExperience> {
+        let (data, mut bytes) = take_bytes(4)(data)?;
+        let experience_bar = bytes
+            .read_f32::<BigEndian>()
+            .map_err(|_| ProtocolError::NotEnoughData)?;
         let (data, total_experience) = parse_varint(data)?;
         let (data, level) = parse_varint(data)?;
         Ok((
@@ -381,65 +279,46 @@ impl Packet for CP52SetExperience {
                 level,
             },
         ))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
+    },
+    |packet: &CP52SetExperience| -> Vec<u8> {
         let mut output = vec![];
-        output.extend_from_slice(&self.experience_bar.to_be_bytes());
-        output.extend_from_slice(&serialize_varint(self.total_experience));
-        output.extend_from_slice(&serialize_varint(self.level));
+        output.extend_from_slice(&packet.experience_bar.to_be_bytes());
+        output.extend_from_slice(&serialize_varint(packet.total_experience));
+        output.extend_from_slice(&serialize_varint(packet.level));
         output
     }
-}
-impl From<CP52SetExperience> for GenericPacket {
-    fn from(value: CP52SetExperience) -> Self {
-        GenericPacket::CP52SetExperience(value)
-    }
-}
-impl TryFrom<GenericPacket> for CP52SetExperience {
-    type Error = ();
-
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::CP52SetExperience(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
+);
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CP68EntityEffect {
-    entity_id: i32,
-    effect_id: i32,
-    amplifier: i8,
-    duration: i32,
-    is_ambient: bool,
-    show_particles: bool,
-    show_icon: bool,
-    has_factor_data: bool,
-    // TODO: factor_codec: NBT
+    pub entity_id: i32,
+    pub effect_id: i32,
+    pub amplifier: i8,
+    pub duration: i32,
+    pub is_ambient: bool,
+    pub show_particles: bool,
+    pub show_icon: bool,
+    pub has_factor_data: bool,
+    // TODO: pub factor_codec: NBT
 }
-impl Packet for CP68EntityEffect {
-    fn id() -> PacketId {
-        0x68
-    }
-    fn client_state() -> crate::ClientState {
-        crate::ClientState::Play
-    }
-    fn serverbound() -> bool {
-        false
-    }
-
-    fn parse_body(data: &[u8]) -> nom::IResult<&[u8], Self> {
+crate::packet::packet!(
+    CP68EntityEffect,
+    0x68,
+    crate::ClientState::Play,
+    false,
+    |data: &'data [u8]| -> ParseResult<'data, CP68EntityEffect> {
         let (data, entity_id) = parse_varint(data)?;
         let (data, effect_id) = parse_varint(data)?;
-        let (data, amplifier) = nom::number::streaming::be_i8(data)?;
+        let (data, amplifier) = take_bytes(1)(data)?;
+        let amplifier = amplifier[0] as i8;
         let (data, duration) = parse_varint(data)?;
-        let (data, flags) = nom::number::streaming::be_i8(data)?;
+        let (data, flags) = take_bytes(1)(data)?;
+        let flags = flags[0] as i8;
         let is_ambient = flags & 0x01 > 0;
         let show_particles = flags & 0x02 > 0;
         let show_icon = flags & 0x04 > 0;
-        let (data, has_factor_data) = nom::number::streaming::be_u8(data)?;
-        let has_factor_data = has_factor_data > 0;
+        let (data, has_factor_data) = take_bytes(1)(data)?;
+        let has_factor_data = has_factor_data[0] > 0;
         // TODO: factor_codec
 
         Ok((
@@ -455,40 +334,25 @@ impl Packet for CP68EntityEffect {
                 has_factor_data,
             },
         ))
-    }
-    fn serialize_body(&self) -> Vec<u8> {
+    },
+    |packet: &CP68EntityEffect| -> Vec<u8> {
         let mut output = vec![];
-        output.extend_from_slice(&serialize_varint(self.entity_id));
-        output.extend_from_slice(&serialize_varint(self.effect_id));
-        output.push(self.amplifier as u8);
-        output.extend_from_slice(&serialize_varint(self.duration));
+        output.extend_from_slice(&serialize_varint(packet.entity_id));
+        output.extend_from_slice(&serialize_varint(packet.effect_id));
+        output.push(packet.amplifier as u8);
+        output.extend_from_slice(&serialize_varint(packet.duration));
         let mut flags = 0x00i8;
-        if self.is_ambient {
+        if packet.is_ambient {
             flags |= 0x01;
         }
-        if self.show_particles {
+        if packet.show_particles {
             flags |= 0x02;
         }
-        if self.show_icon {
+        if packet.show_icon {
             flags |= 0x04;
         }
         output.push(flags as u8);
         // TODO: factor_codec
         output
     }
-}
-impl From<CP68EntityEffect> for GenericPacket {
-    fn from(value: CP68EntityEffect) -> Self {
-        GenericPacket::CP68EntityEffect(value)
-    }
-}
-impl TryFrom<GenericPacket> for CP68EntityEffect {
-    type Error = ();
-
-    fn try_from(value: GenericPacket) -> Result<Self, Self::Error> {
-        match value {
-            GenericPacket::CP68EntityEffect(packet) => Ok(packet),
-            _ => Err(()),
-        }
-    }
-}
+);
