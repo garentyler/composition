@@ -6,38 +6,41 @@ pub type ParseResult<'data, T> = crate::Result<(&'data [u8], T)>;
 
 pub fn take_bytes(num: usize) -> impl Fn(&'_ [u8]) -> ParseResult<'_, &'_ [u8]> {
     move |data| {
-        if data.len() < num {
-            Err(ProtocolError::NotEnoughData)
-        } else {
-            Ok(data.split_at(num))
+        use std::cmp::Ordering;
+
+        match data.len().cmp(&num) {
+            Ordering::Greater => Ok((&data[num..], &data[..num])),
+            Ordering::Equal => Ok((&[], data)),
+            Ordering::Less => Err(ProtocolError::NotEnoughData),
         }
     }
 }
 
 #[tracing::instrument]
-pub fn parse_varint(mut data: &[u8]) -> ParseResult<'_, i32> {
+pub fn parse_varint(data: &[u8]) -> ParseResult<'_, i32> {
     trace!("{:?}", data);
-    let mut output = 0i32;
-    let mut bytes_read = 0i32;
+    let mut output = 0u32;
+    let mut bytes_read = 0;
 
-    loop {
-        let (d, next_byte) = take_bytes(1usize)(data)?;
-        data = d;
-
-        if next_byte.is_empty() {
+    for i in 0..=5 {
+        if i == 5 {
+            // VarInts can only have 5 bytes maximum.
+            return Err(ProtocolError::InvalidData);
+        } else if data.len() <= i {
             return Err(ProtocolError::NotEnoughData);
         }
 
-        output |= ((next_byte[0] & 0x7f) as i32) << (bytes_read * 7);
-        bytes_read += 1;
-        if next_byte[0] & 0x80 != 0x80 {
-            break;
-        }
-        if bytes_read >= 5 {
+        let byte = data[i];
+        output |= ((byte & 0x7f) as u32) << (7 * i);
+
+        if byte & 0x80 != 0x80 {
+            // We found the last byte of the VarInt.
+            bytes_read = i + 1;
             break;
         }
     }
-    Ok((data, output))
+
+    Ok((&data[bytes_read..], output as i32))
 }
 #[tracing::instrument]
 pub fn serialize_varint(value: i32) -> Vec<u8> {
@@ -154,11 +157,24 @@ impl Position {
 mod tests {
     use super::*;
 
+    #[test]
+    fn take_bytes_works() {
+        let data: [u8; 5] = [0, 1, 2, 3, 4];
+
+        assert_eq!(take_bytes(3)(&data).unwrap(), (&data[3..], &data[..3]));
+        assert_eq!(take_bytes(1)(&data).unwrap().0.len(), data.len() - 1);
+        assert_eq!(take_bytes(1)(&data).unwrap().0[0], 1);
+        assert_eq!(take_bytes(1)(&[0, 1]).unwrap().0.len(), 1);
+        assert_eq!(take_bytes(1)(&[1]).unwrap().0.len(), 0);
+        assert!(take_bytes(1)(&[]).is_err());
+    }
+
     fn get_varints() -> Vec<(i32, Vec<u8>)> {
         vec![
             (0, vec![0x00]),
             (1, vec![0x01]),
             (2, vec![0x02]),
+            (16, vec![0x10]),
             (127, vec![0x7f]),
             (128, vec![0x80, 0x01]),
             (255, vec![0xff, 0x01]),

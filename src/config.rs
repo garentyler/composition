@@ -53,8 +53,8 @@ impl Default for Config {
             motd: "Hello world!".to_owned(),
             server_icon: PathBuf::from("server-icon.png"),
             server_icon_bytes: include_bytes!("./server-icon.png").to_vec(),
-            protocol_version: 761,
-            game_version: "1.19.3".to_owned(),
+            protocol_version: 762,
+            game_version: "1.19.4".to_owned(),
             server_version,
             server_threads: None,
         }
@@ -83,7 +83,7 @@ impl Config {
         }
 
         if let Ok(cfg) = read_file(config_path) {
-            let cfg: Result<Config, _> = toml::from_slice(&cfg);
+            let cfg: Result<Config, _> = toml::from_str(&String::from_utf8_lossy(&cfg));
             if let Ok(cfg) = cfg {
                 config = cfg;
             } else {

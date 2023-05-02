@@ -10,12 +10,7 @@ pub static START_TIME: OnceCell<Instant> = OnceCell::new();
 
 /// Start the server.
 #[tracing::instrument]
-pub async fn start_server(
-    start_time: Instant,
-) -> (server::Server, tokio_util::sync::CancellationToken) {
-    START_TIME
-        .set(start_time)
-        .expect("could not set START_TIME");
+pub async fn start_server() -> (server::Server, tokio_util::sync::CancellationToken) {
     server::Server::new(format!("0.0.0.0:{}", Config::instance().port)).await
 }
 

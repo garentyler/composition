@@ -110,7 +110,9 @@ impl NetworkClient {
 
         let mut bytes_consumed = 0;
         while !data.is_empty() {
-            match GenericPacket::parse_uncompressed(self.state.into(), true, data) {
+            let p = GenericPacket::parse_uncompressed(self.state.into(), true, data);
+            trace!("{} got {:?}", self.id, p);
+            match p {
                 Ok((d, packet)) => {
                     debug!("Got packet {:?} from client {}", packet, self.id);
                     bytes_consumed += data.len() - d.len();

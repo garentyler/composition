@@ -1,10 +1,11 @@
-use std::time::Instant;
 use tracing::{info, instrument, warn};
 use tracing_subscriber::prelude::*;
 
 #[instrument]
 pub fn main() {
-    let start_time = Instant::now();
+    composition::START_TIME
+        .set(std::time::Instant::now())
+        .expect("could not set composition::START_TIME");
 
     // Set up logging.
     let file_writer =
@@ -58,8 +59,11 @@ pub fn main() {
     .unwrap()
     .block_on(async move {
         info!("Starting {} on port {}", config.server_version, config.port);
-        let (mut server, running) = composition::start_server(start_time).await;
-        info!("Done! Start took {:?}", start_time.elapsed());
+        let (mut server, running) = composition::start_server().await;
+        info!(
+            "Done! Start took {:?}",
+            composition::START_TIME.get().unwrap().elapsed()
+        );
 
         // The main server loop.
         loop {

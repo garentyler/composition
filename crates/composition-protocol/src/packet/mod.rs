@@ -36,11 +36,14 @@ macro_rules! generic_packet {
                     is_serverbound,
                     data
                 );
-
+                tracing::debug!("data before: {:?}", data);
                 let (data, packet_length) = crate::util::parse_varint(data)?;
+                tracing::debug!("data after packet length ({}): {:?}", packet_length, data);
                 let (data, packet_data) = crate::util::take_bytes(packet_length as usize)(data)?;
+                tracing::debug!("data after packet data ({:?}): {:?}", packet_data, data);
 
                 let (packet_data, packet_id) = crate::util::parse_varint(packet_data)?;
+                tracing::debug!("packet_data after packet_id ({}): {:?}", packet_id, packet_data);
                 let (_packet_data, packet_body) =
                     Self::parse_body(client_state, packet_id, is_serverbound, packet_data)?;
 

@@ -212,6 +212,7 @@ impl Server {
                             received_ping,
                         };
                         let config = Config::instance();
+                        use base64::Engine;
                         client.queue_packet(CS00StatusResponse {
                             response: json!({
                                 "version": {
@@ -225,7 +226,9 @@ impl Server {
                                 },
                                 "description": {
                                     "text": config.motd
-                                }
+                                },
+                                "favicon": format!("data:image/png;base64,{}", base64::engine::general_purpose::STANDARD_NO_PAD.encode(&config.server_icon_bytes)),
+                                "enforcesSecureChat": true
                             }),
                         });
                     }
