@@ -24,6 +24,10 @@ description = "An extremely fast Minecraft server"
 license = "MIT"
 build = "build.rs"
 
+[features]
+default = []
+update_1_20 = ["composition-protocol/update_1_20"]
+
 [dependencies]
 base64 = "0.21.0"
 clap = { version = "4.2.7", features = ["derive"] }
