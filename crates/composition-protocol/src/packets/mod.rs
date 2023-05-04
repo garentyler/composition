@@ -1,18 +1,20 @@
 pub mod clientbound;
 pub mod serverbound;
 
-pub type PacketId = i32;
+use crate::mctypes::VarInt;
 
-pub trait Packet: std::fmt::Debug + Clone + TryFrom<GenericPacket> + Into<GenericPacket> {
-    const ID: PacketId;
+pub type PacketId = crate::mctypes::VarInt;
+
+pub trait Packet:
+    std::fmt::Debug
+    + Clone
+    + TryFrom<GenericPacket>
+    + Into<GenericPacket>
+    + composition_parsing::Parsable
+{
+    const ID: i32;
     const CLIENT_STATE: crate::ClientState;
     const IS_SERVERBOUND: bool;
-
-    // The slice given should only be the exact amount of data in the body.
-    fn parse_body(data: &[u8]) -> crate::util::ParseResult<'_, Self>
-    where
-        Self: Sized;
-    fn serialize_body(&self) -> Vec<u8>;
 }
 
 macro_rules! generic_packet {
@@ -29,21 +31,18 @@ macro_rules! generic_packet {
                 client_state: crate::ClientState,
                 is_serverbound: bool,
                 data: &'data [u8]
-            ) -> crate::util::ParseResult<'data, Self> {
+            ) -> composition_parsing::ParseResult<'data, Self> {
+                use composition_parsing::Parsable;
                 tracing::trace!(
                     "GenericPacket::parse_uncompressed: {:?} {} {:?}",
                     client_state,
                     is_serverbound,
                     data
                 );
-                tracing::debug!("data before: {:?}", data);
-                let (data, packet_length) = crate::util::parse_varint(data)?;
-                tracing::debug!("data after packet length ({}): {:?}", packet_length, data);
-                let (data, packet_data) = crate::util::take_bytes(packet_length as usize)(data)?;
-                tracing::debug!("data after packet data ({:?}): {:?}", packet_data, data);
+                let (data, packet_length) = crate::mctypes::VarInt::parse(data)?;
+                let (data, packet_data) = composition_parsing::take_bytes(*packet_length as usize)(data)?;
 
-                let (packet_data, packet_id) = crate::util::parse_varint(packet_data)?;
-                tracing::debug!("packet_data after packet_id ({}): {:?}", packet_id, packet_data);
+                let (packet_data, packet_id) = PacketId::parse(packet_data)?;
                 let (_packet_data, packet_body) =
                     Self::parse_body(client_state, packet_id, is_serverbound, packet_data)?;
 
@@ -57,30 +56,32 @@ macro_rules! generic_packet {
             #[tracing::instrument]
             pub fn parse_body<'data>(
                 client_state: crate::ClientState,
-                packet_id: crate::packet::PacketId,
+                packet_id: crate::packets::PacketId,
                 is_serverbound: bool,
                 data: &'data [u8],
-            ) -> crate::util::ParseResult<'data, Self> {
+            ) -> composition_parsing::ParseResult<'data, Self> {
+                use composition_parsing::Parsable;
                 tracing::trace!(
                     "GenericPacket::parse_body: {:?} {} {}",
                     client_state,
                     packet_id,
                     is_serverbound
                 );
-                match (client_state, packet_id, is_serverbound) {
+                match (client_state, *packet_id, is_serverbound) {
                     $(
-                        ($packet_type::CLIENT_STATE, $packet_type::ID, $packet_type::IS_SERVERBOUND) => $packet_type::parse_body(data).map(|(data, packet)| (data, Into::<GenericPacket>::into(packet))),
+                        ($packet_type::CLIENT_STATE, $packet_type::ID, $packet_type::IS_SERVERBOUND) => $packet_type::parse(data).map(|(data, packet)| (data, Into::<GenericPacket>::into(packet))),
                     )*
                     _ => Ok((data, Self::UnimplementedPacket(UnimplementedPacket(packet_id)))),
                 }
             }
 
             #[tracing::instrument]
-            pub fn serialize(&self) -> (crate::packet::PacketId, Vec<u8>) {
+            pub fn serialize(&self) -> (crate::packets::PacketId, Vec<u8>) {
+                use composition_parsing::Parsable;
                 tracing::trace!("GenericPacket::serialize: {:?}", self);
                 match self {
                     $(
-                        Self::$packet_type(packet) => ($packet_type::ID, packet.serialize_body()),
+                        Self::$packet_type(packet) => (PacketId::from($packet_type::ID), packet.serialize()),
                     )*
                 }
             }
@@ -89,14 +90,14 @@ macro_rules! generic_packet {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct UnimplementedPacket(i32);
+pub struct UnimplementedPacket(VarInt);
 packet!(
     UnimplementedPacket,
     0x00,
     crate::ClientState::Disconnected,
     false,
-    |data: &'data [u8]| -> crate::util::ParseResult<'data, UnimplementedPacket> {
-        Ok((data, UnimplementedPacket(0i32)))
+    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, UnimplementedPacket> {
+        Ok((data, UnimplementedPacket(0i32.into())))
     },
     |_packet: &UnimplementedPacket| -> Vec<u8> { vec![] }
 );
@@ -139,29 +140,32 @@ generic_packet!(
 
 macro_rules! packet {
     ($packet_type: ident, $id: literal, $client_state: expr, $serverbound: literal, $parse_body: expr, $serialize_body: expr) => {
-        impl crate::packet::Packet for $packet_type {
-            const ID: crate::packet::PacketId = $id;
+        impl crate::packets::Packet for $packet_type {
+            const ID: i32 = $id;
             const CLIENT_STATE: crate::ClientState = $client_state;
             const IS_SERVERBOUND: bool = $serverbound;
-
-            fn parse_body<'data>(data: &'data [u8]) -> crate::util::ParseResult<'_, $packet_type> {
+        }
+        impl composition_parsing::Parsable for $packet_type {
+            #[tracing::instrument]
+            fn parse<'data>(data: &'data [u8]) -> composition_parsing::ParseResult<'_, Self> {
                 $parse_body(data)
             }
-            fn serialize_body(&self) -> Vec<u8> {
+            #[tracing::instrument]
+            fn serialize(&self) -> Vec<u8> {
                 $serialize_body(self)
             }
         }
-        impl From<$packet_type> for crate::packet::GenericPacket {
+        impl From<$packet_type> for crate::packets::GenericPacket {
             fn from(value: $packet_type) -> Self {
-                crate::packet::GenericPacket::$packet_type(value)
+                crate::packets::GenericPacket::$packet_type(value)
             }
         }
-        impl TryFrom<crate::packet::GenericPacket> for $packet_type {
+        impl TryFrom<crate::packets::GenericPacket> for $packet_type {
             type Error = ();
 
-            fn try_from(value: crate::packet::GenericPacket) -> Result<Self, Self::Error> {
+            fn try_from(value: crate::packets::GenericPacket) -> Result<Self, Self::Error> {
                 match value {
-                    crate::packet::GenericPacket::$packet_type(packet) => Ok(packet),
+                    crate::packets::GenericPacket::$packet_type(packet) => Ok(packet),
                     _ => Err(()),
                 }
             }

@@ -1,18 +1,21 @@
 use crate::prelude::*;
-use composition_protocol::{packet::GenericPacket, ClientState, ProtocolError};
+use composition_protocol::packets::serverbound::SL00LoginStart;
+use composition_protocol::{packets::GenericPacket, ClientState, ProtocolError};
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::net::TcpStream;
 use tokio::sync::RwLock;
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum NetworkClientState {
     Handshake,
     Status {
         received_request: bool,
         received_ping: bool,
     },
-    Login,
+    Login {
+        received_start: (bool, Option<SL00LoginStart>),
+    },
     Play,
     Disconnected,
 }
@@ -20,11 +23,8 @@ impl From<NetworkClientState> for ClientState {
     fn from(value: NetworkClientState) -> Self {
         match value {
             NetworkClientState::Handshake => ClientState::Handshake,
-            NetworkClientState::Status {
-                received_request: _,
-                received_ping: _,
-            } => ClientState::Status,
-            NetworkClientState::Login => ClientState::Login,
+            NetworkClientState::Status { .. } => ClientState::Status,
+            NetworkClientState::Login { .. } => ClientState::Login,
             NetworkClientState::Play => ClientState::Play,
             NetworkClientState::Disconnected => ClientState::Disconnected,
         }
@@ -34,11 +34,8 @@ impl AsRef<ClientState> for NetworkClientState {
     fn as_ref(&self) -> &ClientState {
         match self {
             NetworkClientState::Handshake => &ClientState::Handshake,
-            NetworkClientState::Status {
-                received_request: _,
-                received_ping: _,
-            } => &ClientState::Status,
-            NetworkClientState::Login => &ClientState::Login,
+            NetworkClientState::Status { .. } => &ClientState::Status,
+            NetworkClientState::Login { .. } => &ClientState::Login,
             NetworkClientState::Play => &ClientState::Play,
             NetworkClientState::Disconnected => &ClientState::Disconnected,
         }
@@ -110,7 +107,7 @@ impl NetworkClient {
 
         let mut bytes_consumed = 0;
         while !data.is_empty() {
-            let p = GenericPacket::parse_uncompressed(self.state.into(), true, data);
+            let p = GenericPacket::parse_uncompressed(self.state.clone().into(), true, data);
             trace!("{} got {:?}", self.id, p);
             match p {
                 Ok((d, packet)) => {
@@ -119,11 +116,11 @@ impl NetworkClient {
                     data = d;
                     self.incoming_packet_queue.push_back(packet);
                 }
-                Err(ProtocolError::NotEnoughData) => break,
+                Err(composition_parsing::Error::Eof) => break,
                 Err(e) => {
                     // Remove the valid bytes before this packet.
                     self.incoming_data = self.incoming_data.split_off(bytes_consumed);
-                    return Err(e);
+                    return Err(e.into());
                 }
             }
         }
@@ -170,12 +167,12 @@ impl NetworkClient {
         &self,
         packet: P,
     ) -> tokio::io::Result<()> {
-        use composition_protocol::util::serialize_varint;
+        use composition_parsing::Parsable;
         let packet: GenericPacket = packet.into();
 
         debug!("Sending packet {:?} to client {}", packet, self.id);
         let (packet_id, mut packet_body) = packet.serialize();
-        let mut packet_id = serialize_varint(packet_id);
+        let mut packet_id = packet_id.serialize();
 
         // TODO: Stream compression/encryption.
 
@@ -184,15 +181,14 @@ impl NetworkClient {
         b.append(&mut packet_body);
 
         // bytes: packet length as varint, packet id as varint, packet body
-        let mut bytes = serialize_varint(b.len() as i32);
-        bytes.append(&mut b);
+        let bytes = Parsable::serialize(&b);
 
         self.stream.write().await.write_all(&bytes).await?;
         Ok(())
     }
     #[tracing::instrument]
-    pub async fn disconnect(&mut self, reason: Option<composition_protocol::Chat>) {
-        use composition_protocol::packet::clientbound::{CL00Disconnect, CP17Disconnect};
+    pub async fn disconnect(&mut self, reason: Option<composition_protocol::mctypes::Chat>) {
+        use composition_protocol::packets::clientbound::{CL00Disconnect, CP17Disconnect};
         let reason = reason.unwrap_or(json!({
             "text": "You have been disconnected!"
         }));

@@ -17,7 +17,7 @@ pub async fn start_server() -> (server::Server, tokio_util::sync::CancellationTo
 pub mod prelude {
     pub use crate::config::Config;
     pub use crate::START_TIME;
-    pub use composition_protocol::{Chat, Json, Uuid};
+    pub use composition_protocol::mctypes::{Chat, Json, Uuid};
     pub use serde::{Deserialize, Serialize};
     pub use serde_json::json;
     pub use std::collections::VecDeque;

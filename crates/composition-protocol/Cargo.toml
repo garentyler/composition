@@ -7,8 +7,13 @@ description = "The Minecraft protocol implemented in a network-agnostic way"
 license = "MIT"
 
 [dependencies]
-anyhow = "1.0.71"
-byteorder = "1.4.3"
-serde_json = "1.0.96"
-thiserror = "1.0.40"
+anyhow = { workspace = true }
+byteorder = { workspace = true }
+composition-parsing = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
 tracing = { workspace = true }
+
+[features]
+default = []
+update_1_20 = []

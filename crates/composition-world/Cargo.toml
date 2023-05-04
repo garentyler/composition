@@ -1,0 +1,13 @@
+[package]
+name = "composition-world"
+version = "0.1.0"
+edition = "2021"
+authors = ["Garen Tyler <garentyler@garen.dev>"]
+description = "A Minecraft world generator implementation that allows for custom worlds"
+license = "MIT"
+
+[dependencies]
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+composition-protocol = { workspace = true }
+thiserror = { workspace = true }

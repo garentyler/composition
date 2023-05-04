@@ -33,7 +33,9 @@ pub struct Config {
     pub server_icon: PathBuf,
     #[serde(skip)]
     pub server_icon_bytes: Vec<u8>,
+    #[serde(skip)]
     pub protocol_version: i32,
+    #[serde(skip)]
     pub game_version: String,
     #[serde(skip)]
     pub server_version: String,

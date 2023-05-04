@@ -168,13 +168,13 @@ impl Server {
             .filter(|client| matches!(client.state, NetworkClientState::Play))
             .count();
         'clients: for client in clients.iter_mut() {
-            use composition_protocol::packet::{clientbound::*, serverbound::*};
+            use composition_protocol::packets::{clientbound::*, serverbound::*};
             'packets: while !client.incoming_packet_queue.is_empty() {
                 // client.read_packet()
                 // None: The client doesn't have any more packets.
                 // Some(Err(_)): The client read an unexpected packet. TODO: Handle this error.
                 // Some(Ok(_)): The client read the expected packet.
-                match client.state {
+                match client.state.clone() {
                     NetworkClientState::Handshake => {
                         let handshake = match client.read_packet::<SH00Handshake>() {
                             None => continue 'packets,
@@ -188,7 +188,9 @@ impl Server {
                                 received_ping: false,
                             };
                         } else if handshake.next_state == ClientState::Login {
-                            client.state = NetworkClientState::Login;
+                            client.state = NetworkClientState::Login {
+                                received_start: (false, None),
+                            };
                         } else {
                             client
                                 .disconnect(Some(
@@ -245,7 +247,25 @@ impl Server {
                         client.state = NetworkClientState::Disconnected;
                     }
                     NetworkClientState::Status { .. } => unreachable!(),
-                    NetworkClientState::Login => unimplemented!(),
+                    NetworkClientState::Login { received_start, .. } if !received_start.0 => {
+                        let login_start = match client.read_packet::<SL00LoginStart>() {
+                            None => continue 'packets,
+                            Some(Err(_)) => continue 'clients,
+                            Some(Ok(p)) => p,
+                        };
+                        // TODO: Authenticate the user.
+                        // TODO: Get the user from the stored database.
+                        // TODO: Encryption/compression.
+                        client.queue_packet(CL02LoginSuccess {
+                            uuid: login_start.uuid.unwrap_or(0u128),
+                            username: login_start.name.clone(),
+                            properties: vec![],
+                        });
+                        client.state = NetworkClientState::Login {
+                            received_start: (true, Some(login_start)),
+                        };
+                    }
+                    NetworkClientState::Login { .. } => unreachable!(),
                     NetworkClientState::Play => unimplemented!(),
                     NetworkClientState::Disconnected => unimplemented!(),
                 }

@@ -1,0 +1,13 @@
+[package]
+name = "composition-parsing"
+version = "0.1.0"
+edition = "2021"
+authors = ["Garen Tyler <garentyler@garen.dev>"]
+description = "Useful shared parsing functions"
+license = "MIT"
+
+[dependencies]
+byteorder = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
