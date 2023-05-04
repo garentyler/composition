@@ -1,22 +1,22 @@
-#![deny(clippy::all)]
-
 use tracing::{info, warn};
 use tracing_subscriber::prelude::*;
 
 #[tracing::instrument]
 pub fn main() {
-    composition::START_TIME
+    composition_core::START_TIME
         .set(std::time::Instant::now())
-        .expect("could not set composition::START_TIME");
+        .expect("could not set composition_core::START_TIME");
 
     // Set up logging.
-    let file_writer =
-        tracing_appender::rolling::daily(&composition::config::Args::instance().log_dir, "log");
+    let file_writer = tracing_appender::rolling::daily(
+        &composition_core::config::Args::instance().log_dir,
+        "log",
+    );
     let (file_writer, _guard) = tracing_appender::non_blocking(file_writer);
 
     tracing_subscriber::registry()
         .with(tracing_subscriber::filter::LevelFilter::from_level(
-            composition::config::Args::instance()
+            composition_core::config::Args::instance()
                 .log_level
                 .unwrap_or(if cfg!(debug_assertions) {
                     tracing::Level::DEBUG
@@ -38,7 +38,7 @@ pub fn main() {
         .init();
 
     // Load the config.
-    let config = composition::config::Config::load();
+    let config = composition_core::config::Config::load();
 
     match config.server_threads {
         Some(1) => {
@@ -61,10 +61,10 @@ pub fn main() {
     .unwrap()
     .block_on(async move {
         info!("Starting {} on port {}", config.server_version, config.port);
-        let (mut server, running) = composition::start_server().await;
+        let (mut server, running) = composition_core::start_server().await;
         info!(
             "Done! Start took {:?}",
-            composition::START_TIME.get().unwrap().elapsed()
+            composition_core::START_TIME.get().unwrap().elapsed()
         );
 
         // The main server loop.

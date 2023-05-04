@@ -1,2 +1,4 @@
 /// An implementation of Minecraft's superflat world type.
-pub mod superflat;
+pub struct Superflat;
+
+// TODO: Implement superflat world.

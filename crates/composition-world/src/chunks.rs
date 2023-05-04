@@ -4,6 +4,8 @@ use crate::{
 };
 use std::collections::HashMap;
 
+/// `Chunk`s divide the world into smaller parts
+/// and manage the blocks and entities within.
 #[derive(Debug, Clone)]
 pub struct Chunk {
     // blocks[x][y][z]
@@ -19,9 +21,13 @@ impl Default for Chunk {
     }
 }
 
+/// Position for a `Chunk`.
+///
+/// To convert to block positions, multiply by a factor of 16.
 #[derive(Debug, Copy, Clone, PartialEq, Default, Eq, Hash)]
 pub struct ChunkPosition {
     pub x: i32,
+    pub y: i32,
     pub z: i32,
 }
 impl From<BlockPosition> for ChunkPosition {
@@ -29,6 +35,7 @@ impl From<BlockPosition> for ChunkPosition {
         // Divide by 16 to get the chunk.
         ChunkPosition {
             x: value.x >> 4,
+            y: value.y >> 4,
             z: value.z >> 4,
         }
     }
@@ -38,6 +45,7 @@ impl From<EntityPosition> for ChunkPosition {
         // Divide by 16 and convert to i32.
         ChunkPosition {
             x: (value.x / 16.0) as i32,
+            y: (value.y / 16.0) as i32,
             z: (value.z / 16.0) as i32,
         }
     }

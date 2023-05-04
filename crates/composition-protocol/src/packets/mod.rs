@@ -1,16 +1,16 @@
+/// Packets that are heading to the client.
 pub mod clientbound;
+/// Packets that are heading to the server.
 pub mod serverbound;
 
 use crate::mctypes::VarInt;
+use composition_parsing::prelude::*;
 
-pub type PacketId = crate::mctypes::VarInt;
+/// Alias for a `VarInt`.
+pub type PacketId = VarInt;
 
 pub trait Packet:
-    std::fmt::Debug
-    + Clone
-    + TryFrom<GenericPacket>
-    + Into<GenericPacket>
-    + composition_parsing::Parsable
+    std::fmt::Debug + Clone + TryFrom<GenericPacket> + Into<GenericPacket> + Parsable
 {
     const ID: i32;
     const CLIENT_STATE: crate::ClientState;
@@ -32,7 +32,7 @@ macro_rules! generic_packet {
                 is_serverbound: bool,
                 data: &'data [u8]
             ) -> composition_parsing::ParseResult<'data, Self> {
-                use composition_parsing::Parsable;
+                use composition_parsing::parsable::Parsable;
                 tracing::trace!(
                     "GenericPacket::parse_uncompressed: {:?} {} {:?}",
                     client_state,
@@ -60,7 +60,7 @@ macro_rules! generic_packet {
                 is_serverbound: bool,
                 data: &'data [u8],
             ) -> composition_parsing::ParseResult<'data, Self> {
-                use composition_parsing::Parsable;
+                use composition_parsing::parsable::Parsable;
                 tracing::trace!(
                     "GenericPacket::parse_body: {:?} {} {}",
                     client_state,
@@ -77,7 +77,7 @@ macro_rules! generic_packet {
 
             #[tracing::instrument]
             pub fn serialize(&self) -> (crate::packets::PacketId, Vec<u8>) {
-                use composition_parsing::Parsable;
+                use composition_parsing::parsable::Parsable;
                 tracing::trace!("GenericPacket::serialize: {:?}", self);
                 match self {
                     $(
@@ -145,7 +145,7 @@ macro_rules! packet {
             const CLIENT_STATE: crate::ClientState = $client_state;
             const IS_SERVERBOUND: bool = $serverbound;
         }
-        impl composition_parsing::Parsable for $packet_type {
+        impl composition_parsing::parsable::Parsable for $packet_type {
             #[tracing::instrument]
             fn parse<'data>(data: &'data [u8]) -> composition_parsing::ParseResult<'_, Self> {
                 $parse_body(data)

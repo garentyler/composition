@@ -14,6 +14,8 @@ pub static CONFIG: OnceCell<Config> = OnceCell::new();
 pub static ARGS: OnceCell<Args> = OnceCell::new();
 static DEFAULT_ARGS: Lazy<Args> = Lazy::new(Args::default);
 
+/// Helper function to read a file from a `Path`
+/// and return its bytes as a `Vec<u8>`.
 #[tracing::instrument]
 fn read_file(path: &Path) -> std::io::Result<Vec<u8>> {
     trace!("{:?}", path);
@@ -23,6 +25,7 @@ fn read_file(path: &Path) -> std::io::Result<Vec<u8>> {
     Ok(data)
 }
 
+/// The main server configuration struct.
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 #[serde(default)]
@@ -143,10 +146,13 @@ impl Config {
     }
 }
 
+/// All of the valid command line arguments for the composition binary.
+///
+/// Arguments will always override the config options specified in `composition.toml` or `Config::default()`.
 #[derive(Debug)]
 pub struct Args {
-    pub config_file: PathBuf,
-    pub server_icon: PathBuf,
+    config_file: PathBuf,
+    server_icon: PathBuf,
     pub log_level: Option<tracing::Level>,
     pub log_dir: PathBuf,
 }

@@ -1,12 +1,21 @@
 use crate::{take_bytes, Error, ParseResult, VarInt};
 use byteorder::{BigEndian, ReadBytesExt};
 
+/// A structure that can be serialized and deserialized.
+///
+/// Similar to serde's `Serialize` and `Deserialize` traits.
 pub trait Parsable {
+    /// Attempt to parse (deserialize) `Self` from the given byte slice.
     fn parse(data: &[u8]) -> ParseResult<'_, Self>
     where
         Self: Sized;
+    /// Serialize `self` into a vector of bytes.
     fn serialize(&self) -> Vec<u8>;
 
+    /// Helper to optionally parse `Self`.
+    ///
+    /// An `Option<T>` is represented in the protocol as
+    /// a boolean optionally followed by `T` if the boolean was true.
     fn parse_optional(data: &[u8]) -> ParseResult<'_, Option<Self>>
     where
         Self: Sized,
@@ -19,6 +28,10 @@ pub trait Parsable {
             Ok((data, None))
         }
     }
+
+    /// Helper to parse `num` repetitions of `Self`.
+    ///
+    /// Useful with an array of known length.
     fn parse_repeated(num: usize, mut data: &[u8]) -> ParseResult<'_, Vec<Self>>
     where
         Self: Sized,
@@ -31,6 +44,11 @@ pub trait Parsable {
         }
         Ok((data, output))
     }
+
+    /// Helper to parse an array of `Self`, when the length is unknown.
+    ///
+    /// In the protocol, arrays are commonly prefixed with their length
+    /// as a `VarInt`.
     fn parse_vec(data: &[u8]) -> ParseResult<'_, Vec<Self>>
     where
         Self: Sized,

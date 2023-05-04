@@ -1,22 +1,44 @@
-use crate::prelude::*;
-use composition_protocol::packets::serverbound::SL00LoginStart;
-use composition_protocol::{packets::GenericPacket, ClientState, ProtocolError};
-use std::sync::Arc;
-use std::time::Instant;
-use tokio::net::TcpStream;
-use tokio::sync::RwLock;
+use composition_parsing::parsable::Parsable;
+use composition_protocol::{
+    packets::{serverbound::SL00LoginStart, GenericPacket},
+    ClientState,
+};
+use std::{collections::VecDeque, sync::Arc, time::Instant};
+use tokio::io::AsyncWriteExt;
+use tokio::{net::TcpStream, sync::RwLock};
+use tracing::{debug, trace, warn};
 
+/// Similar to `composition_protocol::ClientState`,
+/// but contains more useful data for managing the client's state.
 #[derive(Clone, PartialEq, Debug)]
-pub enum NetworkClientState {
+pub(crate) enum NetworkClientState {
+    /// A client has established a connection with the server.
+    ///
+    /// See `composition_protocol::ClientState::Handshake` for more details.
     Handshake,
+    /// The client sent `SH00Handshake` with `next_state = ClientState::Status`
+    /// and is performing [server list ping](https://wiki.vg/Server_List_Ping).
     Status {
+        /// When the server receives `SS00StatusRequest`, this is set
+        /// to `true` and the server should send `CS00StatusResponse`.
         received_request: bool,
+        /// When the server receives `SS01PingRequest`, this is set
+        /// to `true` and the server should send `CS01PingResponse`
+        /// and set the connection state to `Disconnected`.
         received_ping: bool,
     },
+    /// The client sent `SH00Handshake` with `next_state = ClientState::Login`
+    /// and is attempting to join the server.
     Login {
         received_start: (bool, Option<SL00LoginStart>),
     },
+    /// The server sent `CL02LoginSuccess` and transitioned to `Play`.
+    #[allow(dead_code)]
     Play,
+    /// The client has disconnected.
+    ///
+    /// No packets should be sent or received,
+    /// and the `NetworkClient` should be queued for removal.
     Disconnected,
 }
 impl From<NetworkClientState> for ClientState {
@@ -42,14 +64,24 @@ impl AsRef<ClientState> for NetworkClientState {
     }
 }
 
+/// A wrapper around the raw `TcpStream` that abstracts away reading/writing packets and bytes.
 #[derive(Debug, Clone)]
-pub struct NetworkClient {
+pub(crate) struct NetworkClient {
+    /// The `NetworkClient`'s unique id.
     pub id: u128,
     pub state: NetworkClientState,
     stream: Arc<RwLock<TcpStream>>,
+    /// Data gets appended to the back as it gets read,
+    /// and popped from the front as it gets parsed into packets.
     incoming_data: VecDeque<u8>,
+    /// Packets get appended to the back as they get read,
+    /// and popped from the front as they get handled.
     pub incoming_packet_queue: VecDeque<GenericPacket>,
+    /// Keeps track of the last time the client sent data.
+    ///
+    /// This is useful for removing clients that have timed out.
     pub last_received_data_time: Instant,
+    /// Packets get appended to the back and get popped from the front as they get sent.
     pub outgoing_packet_queue: VecDeque<GenericPacket>,
 }
 impl NetworkClient {
@@ -99,7 +131,7 @@ impl NetworkClient {
 
         if self.read_data().await.is_err() {
             self.disconnect(None).await;
-            return Err(ProtocolError::Disconnected);
+            return Err(composition_protocol::Error::Disconnected);
         }
 
         self.incoming_data.make_contiguous();
@@ -136,7 +168,7 @@ impl NetworkClient {
     #[tracing::instrument]
     pub fn read_packet<P: std::fmt::Debug + TryFrom<GenericPacket>>(
         &mut self,
-    ) -> Option<Result<P, GenericPacket>> {
+    ) -> Option<std::result::Result<P, GenericPacket>> {
         if let Some(generic_packet) = self.incoming_packet_queue.pop_back() {
             if let Ok(packet) = TryInto::<P>::try_into(generic_packet.clone()) {
                 Some(Ok(packet))
@@ -158,7 +190,7 @@ impl NetworkClient {
         for packet in packets {
             self.send_packet(packet)
                 .await
-                .map_err(|_| ProtocolError::Disconnected)?;
+                .map_err(|_| composition_protocol::Error::Disconnected)?;
         }
         Ok(())
     }
@@ -167,7 +199,6 @@ impl NetworkClient {
         &self,
         packet: P,
     ) -> tokio::io::Result<()> {
-        use composition_parsing::Parsable;
         let packet: GenericPacket = packet.into();
 
         debug!("Sending packet {:?} to client {}", packet, self.id);
@@ -189,7 +220,7 @@ impl NetworkClient {
     #[tracing::instrument]
     pub async fn disconnect(&mut self, reason: Option<composition_protocol::mctypes::Chat>) {
         use composition_protocol::packets::clientbound::{CL00Disconnect, CP17Disconnect};
-        let reason = reason.unwrap_or(json!({
+        let reason = reason.unwrap_or(serde_json::json!({
             "text": "You have been disconnected!"
         }));
 

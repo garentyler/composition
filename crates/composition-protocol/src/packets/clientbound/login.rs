@@ -1,5 +1,5 @@
 use crate::mctypes::{Chat, Json, Uuid, VarInt};
-use composition_parsing::Parsable;
+use composition_parsing::parsable::Parsable;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CL00Disconnect {

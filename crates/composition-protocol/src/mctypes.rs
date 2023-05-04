@@ -1,10 +1,14 @@
-use composition_parsing::Parsable;
+use composition_parsing::parsable::Parsable;
 
+/// Alias for a u128.
 pub type Uuid = u128;
 pub use composition_parsing::VarInt;
+/// Alias for a `serde_json::Value`.
 pub type Json = composition_parsing::serde_json::Value;
+/// Alias for a `Json`.
 pub type Chat = Json;
 
+/// An implementation of the protocol's [Position](https://wiki.vg/Protocol#Position) type.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Position {
     pub x: i32,
@@ -41,6 +45,7 @@ impl Parsable for Position {
     }
 }
 
+/// An enum of the possible difficulties in Minecraft.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Difficulty {
     Peaceful = 0,

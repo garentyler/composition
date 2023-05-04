@@ -1,19 +1,20 @@
 [package]
 name = "composition-protocol"
-version = "0.1.0"
-edition = "2021"
-authors = ["Garen Tyler <garentyler@garen.dev>"]
 description = "The Minecraft protocol implemented in a network-agnostic way"
-license = "MIT"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
 
 [features]
 default = []
 update_1_20 = []
 
 [dependencies]
-anyhow = { workspace = true }
-byteorder = { workspace = true }
-composition-parsing = { workspace = true }
-serde = { workspace = true }
-thiserror = { workspace = true }
-tracing = { workspace = true }
+anyhow.workspace = true
+byteorder.workspace = true
+composition-parsing.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+tracing.workspace = true

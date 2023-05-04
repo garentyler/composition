@@ -1,25 +1,19 @@
+use crate::config::Config;
+use crate::error::Result;
 use crate::net::{NetworkClient, NetworkClientState};
-use crate::prelude::*;
 use composition_protocol::ClientState;
 use std::sync::Arc;
 use tokio::net::{TcpListener, ToSocketAddrs};
-use tokio::sync::RwLock;
-use tokio::task::JoinHandle;
+use tokio::{sync::RwLock, task::JoinHandle};
 use tokio_util::sync::CancellationToken;
+use tracing::{error, info, trace};
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum ServerError {
-    NotRunning,
-}
-
-pub type Result<T> = std::result::Result<T, ServerError>;
-
+/// The main state and logic of the program.
 #[derive(Debug)]
 pub struct Server {
     clients: Arc<RwLock<Vec<NetworkClient>>>,
     net_tasks_handle: JoinHandle<()>,
 }
-
 impl Server {
     #[tracing::instrument]
     pub async fn new<A: 'static + ToSocketAddrs + Send + std::fmt::Debug>(
@@ -110,7 +104,7 @@ impl Server {
                                     let _ = client.read_packets().await;
                                     if client.send_queued_packets().await.is_err() {
                                         client
-                                            .disconnect(Some(json!({ "text": "Error writing packets." })))
+                                            .disconnect(Some(serde_json::json!({ "text": "Error writing packets." })))
                                             .await;
                                     }
                                     client
@@ -194,7 +188,7 @@ impl Server {
                         } else {
                             client
                                 .disconnect(Some(
-                                    json!({ "text": "Received invalid SH00Handshake packet" }),
+                                    serde_json::json!({ "text": "Received invalid SH00Handshake packet" }),
                                 ))
                                 .await;
                         }
@@ -216,7 +210,7 @@ impl Server {
                         let config = Config::instance();
                         use base64::Engine;
                         client.queue_packet(CS00StatusResponse {
-                            response: json!({
+                            response: serde_json::json!({
                                 "version": {
                                     "name": config.game_version,
                                     "protocol": config.protocol_version
@@ -286,7 +280,9 @@ impl Server {
         // Send disconnect messages to the clients.
         for client in self.clients.write().await.iter_mut() {
             client
-                .disconnect(Some(json!({ "text": "The server is shutting down." })))
+                .disconnect(Some(
+                    serde_json::json!({ "text": "The server is shutting down." }),
+                ))
                 .await;
         }
     }

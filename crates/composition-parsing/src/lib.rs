@@ -1,12 +1,16 @@
-#![deny(clippy::all)]
-
+/// When serializing or deserializing data encounters errors.
 pub mod error;
+/// The `Parsable` trait, and implementations for useful types.
 pub mod parsable;
+/// Useful re-exports.
+pub mod prelude {
+    pub use crate::{parsable::Parsable, take_bytes, VarInt};
+}
 
 pub use error::{Error, ParseResult, Result};
-pub use parsable::Parsable;
 pub use serde_json;
 
+/// Returns a function that returns a `ParseResult<&[u8]>`, where the slice is size `num`.
 pub fn take_bytes(num: usize) -> impl Fn(&'_ [u8]) -> ParseResult<'_, &'_ [u8]> {
     move |data| {
         use std::cmp::Ordering;
@@ -19,6 +23,10 @@ pub fn take_bytes(num: usize) -> impl Fn(&'_ [u8]) -> ParseResult<'_, &'_ [u8]> 
     }
 }
 
+/// Implementation of the protocol's VarInt type.
+///
+/// Simple wrapper around an i32, but is parsed and serialized differently.
+/// When the original i32 value is needed, simply `Deref` it.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 pub struct VarInt(i32);
 impl std::ops::Deref for VarInt {
@@ -51,15 +59,6 @@ impl std::fmt::Display for VarInt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
     }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ClientState {
-    Handshake,
-    Status,
-    Login,
-    Play,
-    Disconnected,
 }
 
 #[cfg(test)]

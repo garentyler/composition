@@ -1,0 +1,33 @@
+[package]
+name = "composition-core"
+description = "An extremely fast Minecraft server"
+build = "build.rs"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[[bin]]
+name = "composition"
+path = "src/main.rs"
+
+[features]
+default = []
+update_1_20 = ["composition-protocol/update_1_20"]
+
+[dependencies]
+base64 = "0.21.0"
+clap = { version = "4.2.7", features = ["derive"] }
+composition-parsing.workspace = true
+composition-protocol.workspace = true
+once_cell = "1.17.1"
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-util = "0.7.8"
+toml = "0.7.3"
+tracing.workspace = true
+tracing-subscriber = { version = "0.3.17", features = ["tracing-log"] }
+tracing-appender = "0.2.2"

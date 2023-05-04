@@ -11,7 +11,7 @@ use crate::{
     blocks::BlockPosition,
     mctypes::{Chat, Uuid, VarInt},
 };
-use composition_parsing::{Parsable, ParseResult};
+use composition_parsing::{parsable::Parsable, ParseResult};
 
 pub type EntityId = VarInt;
 pub type EntityUuid = Uuid;
