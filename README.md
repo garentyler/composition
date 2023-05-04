@@ -6,19 +6,28 @@ The main goal is to get a working server, then optimize for speed (multi-threadi
 
 ## Features
 - [x] Server status (favicon included)
-- [ ] Authentication
-- [ ] Encryption/compression
-- [ ] Flat world generation
-- [ ] More complex world generation
-- [ ] Chat
-- [ ] Player movement
-- [ ] Collisions
-- [ ] World updates (placing/breaking blocks)
-- [ ] World saving (probably custom format)
-- [ ] Entities
-- [ ] Items and inventory
-- [ ] Crafting
-- [ ] Commands & console input
+- [ ] [Authentication](https://github.com/garentyler/composition/milestone/1)
+- [ ] [Encryption](https://github.com/garentyler/composition/issues/10)/[compression](https://github.com/garentyler/composition/issues/11)
+- [ ] World
+  - [ ] [World generation](https://github.com/garentyler/composition/milestone/3)
+    - [ ] [Flat world generation](https://github.com/garentyler/composition/issues/12)
+    - [ ] [More complex world generation](https://github.com/garentyler/composition/issues/13)
+  - [ ] [World updates](https://github.com/garentyler/composition/milestone/7) (placing/breaking blocks)
+  - [ ] [World saving](https://github.com/garentyler/composition/milestone/8) (probably custom format)
+- [ ] [Chat](https://github.com/garentyler/composition/milestone/4)
+  - [ ] [Player chat](https://github.com/garentyler/composition/issues/15)
+  - [ ] [System chat](https://github.com/garentyler/composition/issues/16)
+  - [ ] Console input
+  - [ ] Commands
+- [ ] [Collisions and physics](https://github.com/garentyler/composition/milestone/6)
+  - [ ] Player movement
+- [ ] [Entities](https://github.com/garentyler/composition/milestone/9)
+  - [ ] Spawning
+  - [ ] AI
+- [ ] [Inventory](https://github.com/garentyler/composition/milestone/10)
+  - [ ] Items
+  - [ ] Chests/Shulkers/etc.
+  - [ ] Crafting/Smelting/etc.
 - [ ] Plugins ([WASM](https://webassembly.org/))
 - [ ] Future ideas (k8s, mods, anti-cheat, etc.)
 
