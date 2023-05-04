@@ -1,3 +1,5 @@
+#![deny(clippy::all)]
+
 pub mod blocks;
 pub mod entities;
 pub mod inventory;

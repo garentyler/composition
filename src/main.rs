@@ -1,7 +1,9 @@
-use tracing::{info, instrument, warn};
+#![deny(clippy::all)]
+
+use tracing::{info, warn};
 use tracing_subscriber::prelude::*;
 
-#[instrument]
+#[tracing::instrument]
 pub fn main() {
     composition::START_TIME
         .set(std::time::Instant::now())
