@@ -1,17 +1,19 @@
-use crate::mctypes::Json;
+use crate::mctypes::Chat;
+use bytes::Bytes;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CS00StatusResponse {
-    pub response: Json,
+    pub response: Chat,
 }
 crate::packets::packet!(
     CS00StatusResponse,
     0x00,
     crate::ClientState::Status,
     false,
-    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, CS00StatusResponse> {
-        let (data, response) = Json::parse(data)?;
-        Ok((data, CS00StatusResponse { response }))
+    |data: &mut Bytes| -> composition_parsing::Result<CS00StatusResponse> {
+        Ok(CS00StatusResponse {
+            response: Chat::parse(data)?,
+        })
     },
     |packet: &CS00StatusResponse| -> Vec<u8> { packet.response.serialize() }
 );
@@ -25,9 +27,10 @@ crate::packets::packet!(
     0x01,
     crate::ClientState::Status,
     false,
-    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, CS01PingResponse> {
-        let (data, payload) = i64::parse(data)?;
-        Ok((data, CS01PingResponse { payload }))
+    |data: &mut Bytes| -> composition_parsing::Result<CS01PingResponse> {
+        Ok(CS01PingResponse {
+            payload: i64::parse(data)?,
+        })
     },
     |packet: &CS01PingResponse| -> Vec<u8> { packet.payload.serialize() }
 );

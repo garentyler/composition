@@ -16,6 +16,9 @@ pub enum Error {
     /// This error is a wrapper for `composition_parsing::Error`.
     #[error(transparent)]
     ParseError(#[from] composition_parsing::Error),
+    /// This error is a wrapper for `std::io::Error`.
+    #[error(transparent)]
+    IoError(#[from] std::io::Error),
     /// This error is general purpose.
     /// When possible, other error variants should be used.
     #[error(transparent)]

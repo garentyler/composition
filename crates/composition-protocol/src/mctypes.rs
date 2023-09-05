@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use composition_parsing::parsable::Parsable;
 
 /// Alias for a u128.
@@ -22,9 +23,11 @@ impl Position {
     }
 }
 impl Parsable for Position {
-    #[tracing::instrument]
-    fn parse(data: &[u8]) -> composition_parsing::ParseResult<'_, Self> {
-        let (data, i) = i64::parse(data)?;
+    fn check(data: Bytes) -> composition_parsing::Result<()> {
+        i64::check(data)
+    }
+    fn parse(data: &mut Bytes) -> composition_parsing::Result<Self> {
+        let i = i64::parse(data)?;
 
         // x: i26, z: i26, y: i12
         let x = i >> 38;
@@ -34,9 +37,8 @@ impl Parsable for Position {
         }
         let z = i << 26 >> 38;
 
-        Ok((data, Position::new(x as i32, y as i32, z as i32)))
+        Ok(Position::new(x as i32, y as i32, z as i32))
     }
-    #[tracing::instrument]
     fn serialize(&self) -> Vec<u8> {
         let i: i64 = ((self.x as i64 & 0x3FF_FFFF) << 38)
             | ((self.z as i64 & 0x3FF_FFFF) << 12)
@@ -66,17 +68,18 @@ impl TryFrom<u8> for Difficulty {
     }
 }
 impl Parsable for Difficulty {
-    #[tracing::instrument]
-    fn parse(data: &[u8]) -> composition_parsing::ParseResult<'_, Self> {
-        let (data, difficulty) = u8::parse(data)?;
+    fn check(data: Bytes) -> composition_parsing::Result<()> {
+        u8::check(data)
+    }
+    fn parse(data: &mut Bytes) -> composition_parsing::Result<Self> {
+        let difficulty = u8::parse(data)?;
         let difficulty: Difficulty = difficulty
             .try_into()
             .expect("TODO: handle invalid difficulty");
-        Ok((data, difficulty))
+        Ok(difficulty)
     }
-    #[tracing::instrument]
     fn serialize(&self) -> Vec<u8> {
-        vec![*self as u8]
+        (*self as u8).serialize()
     }
 }
 
@@ -84,22 +87,22 @@ impl Parsable for Difficulty {
 mod tests {
     use super::*;
 
-    fn get_positions() -> Vec<(Position, Vec<u8>)> {
+    fn get_positions() -> Vec<(Position, Bytes)> {
         vec![
             // x: 01000110000001110110001100 z: 10110000010101101101001000 y: 001100111111
             (
                 Position::new(18357644, 831, -20882616),
-                vec![
+                Bytes::from_static(&[
                     0b01000110, 0b00000111, 0b01100011, 0b00101100, 0b00010101, 0b10110100,
                     0b10000011, 0b00111111,
-                ],
+                ]),
             ),
         ]
     }
     #[test]
     fn parse_position_works() {
         for (value, bytes) in get_positions() {
-            assert_eq!(value, Position::parse(&bytes).unwrap().1);
+            assert_eq!(value, Position::parse(&mut bytes.clone()).unwrap());
         }
     }
     #[test]

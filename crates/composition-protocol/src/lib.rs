@@ -6,7 +6,7 @@ pub mod entities;
 pub mod error;
 /// Implementation of Minecraft's items and inventories.
 pub mod inventory;
-/// Useful types for representing the Minecraft protocol.
+/// Types for representing the Minecraft protocol.
 pub mod mctypes;
 /// Network packets.
 ///
@@ -17,6 +17,19 @@ pub mod mctypes;
 /// and "Name" is the packet's name as found on [wiki.vg](https://wiki.vg/Protocol) in PascalCase.
 /// Examples include "SH00Handshake", "CP00SpawnEntity", and "SP11KeepAlive".
 pub mod packets;
+/// Useful re-exports.
+pub mod prelude {
+    pub use crate::{
+        mctypes::{Chat, Json, Uuid, VarInt},
+        packets::PacketInfo,
+        ClientState,
+    };
+    pub use composition_parsing::prelude::*;
+    #[cfg(feature = "codec")]
+    pub use tokio_util::codec::{Decoder, Encoder};
+    #[cfg(feature = "codec")]
+    pub use futures::{SinkExt, StreamExt};
+}
 
 pub use error::{Error, Result};
 

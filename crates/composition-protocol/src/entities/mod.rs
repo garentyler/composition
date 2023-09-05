@@ -11,7 +11,8 @@ use crate::{
     blocks::BlockPosition,
     mctypes::{Chat, Uuid, VarInt},
 };
-use composition_parsing::{parsable::Parsable, ParseResult};
+use bytes::Bytes;
+use composition_parsing::parsable::Parsable;
 
 pub type EntityId = VarInt;
 pub type EntityUuid = Uuid;
@@ -23,14 +24,16 @@ pub struct EntityPosition {
     pub z: f64,
 }
 impl Parsable for EntityPosition {
-    #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
-        let (data, x) = f64::parse(data)?;
-        let (data, y) = f64::parse(data)?;
-        let (data, z) = f64::parse(data)?;
-        Ok((data, EntityPosition { x, y, z }))
+    fn check(mut data: Bytes) -> composition_parsing::Result<()> {
+        Self::parse(&mut data).map(|_| ())
     }
-    #[tracing::instrument]
+    fn parse(data: &mut Bytes) -> composition_parsing::Result<Self> {
+        Ok(EntityPosition {
+            x: f64::parse(data)?,
+            y: f64::parse(data)?,
+            z: f64::parse(data)?,
+        })
+    }
     fn serialize(&self) -> Vec<u8> {
         let mut output = vec![];
         output.extend(self.x.serialize());
@@ -46,13 +49,15 @@ pub struct EntityRotation {
     pub yaw: u8,
 }
 impl Parsable for EntityRotation {
-    #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
-        let (data, pitch) = u8::parse(data)?;
-        let (data, yaw) = u8::parse(data)?;
-        Ok((data, EntityRotation { pitch, yaw }))
+    fn check(mut data: Bytes) -> composition_parsing::Result<()> {
+        Self::parse(&mut data).map(|_| ())
     }
-    #[tracing::instrument]
+    fn parse(data: &mut Bytes) -> composition_parsing::Result<Self> {
+        Ok(EntityRotation {
+            pitch: u8::parse(data)?,
+            yaw: u8::parse(data)?,
+        })
+    }
     fn serialize(&self) -> Vec<u8> {
         let mut output = vec![];
         output.extend(self.pitch.serialize());
@@ -68,14 +73,16 @@ pub struct EntityVelocity {
     pub z: i16,
 }
 impl Parsable for EntityVelocity {
-    #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
-        let (data, x) = i16::parse(data)?;
-        let (data, y) = i16::parse(data)?;
-        let (data, z) = i16::parse(data)?;
-        Ok((data, EntityVelocity { x, y, z }))
+    fn check(mut data: Bytes) -> composition_parsing::Result<()> {
+        Self::parse(&mut data).map(|_| ())
     }
-    #[tracing::instrument]
+    fn parse(data: &mut Bytes) -> composition_parsing::Result<Self> {
+        Ok(EntityVelocity {
+            x: i16::parse(data)?,
+            y: i16::parse(data)?,
+            z: i16::parse(data)?,
+        })
+    }
     fn serialize(&self) -> Vec<u8> {
         let mut output = vec![];
         output.extend(self.x.serialize());

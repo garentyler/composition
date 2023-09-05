@@ -1,5 +1,6 @@
-use crate::mctypes::{Chat, Json, Uuid, VarInt};
-use composition_parsing::parsable::Parsable;
+use crate::mctypes::{Chat, Uuid, VarInt};
+use bytes::Bytes;
+use composition_parsing::prelude::*;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CL00Disconnect {
@@ -10,9 +11,10 @@ crate::packets::packet!(
     0x00,
     crate::ClientState::Login,
     false,
-    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, CL00Disconnect> {
-        let (data, reason) = Json::parse(data)?;
-        Ok((data, CL00Disconnect { reason }))
+    |data: &mut Bytes| -> composition_parsing::Result<CL00Disconnect> {
+        Ok(CL00Disconnect {
+            reason: Chat::parse(data)?,
+        })
     },
     |packet: &CL00Disconnect| -> Vec<u8> { packet.reason.serialize() }
 );
@@ -20,33 +22,27 @@ crate::packets::packet!(
 #[derive(Clone, Debug, PartialEq)]
 pub struct CL01EncryptionRequest {
     pub server_id: String,
-    pub public_key: Vec<u8>,
-    pub verify_token: Vec<u8>,
+    pub public_key: Bytes,
+    pub verify_token: Bytes,
 }
+
 crate::packets::packet!(
     CL01EncryptionRequest,
     0x01,
     crate::ClientState::Login,
     false,
-    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, CL01EncryptionRequest> {
-        let (data, server_id) = String::parse(data)?;
-        let (data, public_key) = u8::parse_vec(data)?;
-        let (data, verify_token) = u8::parse_vec(data)?;
-
-        Ok((
-            data,
-            CL01EncryptionRequest {
-                server_id,
-                public_key,
-                verify_token,
-            },
-        ))
+    |data: &mut Bytes| -> composition_parsing::Result<CL01EncryptionRequest> {
+        Ok(CL01EncryptionRequest {
+            server_id: String::parse(data)?,
+            public_key: Bytes::from(u8::parse_vec(data)?),
+            verify_token: Bytes::from(u8::parse_vec(data)?),
+        })
     },
     |packet: &CL01EncryptionRequest| -> Vec<u8> {
         let mut output = vec![];
         output.extend(packet.server_id.serialize());
-        output.extend(packet.public_key.serialize());
-        output.extend(packet.verify_token.serialize());
+        output.extend(packet.public_key.to_vec().serialize());
+        output.extend(packet.verify_token.to_vec().serialize());
         output
     }
 );
@@ -64,19 +60,15 @@ pub struct CL02LoginSuccessProperty {
     pub signature: Option<String>,
 }
 impl Parsable for CL02LoginSuccessProperty {
-    #[tracing::instrument]
-    fn parse(data: &[u8]) -> composition_parsing::ParseResult<'_, Self> {
-        let (data, name) = String::parse(data)?;
-        let (data, value) = String::parse(data)?;
-        let (data, signature) = String::parse_optional(data)?;
-        Ok((
-            data,
-            CL02LoginSuccessProperty {
-                name,
-                value,
-                signature,
-            },
-        ))
+    fn check(mut data: Bytes) -> composition_parsing::Result<()> {
+        Self::parse(&mut data).map(|_| ())
+    }
+    fn parse(data: &mut Bytes) -> composition_parsing::Result<Self> {
+        Ok(CL02LoginSuccessProperty {
+            name: String::parse(data)?,
+            value: String::parse(data)?,
+            signature: String::parse_optional(data)?,
+        })
     }
     #[tracing::instrument]
     fn serialize(&self) -> Vec<u8> {
@@ -92,19 +84,12 @@ crate::packets::packet!(
     0x02,
     crate::ClientState::Login,
     false,
-    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, CL02LoginSuccess> {
-        let (data, uuid) = Uuid::parse(data)?;
-        let (data, username) = String::parse(data)?;
-        let (data, properties) = CL02LoginSuccessProperty::parse_vec(data)?;
-
-        Ok((
-            data,
-            CL02LoginSuccess {
-                uuid,
-                username,
-                properties,
-            },
-        ))
+    |data: &mut Bytes| -> composition_parsing::Result<CL02LoginSuccess> {
+        Ok(CL02LoginSuccess {
+            uuid: Uuid::parse(data)?,
+            username: String::parse(data)?,
+            properties: CL02LoginSuccessProperty::parse_vec(data)?,
+        })
     },
     |packet: &CL02LoginSuccess| -> Vec<u8> {
         let mut output = vec![];
@@ -124,9 +109,10 @@ crate::packets::packet!(
     0x03,
     crate::ClientState::Login,
     false,
-    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, CL03SetCompression> {
-        let (data, threshold) = VarInt::parse(data)?;
-        Ok((data, CL03SetCompression { threshold }))
+    |data: &mut Bytes| -> composition_parsing::Result<CL03SetCompression> {
+        Ok(CL03SetCompression {
+            threshold: VarInt::parse(data)?,
+        })
     },
     |packet: &CL03SetCompression| -> Vec<u8> { packet.threshold.serialize() }
 );
@@ -135,24 +121,26 @@ crate::packets::packet!(
 pub struct CL04LoginPluginRequest {
     pub message_id: VarInt,
     pub channel: String,
-    pub data: Vec<u8>,
+    pub data: Bytes,
 }
 crate::packets::packet!(
     CL04LoginPluginRequest,
     0x04,
     crate::ClientState::Login,
     false,
-    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, CL04LoginPluginRequest> {
-        let (data, message_id) = VarInt::parse(data)?;
-        let (data, channel) = String::parse(data)?;
-        Ok((
-            data,
-            CL04LoginPluginRequest {
-                message_id,
-                channel,
-                data: data.to_vec(),
-            },
-        ))
+    |data: &mut Bytes| -> composition_parsing::Result<CL04LoginPluginRequest> {
+        let message_id = VarInt::parse(data)?;
+        let channel = String::parse(data)?;
+        // Consume the rest of the data.
+        let remaining_bytes = data.remaining();
+        let d = data.copy_to_bytes(remaining_bytes);
+        data.advance(remaining_bytes);
+
+        Ok(CL04LoginPluginRequest {
+            message_id,
+            channel,
+            data: d,
+        })
     },
     |packet: &CL04LoginPluginRequest| -> Vec<u8> {
         let mut output = vec![];

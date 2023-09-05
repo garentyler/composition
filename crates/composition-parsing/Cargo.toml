@@ -8,7 +8,6 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-byteorder.workspace = true
+bytes.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
-tracing.workspace = true

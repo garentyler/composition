@@ -21,9 +21,3 @@ pub enum Error {
 
 /// Alias for a Result with the error type `composition_parsing::Error`.
 pub type Result<T> = std::result::Result<T, Error>;
-
-/// Alias for a Result that helps with zero-copy parsing.
-///
-/// The error type is `composition_parsing::Error`,
-/// and the result type is a tuple of the remaining bytes and the parsed item.
-pub type ParseResult<'data, T> = Result<(&'data [u8], T)>;

@@ -32,4 +32,5 @@ pub enum Block {
     #[default]
     Air,
     // TODO
+    Stone,
 }

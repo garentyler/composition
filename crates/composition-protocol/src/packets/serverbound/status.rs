@@ -1,3 +1,5 @@
+use bytes::Bytes;
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct SS00StatusRequest;
 crate::packets::packet!(
@@ -5,9 +7,7 @@ crate::packets::packet!(
     0x00,
     crate::ClientState::Status,
     true,
-    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, SS00StatusRequest> {
-        Ok((data, SS00StatusRequest))
-    },
+    |_data: &mut Bytes| -> composition_parsing::Result<SS00StatusRequest> { Ok(SS00StatusRequest) },
     |_packet: &SS00StatusRequest| -> Vec<u8> { vec![] }
 );
 
@@ -20,9 +20,10 @@ crate::packets::packet!(
     0x01,
     crate::ClientState::Status,
     true,
-    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, SS01PingRequest> {
-        let (data, payload) = i64::parse(data)?;
-        Ok((data, SS01PingRequest { payload }))
+    |data: &mut Bytes| -> composition_parsing::Result<SS01PingRequest> {
+        Ok(SS01PingRequest {
+            payload: i64::parse(data)?,
+        })
     },
     |packet: &SS01PingRequest| -> Vec<u8> { packet.payload.serialize() }
 );

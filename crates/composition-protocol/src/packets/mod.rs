@@ -1,17 +1,19 @@
 /// Packets that are heading to the client.
 pub mod clientbound;
+/// Framing I/O streams using the packets and protocol.
+#[cfg(feature = "codec")]
+pub mod codec;
 /// Packets that are heading to the server.
 pub mod serverbound;
 
 use crate::mctypes::VarInt;
+use bytes::Bytes;
 use composition_parsing::prelude::*;
 
 /// Alias for a `VarInt`.
 pub type PacketId = VarInt;
 
-pub trait Packet:
-    std::fmt::Debug + Clone + TryFrom<GenericPacket> + Into<GenericPacket> + Parsable
-{
+pub trait PacketInfo: std::fmt::Debug + Clone + TryFrom<Packet> + Into<Packet> + Parsable {
     const ID: i32;
     const CLIENT_STATE: crate::ClientState;
     const IS_SERVERBOUND: bool;
@@ -20,65 +22,30 @@ pub trait Packet:
 macro_rules! generic_packet {
     ($($packet_type: ident),*) => {
         #[derive(Clone, Debug, PartialEq)]
-        pub enum GenericPacket {
+        pub enum Packet {
             $(
                 $packet_type($packet_type),
             )*
         }
-        impl GenericPacket {
-            #[tracing::instrument]
-            pub fn parse_uncompressed<'data>(
-                client_state: crate::ClientState,
-                is_serverbound: bool,
-                data: &'data [u8]
-            ) -> composition_parsing::ParseResult<'data, Self> {
-                use composition_parsing::parsable::Parsable;
-                tracing::trace!(
-                    "GenericPacket::parse_uncompressed: {:?} {} {:?}",
-                    client_state,
-                    is_serverbound,
-                    data
-                );
-                let (data, packet_length) = crate::mctypes::VarInt::parse(data)?;
-                let (data, packet_data) = composition_parsing::take_bytes(*packet_length as usize)(data)?;
-
-                let (packet_data, packet_id) = PacketId::parse(packet_data)?;
-                let (_packet_data, packet_body) =
-                    Self::parse_body(client_state, packet_id, is_serverbound, packet_data)?;
-
-                // if !packet_data.is_empty() {
-                //     println!("Packet data not empty after parsing!");
-                // }
-
-                Ok((data, packet_body))
-            }
-
-            #[tracing::instrument]
-            pub fn parse_body<'data>(
+        impl Packet {
+            pub fn parse_body(
                 client_state: crate::ClientState,
                 packet_id: crate::packets::PacketId,
                 is_serverbound: bool,
-                data: &'data [u8],
-            ) -> composition_parsing::ParseResult<'data, Self> {
+                data: &mut Bytes
+            ) -> composition_parsing::Result<Self> {
                 use composition_parsing::parsable::Parsable;
-                tracing::trace!(
-                    "GenericPacket::parse_body: {:?} {} {}",
-                    client_state,
-                    packet_id,
-                    is_serverbound
-                );
                 match (client_state, *packet_id, is_serverbound) {
                     $(
-                        ($packet_type::CLIENT_STATE, $packet_type::ID, $packet_type::IS_SERVERBOUND) => $packet_type::parse(data).map(|(data, packet)| (data, Into::<GenericPacket>::into(packet))),
+                        ($packet_type::CLIENT_STATE, $packet_type::ID, $packet_type::IS_SERVERBOUND) => $packet_type::parse(data).map(|packet| Into::<Packet>::into(packet)),
                     )*
-                    _ => Ok((data, Self::UnimplementedPacket(UnimplementedPacket(packet_id)))),
+                    _ => Ok(Self::UnimplementedPacket(UnimplementedPacket(packet_id))),
                 }
             }
 
-            #[tracing::instrument]
             pub fn serialize(&self) -> (crate::packets::PacketId, Vec<u8>) {
                 use composition_parsing::parsable::Parsable;
-                tracing::trace!("GenericPacket::serialize: {:?}", self);
+                tracing::trace!("Packet::serialize: {:?}", self);
                 match self {
                     $(
                         Self::$packet_type(packet) => (PacketId::from($packet_type::ID), packet.serialize()),
@@ -96,8 +63,8 @@ packet!(
     0x00,
     crate::ClientState::Disconnected,
     false,
-    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, UnimplementedPacket> {
-        Ok((data, UnimplementedPacket(0i32.into())))
+    |_data: &mut Bytes| -> composition_parsing::Result<UnimplementedPacket> {
+        Ok(UnimplementedPacket(0i32.into()))
     },
     |_packet: &UnimplementedPacket| -> Vec<u8> { vec![] }
 );
@@ -140,32 +107,33 @@ generic_packet!(
 
 macro_rules! packet {
     ($packet_type: ident, $id: literal, $client_state: expr, $serverbound: literal, $parse_body: expr, $serialize_body: expr) => {
-        impl crate::packets::Packet for $packet_type {
+        impl crate::packets::PacketInfo for $packet_type {
             const ID: i32 = $id;
             const CLIENT_STATE: crate::ClientState = $client_state;
             const IS_SERVERBOUND: bool = $serverbound;
         }
         impl composition_parsing::parsable::Parsable for $packet_type {
-            #[tracing::instrument]
-            fn parse<'data>(data: &'data [u8]) -> composition_parsing::ParseResult<'_, Self> {
+            fn check(mut data: bytes::Bytes) -> composition_parsing::Result<()> {
+                Self::parse(&mut data).map(|_| ())
+            }
+            fn parse(data: &mut bytes::Bytes) -> composition_parsing::Result<Self> {
                 $parse_body(data)
             }
-            #[tracing::instrument]
             fn serialize(&self) -> Vec<u8> {
                 $serialize_body(self)
             }
         }
-        impl From<$packet_type> for crate::packets::GenericPacket {
+        impl From<$packet_type> for crate::packets::Packet {
             fn from(value: $packet_type) -> Self {
-                crate::packets::GenericPacket::$packet_type(value)
+                crate::packets::Packet::$packet_type(value)
             }
         }
-        impl TryFrom<crate::packets::GenericPacket> for $packet_type {
+        impl TryFrom<crate::packets::Packet> for $packet_type {
             type Error = ();
 
-            fn try_from(value: crate::packets::GenericPacket) -> Result<Self, Self::Error> {
+            fn try_from(value: crate::packets::Packet) -> Result<Self, Self::Error> {
                 match value {
-                    crate::packets::GenericPacket::$packet_type(packet) => Ok(packet),
+                    crate::packets::Packet::$packet_type(packet) => Ok(packet),
                     _ => Err(()),
                 }
             }

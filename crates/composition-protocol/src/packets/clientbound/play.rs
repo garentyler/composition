@@ -2,6 +2,7 @@ use crate::{
     entities::{EntityPosition, EntityRotation, EntityVelocity},
     mctypes::{Chat, Difficulty, Position, Uuid, VarInt},
 };
+use bytes::Bytes;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct CP00SpawnEntity {
@@ -19,29 +20,17 @@ crate::packets::packet!(
     0x00,
     crate::ClientState::Play,
     false,
-    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, CP00SpawnEntity> {
-        let (data, id) = VarInt::parse(data)?;
-        let (data, uuid) = Uuid::parse(data)?;
-        let (data, kind) = VarInt::parse(data)?;
-        let (data, position) = EntityPosition::parse(data)?;
-        let (data, rotation) = EntityRotation::parse(data)?;
-        let (data, head_yaw) = u8::parse(data)?;
-        let (data, d) = VarInt::parse(data)?;
-        let (data, velocity) = EntityVelocity::parse(data)?;
-
-        Ok((
-            data,
-            CP00SpawnEntity {
-                id,
-                uuid,
-                kind,
-                position,
-                rotation,
-                head_yaw,
-                data: d,
-                velocity,
-            },
-        ))
+    |data: &mut Bytes| -> composition_parsing::Result<CP00SpawnEntity> {
+        Ok(CP00SpawnEntity {
+            id: VarInt::parse(data)?,
+            uuid: Uuid::parse(data)?,
+            kind: VarInt::parse(data)?,
+            position: EntityPosition::parse(data)?,
+            rotation: EntityRotation::parse(data)?,
+            head_yaw: u8::parse(data)?,
+            data: VarInt::parse(data)?,
+            velocity: EntityVelocity::parse(data)?,
+        })
     },
     |packet: &CP00SpawnEntity| -> Vec<u8> {
         let mut output = vec![];
@@ -67,16 +56,11 @@ crate::packets::packet!(
     0x0b,
     crate::ClientState::Play,
     false,
-    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, CP0BChangeDifficulty> {
-        let (data, difficulty) = Difficulty::parse(data)?;
-        let (data, is_locked) = bool::parse(data)?;
-        Ok((
-            data,
-            CP0BChangeDifficulty {
-                difficulty,
-                is_locked,
-            },
-        ))
+    |data: &mut Bytes| -> composition_parsing::Result<CP0BChangeDifficulty> {
+        Ok(CP0BChangeDifficulty {
+            difficulty: Difficulty::parse(data)?,
+            is_locked: bool::parse(data)?,
+        })
     },
     |packet: &CP0BChangeDifficulty| -> Vec<u8> {
         let mut output = vec![];
@@ -95,9 +79,10 @@ crate::packets::packet!(
     0x17,
     crate::ClientState::Play,
     false,
-    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, CP17Disconnect> {
-        let (data, reason) = Chat::parse(data)?;
-        Ok((data, CP17Disconnect { reason }))
+    |data: &mut Bytes| -> composition_parsing::Result<CP17Disconnect> {
+        Ok(CP17Disconnect {
+            reason: Chat::parse(data)?,
+        })
     },
     |packet: &CP17Disconnect| -> Vec<u8> { packet.reason.serialize() }
 );
@@ -111,9 +96,10 @@ crate::packets::packet!(
     0x1f,
     crate::ClientState::Play,
     false,
-    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, CP1FKeepAlive> {
-        let (data, payload) = i64::parse(data)?;
-        Ok((data, CP1FKeepAlive { payload }))
+    |data: &mut Bytes| -> composition_parsing::Result<CP1FKeepAlive> {
+        Ok(CP1FKeepAlive {
+            payload: i64::parse(data)?,
+        })
     },
     |packet: &CP1FKeepAlive| -> Vec<u8> { packet.payload.serialize() }
 );
@@ -130,20 +116,13 @@ crate::packets::packet!(
     0x21,
     crate::ClientState::Play,
     false,
-    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, CP21WorldEvent> {
-        let (data, event) = i32::parse(data)?;
-        let (data, location) = Position::parse(data)?;
-        let (data, d) = i32::parse(data)?;
-        let (data, disable_relative_volume) = bool::parse(data)?;
-        Ok((
-            data,
-            CP21WorldEvent {
-                event,
-                location,
-                data: d,
-                disable_relative_volume,
-            },
-        ))
+    |data: &mut Bytes| -> composition_parsing::Result<CP21WorldEvent> {
+        Ok(CP21WorldEvent {
+            event: i32::parse(data)?,
+            location: Position::parse(data)?,
+            data: i32::parse(data)?,
+            disable_relative_volume: bool::parse(data)?,
+        })
     },
     |packet: &CP21WorldEvent| -> Vec<u8> {
         let mut output = vec![];
@@ -165,16 +144,11 @@ crate::packets::packet!(
     0x50,
     crate::ClientState::Play,
     false,
-    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, CP50SetEntityVelocity> {
-        let (data, entity_id) = VarInt::parse(data)?;
-        let (data, entity_velocity) = EntityVelocity::parse(data)?;
-        Ok((
-            data,
-            CP50SetEntityVelocity {
-                entity_id,
-                entity_velocity,
-            },
-        ))
+    |data: &mut Bytes| -> composition_parsing::Result<CP50SetEntityVelocity> {
+        Ok(CP50SetEntityVelocity {
+            entity_id: VarInt::parse(data)?,
+            entity_velocity: EntityVelocity::parse(data)?,
+        })
     },
     |packet: &CP50SetEntityVelocity| -> Vec<u8> {
         let mut output = vec![];
@@ -195,18 +169,12 @@ crate::packets::packet!(
     0x52,
     crate::ClientState::Play,
     false,
-    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, CP52SetExperience> {
-        let (data, experience_bar) = f32::parse(data)?;
-        let (data, total_experience) = VarInt::parse(data)?;
-        let (data, level) = VarInt::parse(data)?;
-        Ok((
-            data,
-            CP52SetExperience {
-                experience_bar,
-                total_experience,
-                level,
-            },
-        ))
+    |data: &mut Bytes| -> composition_parsing::Result<CP52SetExperience> {
+        Ok(CP52SetExperience {
+            experience_bar: f32::parse(data)?,
+            total_experience: VarInt::parse(data)?,
+            level: VarInt::parse(data)?,
+        })
     },
     |packet: &CP52SetExperience| -> Vec<u8> {
         let mut output = vec![];
@@ -234,31 +202,28 @@ crate::packets::packet!(
     0x68,
     crate::ClientState::Play,
     false,
-    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, CP68EntityEffect> {
-        let (data, entity_id) = VarInt::parse(data)?;
-        let (data, effect_id) = VarInt::parse(data)?;
-        let (data, amplifier) = i8::parse(data)?;
-        let (data, duration) = VarInt::parse(data)?;
-        let (data, flags) = u8::parse(data)?;
+    |data: &mut Bytes| -> composition_parsing::Result<CP68EntityEffect> {
+        let entity_id = VarInt::parse(data)?;
+        let effect_id = VarInt::parse(data)?;
+        let amplifier = i8::parse(data)?;
+        let duration = VarInt::parse(data)?;
+        let flags = u8::parse(data)?;
         let is_ambient = flags & 0x01 > 0;
         let show_particles = flags & 0x02 > 0;
         let show_icon = flags & 0x04 > 0;
-        let (data, has_factor_data) = bool::parse(data)?;
+        let has_factor_data = bool::parse(data)?;
         // TODO: factor_codec
 
-        Ok((
-            data,
-            CP68EntityEffect {
-                entity_id,
-                effect_id,
-                amplifier,
-                duration,
-                is_ambient,
-                show_particles,
-                show_icon,
-                has_factor_data,
-            },
-        ))
+        Ok(CP68EntityEffect {
+            entity_id,
+            effect_id,
+            amplifier,
+            duration,
+            is_ambient,
+            show_particles,
+            show_icon,
+            has_factor_data,
+        })
     },
     |packet: &CP68EntityEffect| -> Vec<u8> {
         let mut output = vec![];

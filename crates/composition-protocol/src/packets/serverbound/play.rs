@@ -2,6 +2,7 @@ use crate::{
     entities::{EntityPosition, EntityRotation},
     mctypes::VarInt,
 };
+use bytes::Bytes;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SP08CommandSuggestionsRequest {
@@ -13,16 +14,11 @@ crate::packets::packet!(
     0x08,
     crate::ClientState::Play,
     true,
-    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, SP08CommandSuggestionsRequest> {
-        let (data, transaction_id) = VarInt::parse(data)?;
-        let (data, text) = String::parse(data)?;
-        Ok((
-            data,
-            SP08CommandSuggestionsRequest {
-                transaction_id,
-                text,
-            },
-        ))
+    |data: &mut Bytes| -> composition_parsing::Result<SP08CommandSuggestionsRequest> {
+        Ok(SP08CommandSuggestionsRequest {
+            transaction_id: VarInt::parse(data)?,
+            text: String::parse(data)?,
+        })
     },
     |packet: &SP08CommandSuggestionsRequest| -> Vec<u8> {
         let mut output = vec![];
@@ -41,9 +37,10 @@ crate::packets::packet!(
     0x11,
     crate::ClientState::Play,
     true,
-    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, SP11KeepAlive> {
-        let (data, payload) = i64::parse(data)?;
-        Ok((data, SP11KeepAlive { payload }))
+    |data: &mut Bytes| -> composition_parsing::Result<SP11KeepAlive> {
+        Ok(SP11KeepAlive {
+            payload: i64::parse(data)?,
+        })
     },
     |packet: &SP11KeepAlive| -> Vec<u8> { packet.payload.serialize() }
 );
@@ -58,16 +55,11 @@ crate::packets::packet!(
     0x13,
     crate::ClientState::Play,
     true,
-    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, SP13SetPlayerPosition> {
-        let (data, position) = EntityPosition::parse(data)?;
-        let (data, on_ground) = bool::parse(data)?;
-        Ok((
-            data,
-            SP13SetPlayerPosition {
-                position,
-                on_ground,
-            },
-        ))
+    |data: &mut Bytes| -> composition_parsing::Result<SP13SetPlayerPosition> {
+        Ok(SP13SetPlayerPosition {
+            position: EntityPosition::parse(data)?,
+            on_ground: bool::parse(data)?,
+        })
     },
     |packet: &SP13SetPlayerPosition| -> Vec<u8> {
         let mut output = vec![];
@@ -88,18 +80,12 @@ crate::packets::packet!(
     0x14,
     crate::ClientState::Play,
     true,
-    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, SP14SetPlayerPositionAndRotation> {
-        let (data, position) = EntityPosition::parse(data)?;
-        let (data, rotation) = EntityRotation::parse(data)?;
-        let (data, on_ground) = bool::parse(data)?;
-        Ok((
-            data,
-            SP14SetPlayerPositionAndRotation {
-                position,
-                rotation,
-                on_ground,
-            },
-        ))
+    |data: &mut Bytes| -> composition_parsing::Result<SP14SetPlayerPositionAndRotation> {
+        Ok(SP14SetPlayerPositionAndRotation {
+            position: EntityPosition::parse(data)?,
+            rotation: EntityRotation::parse(data)?,
+            on_ground: bool::parse(data)?,
+        })
     },
     |packet: &SP14SetPlayerPositionAndRotation| -> Vec<u8> {
         let mut output = vec![];
@@ -120,16 +106,11 @@ crate::packets::packet!(
     0x15,
     crate::ClientState::Play,
     true,
-    |data: &'data [u8]| -> composition_parsing::ParseResult<'data, SP15SetPlayerRotation> {
-        let (data, rotation) = EntityRotation::parse(data)?;
-        let (data, on_ground) = bool::parse(data)?;
-        Ok((
-            data,
-            SP15SetPlayerRotation {
-                rotation,
-                on_ground,
-            },
-        ))
+    |data: &mut Bytes| -> composition_parsing::Result<SP15SetPlayerRotation> {
+        Ok(SP15SetPlayerRotation {
+            rotation: EntityRotation::parse(data)?,
+            on_ground: bool::parse(data)?,
+        })
     },
     |packet: &SP15SetPlayerRotation| -> Vec<u8> {
         let mut output = vec![];

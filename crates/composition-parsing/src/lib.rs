@@ -4,24 +4,12 @@ pub mod error;
 pub mod parsable;
 /// Useful re-exports.
 pub mod prelude {
-    pub use crate::{parsable::Parsable, take_bytes, VarInt};
+    pub use crate::{parsable::Parsable, VarInt};
+    pub use bytes::{Buf, BufMut};
 }
 
-pub use error::{Error, ParseResult, Result};
+pub use error::{Error, Result};
 pub use serde_json;
-
-/// Returns a function that returns a `ParseResult<&[u8]>`, where the slice is size `num`.
-pub fn take_bytes(num: usize) -> impl Fn(&'_ [u8]) -> ParseResult<'_, &'_ [u8]> {
-    move |data| {
-        use std::cmp::Ordering;
-
-        match data.len().cmp(&num) {
-            Ordering::Greater => Ok((&data[num..], &data[..num])),
-            Ordering::Equal => Ok((&[], data)),
-            Ordering::Less => Err(Error::Eof),
-        }
-    }
-}
 
 /// Implementation of the protocol's VarInt type.
 ///
@@ -58,22 +46,5 @@ impl From<usize> for VarInt {
 impl std::fmt::Display for VarInt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn take_bytes_works() {
-        let data: [u8; 5] = [0, 1, 2, 3, 4];
-
-        assert_eq!(take_bytes(3)(&data).unwrap(), (&data[3..], &data[..3]));
-        assert_eq!(take_bytes(1)(&data).unwrap().0.len(), data.len() - 1);
-        assert_eq!(take_bytes(1)(&data).unwrap().0[0], 1);
-        assert_eq!(take_bytes(1)(&[0, 1]).unwrap().0.len(), 1);
-        assert_eq!(take_bytes(1)(&[1]).unwrap().0.len(), 0);
-        assert!(take_bytes(1)(&[]).is_err());
     }
 }

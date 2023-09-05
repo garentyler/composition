@@ -8,13 +8,25 @@ repository.workspace = true
 version.workspace = true
 
 [features]
-default = []
+default = ["codec"]
+codec = ["dep:tokio-util", "dep:tokio"]
 update_1_20 = []
 
 [dependencies]
 anyhow.workspace = true
 byteorder.workspace = true
+bytes.workspace = true
 composition-parsing.workspace = true
+futures = "0.3.28"
 serde.workspace = true
 thiserror.workspace = true
+tokio = { workspace = true, optional = true, features = ["io-util"] }
+tokio-util = { version = "0.7.8", optional = true, features = ["codec"] }
 tracing.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "net", "macros"] }
+
+[[example]]
+name = "proxy"
+crate-type = ["bin"]
