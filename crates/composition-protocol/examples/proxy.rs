@@ -1,7 +1,8 @@
-use composition_protocol::packets::codec::UncompressedPacketCodec;
+use composition_protocol::packets::codec::PacketCodec;
 use futures::{SinkExt, StreamExt};
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use tokio::net::{TcpListener, TcpStream};
+use tokio::sync::Mutex;
 use tokio_util::codec::Decoder;
 
 #[tokio::main]
@@ -19,40 +20,55 @@ async fn main() {
     }
 }
 
-async fn handle_client(socket: TcpStream) -> composition_protocol::Result<()> {
-    let client_state = Arc::new(RwLock::new(composition_protocol::ClientState::Handshake));
+async fn handle_client(client_socket: TcpStream) -> composition_protocol::Result<()> {
+    let server_socket = TcpStream::connect("127.0.0.1:25565").await?;
+    let client_state = Arc::new(Mutex::new(composition_protocol::ClientState::Handshake));
 
-    let (mut client_sink, mut client_stream) =
-        UncompressedPacketCodec::new_server(client_state.clone())
-            .framed(socket)
-            .split();
-    let (mut server_sink, mut server_stream) =
-        UncompressedPacketCodec::new_client(client_state.clone())
-            .framed(TcpStream::connect("127.0.0.1:25565").await?)
-            .split();
+    // Build the two codecs to parse acting as a server and a client, but share the same client state.
+    let client_codec = PacketCodec::new()
+        .uncompressed()
+        .server()
+        .client_state(client_state.clone())
+        .build();
+    let server_codec = PacketCodec::new()
+        .uncompressed()
+        .client()
+        .client_state(client_state.clone())
+        .build();
+
+    let (mut client_sink, mut client_stream) = client_codec.framed(client_socket).split();
+    let (mut server_sink, mut server_stream) = server_codec.framed(server_socket).split();
 
     // Read data from the client and pass it to the server.
     tokio::spawn(async move {
-        while let Some(value) = client_stream.next().await {
-            match value {
-                Ok(packet) => {
+        loop {
+            match client_stream.next().await {
+                Some(Ok(packet)) => {
                     println!("C->S: {:?}", packet);
                     server_sink.send(packet).await.unwrap();
                 }
-                Err(e) => Err(e).unwrap(),
+                Some(Err(composition_protocol::Error::Disconnected)) | None => break,
+                Some(Err(e)) => {
+                    eprintln!("C->S: {}", e);
+                    break;
+                }
             }
         }
     });
 
-    // Read data from the server and pass it to the client.
+    // Read data from the client and pass it to the server.
     tokio::spawn(async move {
-        while let Some(value) = server_stream.next().await {
-            match value {
-                Ok(packet) => {
+        loop {
+            match server_stream.next().await {
+                Some(Ok(packet)) => {
                     println!("S->C: {:?}", packet);
                     client_sink.send(packet).await.unwrap();
                 }
-                Err(e) => Err(e).unwrap(),
+                Some(Err(composition_protocol::Error::Disconnected)) | None => break,
+                Some(Err(e)) => {
+                    eprintln!("S->C: {}", e);
+                    break;
+                }
             }
         }
     });

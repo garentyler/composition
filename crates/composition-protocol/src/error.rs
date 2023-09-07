@@ -19,6 +19,10 @@ pub enum Error {
     /// This error is a wrapper for `std::io::Error`.
     #[error(transparent)]
     IoError(#[from] std::io::Error),
+    /// This error occurs when there is an issue with the tokio runtime.
+    #[cfg(feature = "codec")]
+    #[error("tokio runtime error")]
+    TokioRuntimeError,
     /// This error is general purpose.
     /// When possible, other error variants should be used.
     #[error(transparent)]

@@ -26,9 +26,9 @@ pub mod prelude {
     };
     pub use composition_parsing::prelude::*;
     #[cfg(feature = "codec")]
-    pub use tokio_util::codec::{Decoder, Encoder};
-    #[cfg(feature = "codec")]
     pub use futures::{SinkExt, StreamExt};
+    #[cfg(feature = "codec")]
+    pub use tokio_util::codec::{Decoder, Encoder};
 }
 
 pub use error::{Error, Result};
