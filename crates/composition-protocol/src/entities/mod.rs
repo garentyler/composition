@@ -7,6 +7,8 @@ pub mod player;
 pub mod sniffer;
 pub mod villager;
 
+use std::time::Duration;
+
 use crate::{
     blocks::BlockPosition,
     mctypes::{Chat, Uuid, VarInt},
@@ -22,6 +24,13 @@ pub struct EntityPosition {
     pub x: f64,
     pub y: f64,
     pub z: f64,
+}
+impl EntityPosition {
+    pub fn add_delta(&mut self, delta_position: EntityPosition) {
+        self.x += delta_position.x;
+        self.y += delta_position.x;
+        self.z += delta_position.x;
+    }
 }
 impl Parsable for EntityPosition {
     fn check(mut data: Bytes) -> composition_parsing::Result<()> {
@@ -66,11 +75,24 @@ impl Parsable for EntityRotation {
     }
 }
 
+/// Velocity is in units of 1/8000 of a block per server tick (50ms).
+/// https://wiki.vg/Protocol#Set_Entity_Velocity
 #[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub struct EntityVelocity {
     pub x: i16,
     pub y: i16,
     pub z: i16,
+}
+impl EntityVelocity {
+    pub fn to_delta_position(&self, delta_time: Duration) -> EntityPosition {
+        let delta_time_ticks = delta_time.as_millis() as f64 / 50f64;
+
+        EntityPosition {
+            x: (self.x as f64 / 8000f64) * delta_time_ticks,
+            y: (self.y as f64 / 8000f64) * delta_time_ticks,
+            z: (self.z as f64 / 8000f64) * delta_time_ticks,
+        }
+    }
 }
 impl Parsable for EntityVelocity {
     fn check(mut data: Bytes) -> composition_parsing::Result<()> {

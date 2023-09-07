@@ -28,6 +28,8 @@ pub mod prelude {
     #[cfg(feature = "codec")]
     pub use futures::{SinkExt, StreamExt};
     #[cfg(feature = "codec")]
+    pub use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+    #[cfg(feature = "codec")]
     pub use tokio_util::codec::{Decoder, Encoder};
 }
 

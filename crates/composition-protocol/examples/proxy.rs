@@ -26,12 +26,12 @@ async fn handle_client(client_socket: TcpStream) -> composition_protocol::Result
 
     // Build the two codecs to parse acting as a server and a client, but share the same client state.
     let client_codec = PacketCodec::new()
-        .uncompressed()
+        .compression(false)
         .server()
         .client_state(client_state.clone())
         .build();
     let server_codec = PacketCodec::new()
-        .uncompressed()
+        .compression(false)
         .client()
         .client_state(client_state.clone())
         .build();

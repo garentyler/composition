@@ -70,7 +70,6 @@ impl Parsable for CL02LoginSuccessProperty {
             signature: String::parse_optional(data)?,
         })
     }
-    #[tracing::instrument]
     fn serialize(&self) -> Vec<u8> {
         let mut output = vec![];
         output.extend(self.name.serialize());

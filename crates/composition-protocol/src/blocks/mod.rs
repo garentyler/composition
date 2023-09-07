@@ -31,6 +31,9 @@ pub enum BlockFace {
 pub enum Block {
     #[default]
     Air,
-    // TODO
     Stone,
+    Dirt,
+    Grass,
+    Bedrock,
+    // TODO: Implement more blocks.
 }

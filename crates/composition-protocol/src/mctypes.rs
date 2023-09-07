@@ -17,7 +17,6 @@ pub struct Position {
     pub z: i32,
 }
 impl Position {
-    #[tracing::instrument]
     pub fn new(x: i32, y: i32, z: i32) -> Self {
         Position { x, y, z }
     }

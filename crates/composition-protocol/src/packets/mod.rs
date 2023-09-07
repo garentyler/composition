@@ -28,12 +28,16 @@ macro_rules! generic_packet {
             )*
         }
         impl Packet {
+            #[cfg_attr(feature = "tracing", tracing::instrument)]
             pub fn parse_body(
                 client_state: crate::ClientState,
                 packet_id: crate::packets::PacketId,
                 is_serverbound: bool,
                 data: &mut Bytes
             ) -> composition_parsing::Result<Self> {
+                #[cfg(feature = "tracing")]
+                tracing::trace!("Parsing packet body {} {:?} {} {:?}", if is_serverbound { "S" } else { "C" }, client_state, packet_id, &data[..]);
+
                 use composition_parsing::parsable::Parsable;
                 match (client_state, *packet_id, is_serverbound) {
                     $(
@@ -43,9 +47,13 @@ macro_rules! generic_packet {
                 }
             }
 
+            #[cfg_attr(feature = "tracing", tracing::instrument)]
             pub fn serialize(&self) -> (crate::packets::PacketId, Vec<u8>) {
                 use composition_parsing::parsable::Parsable;
-                tracing::trace!("Packet::serialize: {:?}", self);
+
+                #[cfg(feature = "tracing")]
+                tracing::trace!("Serializing packet {:?}", self);
+
                 match self {
                     $(
                         Self::$packet_type(packet) => (PacketId::from($packet_type::ID), packet.serialize()),

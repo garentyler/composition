@@ -11,4 +11,6 @@ version.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true
 composition-protocol.workspace = true
+futures.workspace = true
 thiserror.workspace = true
+tokio = { workspace = true, features = ["sync"] }

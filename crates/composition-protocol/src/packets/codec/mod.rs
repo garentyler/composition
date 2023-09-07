@@ -80,11 +80,15 @@ impl PacketCodecBuilder {
             inner: self.inner,
         }
     }
-    pub fn uncompressed(self) -> PacketCodecBuilder {
-        PacketCodecBuilder {
-            receive_serverbound_packets: self.receive_serverbound_packets,
-            client_state: self.client_state,
-            inner: Some(InnerPacketCodec::Uncompressed),
+    pub fn compression(self, enable_compression: bool) -> PacketCodecBuilder {
+        if enable_compression {
+            unimplemented!()
+        } else {
+            PacketCodecBuilder {
+                receive_serverbound_packets: self.receive_serverbound_packets,
+                client_state: self.client_state,
+                inner: Some(InnerPacketCodec::Uncompressed),
+            }
         }
     }
 }
@@ -93,6 +97,7 @@ impl Decoder for PacketCodec {
     type Item = Packet;
     type Error = crate::Error;
 
+    #[cfg_attr(feature = "tracing", tracing::instrument)]
     fn decode(&mut self, src: &mut bytes::BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         // A little magic to get around the async mutex within sync code
         // https://stackoverflow.com/questions/66035290/how-do-i-await-a-future-inside-a-non-async-method-which-was-called-from-an-async
@@ -111,6 +116,13 @@ impl Decoder for PacketCodec {
                 uncompressed::decode(client_state.deref(), self.receive_serverbound_packets, src)
             }
         };
+
+        #[cfg(feature = "tracing")]
+        tracing::trace!(
+            "PacketCodec ({:?}) decoded packet: {:?}",
+            self.inner,
+            packet
+        );
 
         if let Ok(Some(packet)) = &packet {
             // State machine logic.
@@ -136,7 +148,15 @@ impl Decoder for PacketCodec {
 impl Encoder<Packet> for PacketCodec {
     type Error = crate::Error;
 
+    #[cfg_attr(feature = "tracing", tracing::instrument)]
     fn encode(&mut self, item: Packet, dst: &mut bytes::BytesMut) -> Result<(), Self::Error> {
+        #[cfg(feature = "tracing")]
+        tracing::trace!(
+            "PacketCodec ({:?}) serializing packet: {:?}",
+            self.inner,
+            item
+        );
+
         match self.inner {
             InnerPacketCodec::Uncompressed => uncompressed::encode(item, dst),
         }

@@ -186,10 +186,12 @@ checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
 name = "composition-core"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "base64",
  "clap",
  "composition-parsing",
  "composition-protocol",
+ "futures",
  "once_cell",
  "serde",
  "serde_json",
@@ -234,7 +236,9 @@ dependencies = [
  "anyhow",
  "async-trait",
  "composition-protocol",
+ "futures",
  "thiserror",
+ "tokio",
 ]
 
 [[package]]
@@ -574,6 +578,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "signal-hook-registry"
+version = "1.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d8229b473baa5980ac72ef434c4415e70c4b5e71b423043adb4ba059f89c99a1"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "slab"
 version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -685,6 +698,7 @@ dependencies = [
  "mio",
  "num_cpus",
  "pin-project-lite",
+ "signal-hook-registry",
  "socket2",
  "tokio-macros",
  "windows-sys",
