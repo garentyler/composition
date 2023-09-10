@@ -21,7 +21,7 @@ crate::packets::packet!(
             next_state: match *VarInt::parse(data)? {
                 1 => ClientState::Status,
                 2 => ClientState::Login,
-                _ => return Err(composition_parsing::Error::Syntax),
+                _ => return Err(composition_parsing::Error::InvalidData),
             },
         })
     },

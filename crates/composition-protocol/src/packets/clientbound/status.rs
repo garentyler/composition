@@ -1,9 +1,9 @@
-use crate::mctypes::Chat;
+use crate::mctypes::Json;
 use bytes::Bytes;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CS00StatusResponse {
-    pub response: Chat,
+    pub response: Json,
 }
 crate::packets::packet!(
     CS00StatusResponse,
@@ -12,7 +12,7 @@ crate::packets::packet!(
     false,
     |data: &mut Bytes| -> composition_parsing::Result<CS00StatusResponse> {
         Ok(CS00StatusResponse {
-            response: Chat::parse(data)?,
+            response: Json::parse(data)?,
         })
     },
     |packet: &CS00StatusResponse| -> Vec<u8> { packet.response.serialize() }

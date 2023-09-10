@@ -1,4 +1,4 @@
-use crate::{
+use composition_protocol::{
     blocks::{Block, BlockPosition},
     entities::{Entity, EntityId, EntityPosition},
 };
@@ -33,41 +33,25 @@ impl Chunk {
             None
         }
     }
-    pub fn blocks<'c>(&'c self) -> impl Iterator<Item = (BlockOffset, &'c Block)> {
-        self.blocks
-            .iter()
-            .enumerate()
-            .map(|(x, blocks)| {
+    pub fn blocks(&self) -> impl Iterator<Item = (BlockOffset, &'_ Block)> {
+        self.blocks.iter().enumerate().flat_map(|(x, blocks)| {
+            blocks.iter().enumerate().flat_map(move |(y, blocks)| {
                 blocks
                     .iter()
                     .enumerate()
-                    .map(move |(y, blocks)| {
-                        blocks
-                            .iter()
-                            .enumerate()
-                            .map(move |(z, block)| (BlockOffset { x, y, z }, block))
-                    })
-                    .flatten()
+                    .map(move |(z, block)| (BlockOffset { x, y, z }, block))
             })
-            .flatten()
+        })
     }
-    pub fn blocks_mut<'c>(&'c mut self) -> impl Iterator<Item = (BlockOffset, &'c mut Block)> {
-        self.blocks
-            .iter_mut()
-            .enumerate()
-            .map(|(x, blocks)| {
+    pub fn blocks_mut(&mut self) -> impl Iterator<Item = (BlockOffset, &'_ mut Block)> {
+        self.blocks.iter_mut().enumerate().flat_map(|(x, blocks)| {
+            blocks.iter_mut().enumerate().flat_map(move |(y, blocks)| {
                 blocks
                     .iter_mut()
                     .enumerate()
-                    .map(move |(y, blocks)| {
-                        blocks
-                            .iter_mut()
-                            .enumerate()
-                            .map(move |(z, block)| (BlockOffset { x, y, z }, block))
-                    })
-                    .flatten()
+                    .map(move |(z, block)| (BlockOffset { x, y, z }, block))
             })
-            .flatten()
+        })
     }
 }
 impl Default for Chunk {
@@ -102,7 +86,7 @@ impl BlockOffset {
     pub fn is_valid(&self) -> bool {
         self.x < Chunk::SIZE && self.y < Chunk::SIZE && self.z < Chunk::SIZE
     }
-    pub fn to_global_position(&self, chunk_position: ChunkPosition) -> BlockPosition {
+    pub fn to_global_position(self, chunk_position: ChunkPosition) -> BlockPosition {
         BlockPosition {
             x: (chunk_position.x * Chunk::SIZE as i32) + (self.x as i32),
             y: (chunk_position.y * Chunk::SIZE as i32) + (self.y as i32),

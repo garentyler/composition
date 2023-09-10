@@ -21,11 +21,12 @@ base64 = "0.21.0"
 clap = { version = "4.2.7", features = ["derive"] }
 composition-parsing.workspace = true
 composition-protocol.workspace = true
+futures.workspace = true
 once_cell = "1.17.1"
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
-tokio.workspace = true
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "net", "macros", "signal", "time"] }
 tokio-util = "0.7.8"
 toml = "0.7.3"
 tracing.workspace = true

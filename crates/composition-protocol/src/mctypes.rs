@@ -6,8 +6,46 @@ pub type Uuid = u128;
 pub use composition_parsing::VarInt;
 /// Alias for a `serde_json::Value`.
 pub type Json = composition_parsing::serde_json::Value;
-/// Alias for a `Json`.
-pub type Chat = Json;
+
+/// An implementation of [the protocol's chat](https://wiki.vg/Chat).
+#[derive(Debug, Clone, PartialEq)]
+pub struct Chat {
+    inner: Json,
+}
+impl Chat {
+    pub fn basic<S: Into<String>>(text: S) -> Chat {
+        let text: String = text.into();
+        serde_json::json!({ "text": text }).into()
+    }
+}
+impl Default for Chat {
+    fn default() -> Self {
+        Chat::basic("")
+    }
+}
+impl From<Json> for Chat {
+    fn from(value: Json) -> Self {
+        Chat { inner: value }
+    }
+}
+impl From<Chat> for Json {
+    fn from(value: Chat) -> Self {
+        value.inner
+    }
+}
+impl Parsable for Chat {
+    fn check(data: Bytes) -> composition_parsing::Result<()> {
+        Json::check(data)
+    }
+    fn parse(data: &mut Bytes) -> composition_parsing::Result<Self> {
+        Ok(Chat {
+            inner: Json::parse(data)?,
+        })
+    }
+    fn serialize(&self) -> Vec<u8> {
+        self.inner.serialize()
+    }
+}
 
 /// An implementation of the protocol's [Position](https://wiki.vg/Protocol#Position) type.
 #[derive(Debug, Copy, Clone, PartialEq)]

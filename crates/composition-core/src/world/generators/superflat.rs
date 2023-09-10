@@ -1,6 +1,6 @@
 use composition_protocol::blocks::Block;
 
-use crate::{
+use crate::world::{
     chunks::{Chunk, ChunkPosition},
     generators::Generator,
 };

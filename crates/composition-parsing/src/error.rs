@@ -1,9 +1,9 @@
 /// This type represents all possible errors that can occur when serializing or deserializing Minecraft data.
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    /// This error was caused by unexpected or invalid data.
-    #[error("invalid syntax")]
-    Syntax,
+    /// This error was caused by invalid data.
+    #[error("invalid data")]
+    InvalidData,
     /// This error was caused by prematurely reaching the end of the input data.
     #[error("unexpected end of file")]
     Eof,
@@ -13,10 +13,6 @@ pub enum Error {
     /// This error is a wrapper for `serde_json::Error`.
     #[error(transparent)]
     InvalidJson(#[from] serde_json::Error),
-    /// This error is general purpose.
-    /// When possible, other error variants should be used.
-    #[error("custom error: {0}")]
-    Message(String),
 }
 
 /// Alias for a Result with the error type `composition_parsing::Error`.

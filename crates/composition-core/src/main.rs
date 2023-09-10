@@ -61,22 +61,12 @@ pub fn main() {
     .unwrap()
     .block_on(async move {
         info!("Starting {} on port {}", config.server_version, config.port);
-        let (mut server, running) = composition_core::start_server().await;
+        let server = composition_core::start_server().await;
         info!(
             "Done! Start took {:?}",
             composition_core::START_TIME.get().unwrap().elapsed()
         );
 
-        // The main server loop.
-        loop {
-            tokio::select! {
-                _ = running.cancelled() => {
-                    break;
-                }
-                _ = server.update() => {}
-            }
-        }
-
-        let _ = tokio::time::timeout(std::time::Duration::from_secs(10), server.shutdown()).await;
+        server.run().await;
     });
 }
