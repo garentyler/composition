@@ -38,7 +38,6 @@ Composition is broken up into multiple crates to speed up build times and improv
   This is the main binary that is exported with `cargo build`.
 - `composition-protocol` handles the types and packets needed for network communication as well as general Minecraft types, such as entities, items, and blocks.
   The library was designed to be able to used by anyone looking to implement a Minecraft server.
-- `composition-world` generates the world and updates the entities and blocks within it. In the future, the world might be extracted into its own server so that multiple "server cores" can process players on the same world.
 - `composition-parsing` is a utility library that helps with parsing.
 
 ## Useful Resources
