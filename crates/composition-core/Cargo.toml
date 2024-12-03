@@ -17,7 +17,7 @@ default = []
 update_1_20 = ["composition-protocol/update_1_20"]
 
 [dependencies]
-base64 = "0.21.0"
+base64 = "0.22.1"
 clap = { version = "4.2.7", features = ["derive"] }
 composition-parsing.workspace = true
 composition-protocol.workspace = true
@@ -27,7 +27,7 @@ serde_json.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 tokio-util = "0.7.8"
-toml = "0.7.3"
+toml = "0.8.19"
 tracing.workspace = true
 tracing-subscriber = { version = "0.3.17", features = ["tracing-log"] }
 tracing-appender = "0.2.2"
