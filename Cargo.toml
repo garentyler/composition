@@ -1,8 +1,7 @@
-[workspace]
-members = ["crates/*"]
-resolver = "2"
-
-[workspace.package]
+[package]
+name = "composition"
+description = "An extremely fast Minecraft server"
+build = "build.rs"
 version = "0.1.0"
 authors = ["Garen Tyler <garentyler@garen.dev>"]
 repository = "https://github.com/garentyler/composition"
@@ -10,31 +9,28 @@ readme = "README.md"
 license = "MIT"
 edition = "2024"
 
-[workspace.dependencies]
+[[bin]]
+name = "composition"
+path = "src/main.rs"
+
+[features]
+default = []
+update_1_20 = []
+
+[dependencies]
 anyhow = "1.0.71"
 apecs = "0.8.4"
 async-trait = "0.1.68"
+base64 = "0.22.1"
 byteorder = "1.4.3"
-composition-core.path = "./crates/composition-core"
-composition-parsing.path = "./crates/composition-parsing"
-composition-protocol.path = "./crates/composition-protocol"
-composition-world.path = "./crates/composition-world"
+clap = { version = "4.2.7", features = ["derive"] }
+once_cell = "1.17.1"
 serde = { version = "1.0.160", features = ["serde_derive"] }
 serde_json = "1.0.96"
 thiserror = "2.0.3"
 tokio = { version = "1.28.0", features = ["full"] }
+tokio-util = "0.7.8"
+toml = "0.8.19"
 tracing = { version = "0.1.37", features = ["log"] }
-
-# Unused but possibly useful dependencies:
-# async-trait = "0.1.48"
-# backtrace = "0.3.50"
-# colorful = "0.2.1"
-# ctrlc = "3.1.8"
-# fastnbt = "*"
-# futures = "0.3.28"
-# mojang-api = "0.6.1"
-# ozelot = "0.9.0" # Ozelot 0.9.0 supports protocol version 578 (1.15.2)
-# quartz_nbt = { version = "0.2.6", features = ["serde"] }
-# radix64 = "0.6.2"
-# toml = "0.5.6"
-# uuid = "0.8.2"
+tracing-subscriber = { version = "0.3.17", features = ["tracing-log"] }
+tracing-appender = "0.2.2"
