@@ -122,7 +122,7 @@ impl Config {
     #[tracing::instrument]
     fn write(&self, path: &Path) {
         trace!("Config.write()");
-        if let Ok(mut file) = File::options().write(true).create(true).open(path) {
+        if let Ok(mut file) = File::options().write(true).create(true).truncate(true).open(path) {
             if file
                 .write_all(toml::to_string(&self).unwrap().as_bytes())
                 .is_ok()
@@ -136,7 +136,7 @@ impl Config {
     #[tracing::instrument]
     fn write_server_icon(&self, path: &Path) {
         trace!("Config.write_server_icon()");
-        if let Ok(mut file) = File::options().write(true).create(true).open(path) {
+        if let Ok(mut file) = File::options().write(true).create(true).truncate(true).open(path) {
             if file.write_all(&self.server_icon_bytes).is_ok() {
                 return;
             }

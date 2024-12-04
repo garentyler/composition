@@ -147,7 +147,7 @@ macro_rules! packet {
         }
         impl composition_parsing::parsable::Parsable for $packet_type {
             #[tracing::instrument]
-            fn parse<'data>(data: &'data [u8]) -> composition_parsing::ParseResult<'_, Self> {
+            fn parse<'data>(data: &'data [u8]) -> composition_parsing::ParseResult<'data, Self> {
                 $parse_body(data)
             }
             #[tracing::instrument]
