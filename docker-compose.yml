@@ -1,0 +1,15 @@
+# This file is only meant to provide a simple dev environment.
+# For prod images, look at docker-bake.hcl.
+services:
+  server:
+    container_name: composition
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    ports:
+      - "25565:25565"
+    volumes:
+      - .:/app
+      - .git:/app/.git

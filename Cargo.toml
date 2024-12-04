@@ -7,7 +7,7 @@ authors = ["Garen Tyler <garentyler@garen.dev>"]
 repository = "https://github.com/garentyler/composition"
 readme = "README.md"
 license = "MIT"
-edition = "2024"
+edition = "2021"
 
 [[bin]]
 name = "composition"
