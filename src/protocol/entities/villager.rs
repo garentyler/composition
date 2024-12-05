@@ -1,4 +1,4 @@
-use crate::protocol::mctypes::VarInt;
+use crate::protocol::types::VarInt;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub struct Villager {

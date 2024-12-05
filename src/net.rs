@@ -1,7 +1,7 @@
 use crate::protocol::{
     ClientState,
     packets::{GenericPacket, serverbound::SL00LoginStart},
-    parsing::parsable::Parsable,
+    parsing::Parsable,
 };
 use std::{collections::VecDeque, sync::Arc, time::Instant};
 use tokio::io::AsyncWriteExt;
@@ -148,11 +148,11 @@ impl NetworkClient {
                     data = d;
                     self.incoming_packet_queue.push_back(packet);
                 }
-                Err(crate::protocol::parsing::Error::Eof) => break,
-                Err(e) => {
+                Err(nom::Err::Incomplete(_)) => break,
+                Err(_) => {
                     // Remove the valid bytes before this packet.
                     self.incoming_data = self.incoming_data.split_off(bytes_consumed);
-                    return Err(e.into());
+                    return Err(crate::protocol::Error::Parsing);
                 }
             }
         }
@@ -218,7 +218,7 @@ impl NetworkClient {
         Ok(())
     }
     #[tracing::instrument]
-    pub async fn disconnect(&mut self, reason: Option<crate::protocol::mctypes::Chat>) {
+    pub async fn disconnect(&mut self, reason: Option<crate::protocol::types::Chat>) {
         use crate::protocol::packets::clientbound::{CL00Disconnect, CP17Disconnect};
         let reason = reason.unwrap_or(serde_json::json!({
             "text": "You have been disconnected!"

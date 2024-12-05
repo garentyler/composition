@@ -13,9 +13,9 @@ pub enum Error {
     /// This error was caused by attempting to send or receive data from a disconnected client.
     #[error("communicating to disconnected client")]
     Disconnected,
-    /// This error is a wrapper for `crate::parsing::Error`.
-    #[error(transparent)]
-    ParseError(#[from] crate::protocol::parsing::Error),
+    /// The data was not able to be parsed.
+    #[error("parsing")]
+    Parsing,
     /// This error is general purpose.
     /// When possible, other error variants should be used.
     #[error(transparent)]

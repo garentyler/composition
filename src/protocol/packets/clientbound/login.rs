@@ -1,5 +1,5 @@
-use crate::protocol::mctypes::{Chat, Json, Uuid, VarInt};
-use crate::protocol::parsing::parsable::Parsable;
+use crate::protocol::types::{Chat, Json, Uuid, VarInt};
+use crate::protocol::parsing::Parsable;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CL00Disconnect {
@@ -10,7 +10,7 @@ crate::protocol::packets::packet!(
     0x00,
     crate::protocol::ClientState::Login,
     false,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, CL00Disconnect> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], CL00Disconnect> {
         let (data, reason) = Json::parse(data)?;
         Ok((data, CL00Disconnect { reason }))
     },
@@ -28,7 +28,7 @@ crate::protocol::packets::packet!(
     0x01,
     crate::protocol::ClientState::Login,
     false,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, CL01EncryptionRequest> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], CL01EncryptionRequest> {
         let (data, server_id) = String::parse(data)?;
         let (data, public_key) = u8::parse_vec(data)?;
         let (data, verify_token) = u8::parse_vec(data)?;
@@ -62,7 +62,7 @@ pub struct CL02LoginSuccessProperty {
 }
 impl Parsable for CL02LoginSuccessProperty {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> crate::protocol::parsing::ParseResult<'_, Self> {
+    fn parse(data: &[u8]) -> crate::protocol::parsing::IResult<&[u8], Self> {
         let (data, name) = String::parse(data)?;
         let (data, value) = String::parse(data)?;
         let (data, signature) = String::parse_optional(data)?;
@@ -86,7 +86,7 @@ crate::protocol::packets::packet!(
     0x02,
     crate::protocol::ClientState::Login,
     false,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, CL02LoginSuccess> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], CL02LoginSuccess> {
         let (data, uuid) = Uuid::parse(data)?;
         let (data, username) = String::parse(data)?;
         let (data, properties) = CL02LoginSuccessProperty::parse_vec(data)?;
@@ -115,7 +115,7 @@ crate::protocol::packets::packet!(
     0x03,
     crate::protocol::ClientState::Login,
     false,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, CL03SetCompression> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], CL03SetCompression> {
         let (data, threshold) = VarInt::parse(data)?;
         Ok((data, CL03SetCompression { threshold }))
     },
@@ -133,7 +133,7 @@ crate::protocol::packets::packet!(
     0x04,
     crate::protocol::ClientState::Login,
     false,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, CL04LoginPluginRequest> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], CL04LoginPluginRequest> {
         let (data, message_id) = VarInt::parse(data)?;
         let (data, channel) = String::parse(data)?;
         Ok((data, CL04LoginPluginRequest {

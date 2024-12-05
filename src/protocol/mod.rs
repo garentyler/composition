@@ -7,7 +7,7 @@ pub mod error;
 /// Implementation of Minecraft's items and inventories.
 pub mod inventory;
 /// Useful types for representing the Minecraft protocol.
-pub mod mctypes;
+pub mod types;
 /// Network packets.
 ///
 /// The packet naming convention used is "DSIDName" where

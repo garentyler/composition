@@ -1,5 +1,5 @@
 use super::EntityId;
-use crate::protocol::mctypes::{Position, VarInt};
+use crate::protocol::types::{Position, VarInt};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Particle {

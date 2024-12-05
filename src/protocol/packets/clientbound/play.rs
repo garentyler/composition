@@ -1,6 +1,6 @@
 use crate::protocol::{
     entities::{EntityPosition, EntityRotation, EntityVelocity},
-    mctypes::{Chat, Difficulty, Position, Uuid, VarInt},
+    types::{Chat, Difficulty, Position, Uuid, VarInt},
 };
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -19,7 +19,7 @@ crate::protocol::packets::packet!(
     0x00,
     crate::protocol::ClientState::Play,
     false,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, CP00SpawnEntity> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], CP00SpawnEntity> {
         let (data, id) = VarInt::parse(data)?;
         let (data, uuid) = Uuid::parse(data)?;
         let (data, kind) = VarInt::parse(data)?;
@@ -64,7 +64,7 @@ crate::protocol::packets::packet!(
     0x0b,
     crate::protocol::ClientState::Play,
     false,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, CP0BChangeDifficulty> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], CP0BChangeDifficulty> {
         let (data, difficulty) = Difficulty::parse(data)?;
         let (data, is_locked) = bool::parse(data)?;
         Ok((data, CP0BChangeDifficulty {
@@ -89,7 +89,7 @@ crate::protocol::packets::packet!(
     0x17,
     crate::protocol::ClientState::Play,
     false,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, CP17Disconnect> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], CP17Disconnect> {
         let (data, reason) = Chat::parse(data)?;
         Ok((data, CP17Disconnect { reason }))
     },
@@ -105,7 +105,7 @@ crate::protocol::packets::packet!(
     0x1f,
     crate::protocol::ClientState::Play,
     false,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, CP1FKeepAlive> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], CP1FKeepAlive> {
         let (data, payload) = i64::parse(data)?;
         Ok((data, CP1FKeepAlive { payload }))
     },
@@ -124,7 +124,7 @@ crate::protocol::packets::packet!(
     0x21,
     crate::protocol::ClientState::Play,
     false,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, CP21WorldEvent> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], CP21WorldEvent> {
         let (data, event) = i32::parse(data)?;
         let (data, location) = Position::parse(data)?;
         let (data, d) = i32::parse(data)?;
@@ -156,7 +156,7 @@ crate::protocol::packets::packet!(
     0x50,
     crate::protocol::ClientState::Play,
     false,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, CP50SetEntityVelocity> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], CP50SetEntityVelocity> {
         let (data, entity_id) = VarInt::parse(data)?;
         let (data, entity_velocity) = EntityVelocity::parse(data)?;
         Ok((data, CP50SetEntityVelocity {
@@ -183,7 +183,7 @@ crate::protocol::packets::packet!(
     0x52,
     crate::protocol::ClientState::Play,
     false,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, CP52SetExperience> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], CP52SetExperience> {
         let (data, experience_bar) = f32::parse(data)?;
         let (data, total_experience) = VarInt::parse(data)?;
         let (data, level) = VarInt::parse(data)?;
@@ -219,7 +219,7 @@ crate::protocol::packets::packet!(
     0x68,
     crate::protocol::ClientState::Play,
     false,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, CP68EntityEffect> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], CP68EntityEffect> {
         let (data, entity_id) = VarInt::parse(data)?;
         let (data, effect_id) = VarInt::parse(data)?;
         let (data, amplifier) = i8::parse(data)?;

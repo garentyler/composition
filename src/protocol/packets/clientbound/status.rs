@@ -1,4 +1,4 @@
-use crate::protocol::mctypes::Json;
+use crate::protocol::types::Json;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CS00StatusResponse {
@@ -9,7 +9,7 @@ crate::protocol::packets::packet!(
     0x00,
     crate::protocol::ClientState::Status,
     false,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, CS00StatusResponse> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], CS00StatusResponse> {
         let (data, response) = Json::parse(data)?;
         Ok((data, CS00StatusResponse { response }))
     },
@@ -25,7 +25,7 @@ crate::protocol::packets::packet!(
     0x01,
     crate::protocol::ClientState::Status,
     false,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, CS01PingResponse> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], CS01PingResponse> {
         let (data, payload) = i64::parse(data)?;
         Ok((data, CS01PingResponse { payload }))
     },

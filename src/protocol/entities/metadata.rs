@@ -1,6 +1,6 @@
 use crate::protocol::{
     blocks::BlockFace,
-    mctypes::{Chat, Position, Uuid, VarInt},
+    types::{Chat, Position, Uuid, VarInt},
 };
 
 pub type EntityMetadata = Vec<EntityMetadataEntry>;

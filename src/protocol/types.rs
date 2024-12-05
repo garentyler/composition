@@ -1,10 +1,10 @@
-use crate::protocol::parsing::parsable::Parsable;
+use crate::protocol::parsing::{IResult, Parsable};
 
 /// Alias for a u128.
 pub type Uuid = u128;
 pub use crate::protocol::parsing::VarInt;
 /// Alias for a `serde_json::Value`.
-pub type Json = crate::protocol::parsing::serde_json::Value;
+pub type Json = serde_json::Value;
 /// Alias for a `Json`.
 pub type Chat = Json;
 
@@ -23,7 +23,7 @@ impl Position {
 }
 impl Parsable for Position {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> crate::protocol::parsing::ParseResult<'_, Self> {
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
         let (data, i) = i64::parse(data)?;
 
         // x: i26, z: i26, y: i12
@@ -67,12 +67,8 @@ impl TryFrom<u8> for Difficulty {
 }
 impl Parsable for Difficulty {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> crate::protocol::parsing::ParseResult<'_, Self> {
-        let (data, difficulty) = u8::parse(data)?;
-        let difficulty: Difficulty = difficulty
-            .try_into()
-            .expect("TODO: handle invalid difficulty");
-        Ok((data, difficulty))
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
+        nom::combinator::map_res(u8::parse, Difficulty::try_from)(data)
     }
     #[tracing::instrument]
     fn serialize(&self) -> Vec<u8> {

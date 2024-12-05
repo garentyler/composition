@@ -1,12 +1,50 @@
-use super::{Error, ParseResult, VarInt, take_bytes};
-use byteorder::{BigEndian, ReadBytesExt};
+pub use nom::IResult;
+use nom::{bytes::streaming::{take, take_while_m_n}, number::streaming as nom_nums, combinator::map_res};
+
+/// Implementation of the protocol's VarInt type.
+///
+/// Simple wrapper around an i32, but is parsed and serialized differently.
+/// When the original i32 value is needed, simply `Deref` it.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
+pub struct VarInt(i32);
+impl std::ops::Deref for VarInt {
+    type Target = i32;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl std::ops::DerefMut for VarInt {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+impl From<i32> for VarInt {
+    fn from(value: i32) -> Self {
+        VarInt(value)
+    }
+}
+impl From<VarInt> for i32 {
+    fn from(value: VarInt) -> Self {
+        *value
+    }
+}
+impl From<usize> for VarInt {
+    fn from(value: usize) -> Self {
+        (value as i32).into()
+    }
+}
+impl std::fmt::Display for VarInt {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
 
 /// A structure that can be serialized and deserialized.
 ///
 /// Similar to serde's `Serialize` and `Deserialize` traits.
 pub trait Parsable {
     /// Attempt to parse (deserialize) `Self` from the given byte slice.
-    fn parse(data: &[u8]) -> ParseResult<'_, Self>
+    fn parse(data: &[u8]) -> IResult<&[u8], Self>
     where
         Self: Sized;
     /// Serialize `self` into a vector of bytes.
@@ -16,7 +54,7 @@ pub trait Parsable {
     ///
     /// An `Option<T>` is represented in the protocol as
     /// a boolean optionally followed by `T` if the boolean was true.
-    fn parse_optional(data: &[u8]) -> ParseResult<'_, Option<Self>>
+    fn parse_optional(data: &[u8]) -> IResult<&[u8], Option<Self>>
     where
         Self: Sized,
     {
@@ -32,7 +70,7 @@ pub trait Parsable {
     /// Helper to parse `num` repetitions of `Self`.
     ///
     /// Useful with an array of known length.
-    fn parse_repeated(num: usize, mut data: &[u8]) -> ParseResult<'_, Vec<Self>>
+    fn parse_repeated(num: usize, mut data: &[u8]) -> IResult<&[u8], Vec<Self>>
     where
         Self: Sized,
     {
@@ -49,7 +87,7 @@ pub trait Parsable {
     ///
     /// In the protocol, arrays are commonly prefixed with their length
     /// as a `VarInt`.
-    fn parse_vec(data: &[u8]) -> ParseResult<'_, Vec<Self>>
+    fn parse_vec(data: &[u8]) -> IResult<&[u8], Vec<Self>>
     where
         Self: Sized,
     {
@@ -59,7 +97,7 @@ pub trait Parsable {
 }
 impl<T: Parsable + std::fmt::Debug> Parsable for Option<T> {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
         let (data, exists) = bool::parse(data)?;
         if exists {
             let (data, thing) = T::parse(data)?;
@@ -83,7 +121,7 @@ impl<T: Parsable + std::fmt::Debug> Parsable for Option<T> {
 }
 impl<T: Parsable + std::fmt::Debug> Parsable for Vec<T> {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
         T::parse_vec(data)
     }
     #[tracing::instrument]
@@ -99,10 +137,8 @@ impl<T: Parsable + std::fmt::Debug> Parsable for Vec<T> {
 
 impl Parsable for serde_json::Value {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
-        let (data, json) = String::parse(data)?;
-        let json = serde_json::from_str(&json)?;
-        Ok((data, json))
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
+        map_res(String::parse, |json: String| serde_json::from_str(&json))(data)
     }
     #[tracing::instrument]
     fn serialize(&self) -> Vec<u8> {
@@ -111,29 +147,14 @@ impl Parsable for serde_json::Value {
 }
 impl Parsable for VarInt {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
         let mut output = 0u32;
-        let mut bytes_read = 0;
 
-        for i in 0..=5 {
-            if i == 5 {
-                // VarInts can only have 5 bytes maximum.
-                return Err(Error::VarIntTooLong);
-            } else if data.len() <= i {
-                return Err(Error::Eof);
-            }
-
-            let byte = data[i];
-            output |= ((byte & 0x7f) as u32) << (7 * i);
-
-            if byte & 0x80 != 0x80 {
-                // We found the last byte of the VarInt.
-                bytes_read = i + 1;
-                break;
-            }
+        let (rest, bytes) = take_while_m_n(1, 5, |byte| byte & 0x80 == 0x80)(data)?;
+        for (i, &b) in bytes.iter().enumerate() {
+            output |= ((b & 0x7f) as u32) << (7 * i);
         }
-
-        Ok((&data[bytes_read..], VarInt(output as i32)))
+        Ok((rest, VarInt(output as i32)))
     }
     #[tracing::instrument]
     fn serialize(&self) -> Vec<u8> {
@@ -155,9 +176,9 @@ impl Parsable for VarInt {
 }
 impl Parsable for String {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
         let (data, len) = VarInt::parse(data)?;
-        let (data, str_bytes) = take_bytes(*len as usize)(data)?;
+        let (data, str_bytes) = take(*len as usize)(data)?;
         let s = String::from_utf8_lossy(str_bytes).to_string();
         Ok((data, s))
     }
@@ -171,10 +192,8 @@ impl Parsable for String {
 }
 impl Parsable for u8 {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
-        let (data, mut bytes) = take_bytes(1)(data)?;
-        let i = bytes.read_u8().map_err(|_| Error::Eof)?;
-        Ok((data, i))
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
+        nom_nums::u8(data)
     }
     #[tracing::instrument]
     fn serialize(&self) -> Vec<u8> {
@@ -183,10 +202,8 @@ impl Parsable for u8 {
 }
 impl Parsable for i8 {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
-        let (data, mut bytes) = take_bytes(1)(data)?;
-        let i = bytes.read_i8().map_err(|_| Error::Eof)?;
-        Ok((data, i))
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
+        nom_nums::i8(data)
     }
     #[tracing::instrument]
     fn serialize(&self) -> Vec<u8> {
@@ -195,10 +212,8 @@ impl Parsable for i8 {
 }
 impl Parsable for u16 {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
-        let (data, mut bytes) = take_bytes(2)(data)?;
-        let i = bytes.read_u16::<BigEndian>().map_err(|_| Error::Eof)?;
-        Ok((data, i))
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
+        nom_nums::be_u16(data)
     }
     #[tracing::instrument]
     fn serialize(&self) -> Vec<u8> {
@@ -207,10 +222,8 @@ impl Parsable for u16 {
 }
 impl Parsable for i16 {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
-        let (data, mut bytes) = take_bytes(2)(data)?;
-        let i = bytes.read_i16::<BigEndian>().map_err(|_| Error::Eof)?;
-        Ok((data, i))
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
+        nom_nums::be_i16(data)
     }
     #[tracing::instrument]
     fn serialize(&self) -> Vec<u8> {
@@ -219,10 +232,8 @@ impl Parsable for i16 {
 }
 impl Parsable for u32 {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
-        let (data, mut bytes) = take_bytes(4)(data)?;
-        let i = bytes.read_u32::<BigEndian>().map_err(|_| Error::Eof)?;
-        Ok((data, i))
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
+        nom_nums::be_u32(data)
     }
     #[tracing::instrument]
     fn serialize(&self) -> Vec<u8> {
@@ -231,10 +242,8 @@ impl Parsable for u32 {
 }
 impl Parsable for i32 {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
-        let (data, mut bytes) = take_bytes(4)(data)?;
-        let i = bytes.read_i32::<BigEndian>().map_err(|_| Error::Eof)?;
-        Ok((data, i))
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
+        nom_nums::be_i32(data)
     }
     #[tracing::instrument]
     fn serialize(&self) -> Vec<u8> {
@@ -243,10 +252,8 @@ impl Parsable for i32 {
 }
 impl Parsable for u64 {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
-        let (data, mut bytes) = take_bytes(8)(data)?;
-        let i = bytes.read_u64::<BigEndian>().map_err(|_| Error::Eof)?;
-        Ok((data, i))
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
+        nom_nums::be_u64(data)
     }
     #[tracing::instrument]
     fn serialize(&self) -> Vec<u8> {
@@ -255,10 +262,8 @@ impl Parsable for u64 {
 }
 impl Parsable for i64 {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
-        let (data, mut bytes) = take_bytes(8)(data)?;
-        let i = bytes.read_i64::<BigEndian>().map_err(|_| Error::Eof)?;
-        Ok((data, i))
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
+        nom_nums::be_i64(data)
     }
     #[tracing::instrument]
     fn serialize(&self) -> Vec<u8> {
@@ -267,10 +272,8 @@ impl Parsable for i64 {
 }
 impl Parsable for u128 {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
-        let (data, mut bytes) = take_bytes(16)(data)?;
-        let i = bytes.read_u128::<BigEndian>().map_err(|_| Error::Eof)?;
-        Ok((data, i))
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
+        nom_nums::be_u128(data)
     }
     #[tracing::instrument]
     fn serialize(&self) -> Vec<u8> {
@@ -279,10 +282,8 @@ impl Parsable for u128 {
 }
 impl Parsable for i128 {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
-        let (data, mut bytes) = take_bytes(16)(data)?;
-        let i = bytes.read_i128::<BigEndian>().map_err(|_| Error::Eof)?;
-        Ok((data, i))
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
+        nom_nums::be_i128(data)
     }
     #[tracing::instrument]
     fn serialize(&self) -> Vec<u8> {
@@ -291,10 +292,8 @@ impl Parsable for i128 {
 }
 impl Parsable for f32 {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
-        let (data, mut bytes) = take_bytes(4)(data)?;
-        let i = bytes.read_f32::<BigEndian>().map_err(|_| Error::Eof)?;
-        Ok((data, i))
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
+        nom_nums::be_f32(data)
     }
     #[tracing::instrument]
     fn serialize(&self) -> Vec<u8> {
@@ -303,10 +302,8 @@ impl Parsable for f32 {
 }
 impl Parsable for f64 {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
-        let (data, mut bytes) = take_bytes(8)(data)?;
-        let i = bytes.read_f64::<BigEndian>().map_err(|_| Error::Eof)?;
-        Ok((data, i))
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
+        nom_nums::be_f64(data)
     }
     #[tracing::instrument]
     fn serialize(&self) -> Vec<u8> {
@@ -315,9 +312,8 @@ impl Parsable for f64 {
 }
 impl Parsable for bool {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
-        let (data, bytes) = take_bytes(1)(data)?;
-        Ok((data, bytes[0] > 0x00))
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
+        nom_nums::u8(data).map(|(data, num)| (data, num > 0x00))
     }
     #[tracing::instrument]
     fn serialize(&self) -> Vec<u8> {
@@ -384,3 +380,4 @@ mod tests {
         }
     }
 }
+

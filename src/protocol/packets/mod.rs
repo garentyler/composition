@@ -3,8 +3,7 @@ pub mod clientbound;
 /// Packets that are heading to the server.
 pub mod serverbound;
 
-use crate::protocol::mctypes::VarInt;
-use crate::protocol::parsing::prelude::*;
+use crate::protocol::parsing::{VarInt, Parsable};
 
 /// Alias for a `VarInt`.
 pub type PacketId = VarInt;
@@ -31,16 +30,16 @@ macro_rules! generic_packet {
                 client_state: crate::protocol::ClientState,
                 is_serverbound: bool,
                 data: &'data [u8]
-            ) -> crate::protocol::parsing::ParseResult<'data, Self> {
-                use crate::protocol::parsing::parsable::Parsable;
+            ) -> crate::protocol::parsing::IResult<&'data [u8], Self> {
+                use crate::protocol::parsing::Parsable;
                 tracing::trace!(
                     "GenericPacket::parse_uncompressed: {:?} {} {:?}",
                     client_state,
                     is_serverbound,
                     data
                 );
-                let (data, packet_length) = crate::protocol::mctypes::VarInt::parse(data)?;
-                let (data, packet_data) = crate::protocol::parsing::take_bytes(*packet_length as usize)(data)?;
+                let (data, packet_length) = crate::protocol::types::VarInt::parse(data)?;
+                let (data, packet_data) = nom::bytes::streaming::take(*packet_length as usize)(data)?;
 
                 let (packet_data, packet_id) = PacketId::parse(packet_data)?;
                 let (_packet_data, packet_body) =
@@ -59,8 +58,8 @@ macro_rules! generic_packet {
                 packet_id: crate::protocol::packets::PacketId,
                 is_serverbound: bool,
                 data: &'data [u8],
-            ) -> crate::protocol::parsing::ParseResult<'data, Self> {
-                use crate::protocol::parsing::parsable::Parsable;
+            ) -> crate::protocol::parsing::IResult<&'data [u8], Self> {
+                use crate::protocol::parsing::Parsable;
                 tracing::trace!(
                     "GenericPacket::parse_body: {:?} {} {}",
                     client_state,
@@ -77,7 +76,7 @@ macro_rules! generic_packet {
 
             #[tracing::instrument]
             pub fn serialize(&self) -> (crate::protocol::packets::PacketId, Vec<u8>) {
-                use crate::protocol::parsing::parsable::Parsable;
+                use crate::protocol::parsing::Parsable;
                 tracing::trace!("GenericPacket::serialize: {:?}", self);
                 match self {
                     $(
@@ -96,7 +95,7 @@ packet!(
     0x00,
     crate::protocol::ClientState::Disconnected,
     false,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, UnimplementedPacket> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], UnimplementedPacket> {
         Ok((data, UnimplementedPacket(0i32.into())))
     },
     |_packet: &UnimplementedPacket| -> Vec<u8> { vec![] }
@@ -145,11 +144,11 @@ macro_rules! packet {
             const CLIENT_STATE: crate::protocol::ClientState = $client_state;
             const IS_SERVERBOUND: bool = $serverbound;
         }
-        impl crate::protocol::parsing::parsable::Parsable for $packet_type {
+        impl crate::protocol::parsing::Parsable for $packet_type {
             #[tracing::instrument]
             fn parse<'data>(
                 data: &'data [u8],
-            ) -> crate::protocol::parsing::ParseResult<'data, Self> {
+            ) -> crate::protocol::parsing::IResult<&'data [u8], Self> {
                 $parse_body(data)
             }
             #[tracing::instrument]

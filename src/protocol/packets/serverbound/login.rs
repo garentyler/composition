@@ -1,5 +1,5 @@
-use crate::protocol::mctypes::{Uuid, VarInt};
-use crate::protocol::parsing::take_bytes;
+use crate::protocol::types::{Uuid, VarInt};
+use nom::bytes::streaming::take;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SL00LoginStart {
@@ -11,7 +11,7 @@ crate::protocol::packets::packet!(
     0x00,
     crate::protocol::ClientState::Login,
     true,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, SL00LoginStart> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], SL00LoginStart> {
         let (data, name) = String::parse(data)?;
         let (data, has_uuid) = bool::parse(data)?;
         if has_uuid {
@@ -45,11 +45,11 @@ crate::protocol::packets::packet!(
     0x01,
     crate::protocol::ClientState::Login,
     true,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, SL01EncryptionResponse> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], SL01EncryptionResponse> {
         let (data, shared_secret_len) = VarInt::parse(data)?;
-        let (data, shared_secret) = take_bytes(*shared_secret_len as usize)(data)?;
+        let (data, shared_secret) = take(*shared_secret_len as usize)(data)?;
         let (data, verify_token_len) = VarInt::parse(data)?;
-        let (data, verify_token) = take_bytes(*verify_token_len as usize)(data)?;
+        let (data, verify_token) = take(*verify_token_len as usize)(data)?;
 
         Ok((data, SL01EncryptionResponse {
             shared_secret: shared_secret.to_vec(),
@@ -77,7 +77,7 @@ crate::protocol::packets::packet!(
     0x02,
     crate::protocol::ClientState::Login,
     true,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, SL02LoginPluginResponse> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], SL02LoginPluginResponse> {
         let (data, message_id) = VarInt::parse(data)?;
         let (data, successful) = bool::parse(data)?;
         if successful {

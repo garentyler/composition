@@ -1,4 +1,5 @@
-use crate::protocol::{ClientState, mctypes::VarInt};
+use crate::protocol::{ClientState, types::VarInt};
+use nom::combinator::map_res;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SH00Handshake {
@@ -12,21 +13,22 @@ crate::protocol::packets::packet!(
     0x00,
     ClientState::Handshake,
     true,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, SH00Handshake> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], SH00Handshake> {
         let (data, protocol_version) = VarInt::parse(data)?;
         let (data, server_address) = String::parse(data)?;
         let (data, server_port) = u16::parse(data)?;
-        let (data, next_state) = VarInt::parse(data)?;
+        // let (data, next_state) = VarInt::parse(data)?;
+        let (data, next_state) = map_res(VarInt::parse, |next_state: VarInt| match *next_state {
+            1 => Ok(ClientState::Status),
+            2 => Ok(ClientState::Login),
+            _ => Err(()),
+        })(data)?;
 
         Ok((data, SH00Handshake {
             protocol_version,
             server_address,
             server_port,
-            next_state: match *next_state {
-                1 => ClientState::Status,
-                2 => ClientState::Login,
-                _ => todo!("Invalid next state"),
-            },
+            next_state,
         }))
     },
     |packet: &SH00Handshake| -> Vec<u8> {

@@ -7,10 +7,10 @@ pub mod player;
 pub mod sniffer;
 pub mod villager;
 
-use crate::protocol::parsing::{ParseResult, parsable::Parsable};
+use crate::protocol::parsing::{IResult, Parsable};
 use crate::protocol::{
     blocks::BlockPosition,
-    mctypes::{Chat, Uuid, VarInt},
+    types::{Chat, Uuid, VarInt},
 };
 
 pub type EntityId = VarInt;
@@ -24,7 +24,7 @@ pub struct EntityPosition {
 }
 impl Parsable for EntityPosition {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
         let (data, x) = f64::parse(data)?;
         let (data, y) = f64::parse(data)?;
         let (data, z) = f64::parse(data)?;
@@ -47,7 +47,7 @@ pub struct EntityRotation {
 }
 impl Parsable for EntityRotation {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
         let (data, pitch) = u8::parse(data)?;
         let (data, yaw) = u8::parse(data)?;
         Ok((data, EntityRotation { pitch, yaw }))
@@ -69,7 +69,7 @@ pub struct EntityVelocity {
 }
 impl Parsable for EntityVelocity {
     #[tracing::instrument]
-    fn parse(data: &[u8]) -> ParseResult<'_, Self> {
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
         let (data, x) = i16::parse(data)?;
         let (data, y) = i16::parse(data)?;
         let (data, z) = i16::parse(data)?;

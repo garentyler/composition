@@ -5,7 +5,7 @@ crate::protocol::packets::packet!(
     0x00,
     crate::protocol::ClientState::Status,
     true,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, SS00StatusRequest> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], SS00StatusRequest> {
         Ok((data, SS00StatusRequest))
     },
     |_packet: &SS00StatusRequest| -> Vec<u8> { vec![] }
@@ -20,7 +20,7 @@ crate::protocol::packets::packet!(
     0x01,
     crate::protocol::ClientState::Status,
     true,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, SS01PingRequest> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], SS01PingRequest> {
         let (data, payload) = i64::parse(data)?;
         Ok((data, SS01PingRequest { payload }))
     },

@@ -1,6 +1,6 @@
 use crate::protocol::{
     entities::{EntityPosition, EntityRotation},
-    mctypes::VarInt,
+    types::VarInt,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -13,7 +13,7 @@ crate::protocol::packets::packet!(
     0x08,
     crate::protocol::ClientState::Play,
     true,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, SP08CommandSuggestionsRequest> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], SP08CommandSuggestionsRequest> {
         let (data, transaction_id) = VarInt::parse(data)?;
         let (data, text) = String::parse(data)?;
         Ok((data, SP08CommandSuggestionsRequest {
@@ -38,7 +38,7 @@ crate::protocol::packets::packet!(
     0x11,
     crate::protocol::ClientState::Play,
     true,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, SP11KeepAlive> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], SP11KeepAlive> {
         let (data, payload) = i64::parse(data)?;
         Ok((data, SP11KeepAlive { payload }))
     },
@@ -55,7 +55,7 @@ crate::protocol::packets::packet!(
     0x13,
     crate::protocol::ClientState::Play,
     true,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, SP13SetPlayerPosition> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], SP13SetPlayerPosition> {
         let (data, position) = EntityPosition::parse(data)?;
         let (data, on_ground) = bool::parse(data)?;
         Ok((data, SP13SetPlayerPosition {
@@ -82,7 +82,7 @@ crate::protocol::packets::packet!(
     0x14,
     crate::protocol::ClientState::Play,
     true,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, SP14SetPlayerPositionAndRotation> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], SP14SetPlayerPositionAndRotation> {
         let (data, position) = EntityPosition::parse(data)?;
         let (data, rotation) = EntityRotation::parse(data)?;
         let (data, on_ground) = bool::parse(data)?;
@@ -111,7 +111,7 @@ crate::protocol::packets::packet!(
     0x15,
     crate::protocol::ClientState::Play,
     true,
-    |data: &'data [u8]| -> crate::protocol::parsing::ParseResult<'data, SP15SetPlayerRotation> {
+    |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], SP15SetPlayerRotation> {
         let (data, rotation) = EntityRotation::parse(data)?;
         let (data, on_ground) = bool::parse(data)?;
         Ok((data, SP15SetPlayerRotation {

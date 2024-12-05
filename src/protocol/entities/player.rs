@@ -1,4 +1,4 @@
-use crate::protocol::mctypes::VarInt;
+use crate::protocol::types::VarInt;
 
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct Player {
