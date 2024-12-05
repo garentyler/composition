@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 /// Worlds are divided into chunks.
 pub mod chunks;
 /// When managing a `World` encounters errors.
@@ -6,11 +8,11 @@ pub mod error;
 pub mod generators;
 /// Useful re-exports.
 pub mod prelude {
-    pub use super::{chunks::Chunk, World};
+    // pub use super::{chunks::Chunk, World};
 }
 
 pub use crate::protocol::{blocks, entities};
-pub use error::{Error, Result};
+pub use error::Result;
 
 use crate::world::chunks::{Chunk, ChunkPosition};
 use blocks::{Block, BlockPosition};

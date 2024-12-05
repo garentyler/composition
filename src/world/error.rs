@@ -5,8 +5,6 @@ pub enum Error {
     OutOfBounds,
     #[error(transparent)]
     Io(#[from] std::io::Error),
-    #[error(transparent)]
-    Other(#[from] anyhow::Error),
 }
 
 /// Alias for a Result with the error type `composition_world::Error`.

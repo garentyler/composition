@@ -1,12 +1,13 @@
+/// Server-specific configuration.
+pub mod config;
 /// When managing the server encounters errors.
 pub mod error;
 /// Network operations.
 pub mod net;
-/// Server-specific configuration.
-pub mod config;
 
 use crate::config::Config;
 use crate::protocol::ClientState;
+use config::ServerConfig;
 use error::Result;
 use net::{NetworkClient, NetworkClientState};
 use std::sync::Arc;
@@ -26,7 +27,11 @@ impl Server {
     #[tracing::instrument]
     pub async fn run() {
         let config = Config::instance();
-        info!("Starting {} on port {}", config.global.version, config.server.port);
+        info!(
+            "Starting {} on port {}",
+            ServerConfig::default().version,
+            config.server.port
+        );
         let (mut server, running) = Self::new(format!("0.0.0.0:{}", config.server.port)).await;
         info!(
             "Done! Start took {:?}",
@@ -57,7 +62,7 @@ impl Server {
         }
     }
     #[tracing::instrument]
-    pub async fn new<A: 'static + ToSocketAddrs + Send + std::fmt::Debug>(
+    async fn new<A: 'static + ToSocketAddrs + Send + std::fmt::Debug>(
         bind_address: A,
     ) -> (Server, CancellationToken) {
         trace!("Server::new()");

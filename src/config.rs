@@ -1,12 +1,15 @@
 use clap::Arg;
 use once_cell::sync::{Lazy, OnceCell};
 use serde::{Deserialize, Serialize};
+use std::ffi::OsStr;
 use std::io::{Read, Write};
 use std::{fs::File, path::Path, path::PathBuf};
 use tracing::{error, trace, warn};
-use std::ffi::OsStr;
 
-use crate::server::config::{ServerConfig, ServerArgs, DEFAULT_SERVER_ARGS};
+#[cfg(feature = "proxy")]
+use crate::proxy::config::{ProxyArgs, ProxyConfig};
+#[cfg(feature = "server")]
+use crate::server::config::{ServerArgs, ServerConfig};
 
 /// The globally-accessible static instance of Config.
 /// On program startup, Config::load() should be called to initialize it.
@@ -35,9 +38,27 @@ pub fn read_file(path: &Path) -> std::io::Result<Vec<u8>> {
 pub struct Config {
     #[serde(rename = "composition")]
     pub global: GlobalConfig,
+    #[cfg(feature = "server")]
     pub server: ServerConfig,
+    #[cfg(feature = "proxy")]
+    pub proxy: ProxyConfig,
 }
 impl Config {
+    pub fn get_formatted_version(subcommand: Subcommand) -> String {
+        format!(
+            "composition{} {} ({} {})",
+            match subcommand {
+                Subcommand::None => "",
+                #[cfg(feature = "server")]
+                Subcommand::Server => "",
+                #[cfg(feature = "proxy")]
+                Subcommand::Proxy => "-proxy",
+            },
+            env!("CARGO_PKG_VERSION"),
+            &env!("GIT_HASH")[0..9],
+            &env!("GIT_DATE")[0..10]
+        )
+    }
     pub fn instance() -> &'static Self {
         match CONFIG.get() {
             Some(a) => a,
@@ -69,13 +90,10 @@ impl Config {
             error!("Could not read configuration file, using default");
         }
 
-        // Load the server icon
-        config.server.server_icon = args
-            .server
-            .as_ref()
-            .map(|s| s.server_icon.clone())
-            .unwrap_or(DEFAULT_SERVER_ARGS.server_icon.clone());
-        config.server.load_icon();
+        #[cfg(feature = "server")]
+        {
+            config.server.load_icon();
+        }
 
         CONFIG.set(config).expect("could not set CONFIG");
         Self::instance()
@@ -117,12 +135,7 @@ pub struct GlobalConfig {
 impl Default for GlobalConfig {
     fn default() -> Self {
         GlobalConfig {
-            version: format!(
-                "composition {} ({} {})",
-                env!("CARGO_PKG_VERSION"),
-                &env!("GIT_HASH")[0..9],
-                &env!("GIT_DATE")[0..10]
-            ),
+            version: Config::get_formatted_version(Subcommand::None),
             protocol_version: 762,
             game_version: "1.19.4".to_owned(),
             threads: None,
@@ -135,10 +148,14 @@ impl GlobalConfig {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Default)]
 pub enum Subcommand {
+    #[default]
     None,
+    #[cfg(feature = "server")]
     Server,
+    #[cfg(feature = "proxy")]
+    Proxy,
 }
 
 /// All of the valid command line arguments for the composition binary.
@@ -150,7 +167,10 @@ pub struct Args {
     pub log_level: Option<tracing::Level>,
     pub log_dir: PathBuf,
     pub subcommand: Subcommand,
+    #[cfg(feature = "server")]
     pub server: Option<ServerArgs>,
+    #[cfg(feature = "proxy")]
+    pub proxy: Option<ProxyArgs>,
 }
 impl Default for Args {
     fn default() -> Self {
@@ -159,7 +179,10 @@ impl Default for Args {
             log_level: None,
             log_dir: PathBuf::from("logs"),
             subcommand: Subcommand::None,
+            #[cfg(feature = "server")]
             server: None,
+            #[cfg(feature = "proxy")]
+            proxy: None,
         }
     }
 }
@@ -174,8 +197,9 @@ impl Args {
         ARGS.set(Self::parse()).expect("could not set ARGS");
         Self::instance()
     }
+    #[allow(unused_mut)]
     fn command() -> clap::Command {
-        clap::Command::new("composition")
+        let mut cmd = clap::Command::new("composition")
             .about(env!("CARGO_PKG_DESCRIPTION"))
             .disable_version_flag(true)
             .arg(
@@ -221,9 +245,18 @@ impl Args {
                     .value_name("dir")
                     .value_hint(clap::ValueHint::DirPath)
                     .default_value(OsStr::new(&DEFAULT_ARGS.log_dir)),
-            )
-            .subcommand(ServerArgs::command())
+            );
+        #[cfg(feature = "server")]
+        {
+            cmd = cmd.subcommand(ServerArgs::command());
+        }
+        #[cfg(feature = "proxy")]
+        {
+            cmd = cmd.subcommand(ProxyArgs::command());
+        }
+        cmd
     }
+    #[allow(unreachable_code)]
     fn parse() -> Self {
         let mut args = Self::default();
         let m = Self::command().get_matches();
@@ -257,9 +290,15 @@ impl Args {
         }
 
         match m.subcommand() {
+            #[cfg(feature = "server")]
             Some(("server", m)) => {
                 args.subcommand = Subcommand::Server;
                 args.server = Some(ServerArgs::parse(m.clone()))
+            }
+            #[cfg(feature = "proxy")]
+            Some(("proxy", m)) => {
+                args.subcommand = Subcommand::Proxy;
+                args.proxy = Some(ProxyArgs::parse(m.clone()))
             }
             None => {
                 let _ = Self::command().print_help();

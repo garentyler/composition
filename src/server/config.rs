@@ -1,11 +1,11 @@
+use crate::config::{read_file, Args, Config};
 use clap::Arg;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use std::ffi::OsStr;
 use std::io::Write;
 use std::{fs::File, path::Path, path::PathBuf};
 use tracing::{error, trace, warn};
-use crate::config::{Config, Args, read_file};
-use std::ffi::OsStr;
 
 pub static DEFAULT_SERVER_ARGS: Lazy<ServerArgs> = Lazy::new(ServerArgs::default);
 
@@ -14,6 +14,8 @@ pub static DEFAULT_SERVER_ARGS: Lazy<ServerArgs> = Lazy::new(ServerArgs::default
 #[serde(rename_all = "kebab-case")]
 #[serde(default)]
 pub struct ServerConfig {
+    #[serde(rename = "version-string")]
+    pub version: String,
     pub port: u16,
     pub max_players: usize,
     pub motd: String,
@@ -24,6 +26,7 @@ pub struct ServerConfig {
 impl Default for ServerConfig {
     fn default() -> Self {
         ServerConfig {
+            version: Config::get_formatted_version(crate::config::Subcommand::Server),
             port: 25565,
             max_players: 20,
             motd: "Hello world!".to_owned(),
@@ -36,7 +39,13 @@ impl ServerConfig {
     pub fn instance() -> &'static Self {
         &Config::instance().server
     }
+    /// Load the server icon.
     pub fn load_icon(&mut self) {
+        self.server_icon = ServerArgs::instance()
+            .as_ref()
+            .map(|s| s.server_icon.clone())
+            .unwrap_or(DEFAULT_SERVER_ARGS.server_icon.clone());
+
         let server_icon_path = Path::new(&self.server_icon);
 
         if server_icon_path.exists() {

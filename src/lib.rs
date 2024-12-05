@@ -2,10 +2,15 @@
 pub mod config;
 /// The Minecraft protocol implemented in a network-agnostic way.
 pub mod protocol;
+/// A proxy server.
+#[cfg(feature = "proxy")]
+pub(crate) mod proxy;
 /// The core server implementation.
+#[cfg(feature = "server")]
 pub(crate) mod server;
 /// A Minecraft world generator implementation that allows for custom worlds.
-pub mod world;
+#[cfg(feature = "world")]
+pub(crate) mod world;
 
 use config::Subcommand;
 use once_cell::sync::OnceCell;
@@ -18,7 +23,10 @@ pub static START_TIME: OnceCell<Instant> = OnceCell::new();
 
 pub async fn run(command: Subcommand) {
     match command {
+        #[cfg(feature = "server")]
         Subcommand::Server => server::Server::run().await,
+        #[cfg(feature = "proxy")]
+        Subcommand::Proxy => proxy::Proxy::run().await,
         Subcommand::None => unreachable!(),
     }
 }

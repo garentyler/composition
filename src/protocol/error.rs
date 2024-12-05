@@ -16,10 +16,6 @@ pub enum Error {
     /// The data was not able to be parsed.
     #[error("parsing")]
     Parsing,
-    /// This error is general purpose.
-    /// When possible, other error variants should be used.
-    #[error(transparent)]
-    Other(#[from] anyhow::Error),
 }
 
 /// Alias for a Result with the error type `composition_protocol::Error`.
