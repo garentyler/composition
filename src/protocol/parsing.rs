@@ -2,7 +2,8 @@ pub use nom::IResult;
 use nom::{
     bytes::streaming::{take, take_while_m_n},
     combinator::map_res,
-    number::streaming as nom_nums, Parser,
+    number::streaming as nom_nums,
+    Parser,
 };
 
 /// Implementation of the protocol's VarInt type.
@@ -11,6 +12,11 @@ use nom::{
 /// When the original i32 value is needed, simply `Deref` it.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Hash)]
 pub struct VarInt(i32);
+impl VarInt {
+    pub fn parse_usize(data: &[u8]) -> IResult<&[u8], usize> {
+        nom::combinator::map_res(Self::parse, usize::try_from)(data)
+    }
+}
 impl std::ops::Deref for VarInt {
     type Target = i32;
     fn deref(&self) -> &Self::Target {
@@ -35,6 +41,12 @@ impl From<VarInt> for i32 {
 impl From<usize> for VarInt {
     fn from(value: usize) -> Self {
         (value as i32).into()
+    }
+}
+impl TryFrom<VarInt> for usize {
+    type Error = <usize as TryFrom<i32>>::Error;
+    fn try_from(value: VarInt) -> Result<Self, Self::Error> {
+        usize::try_from(*value)
     }
 }
 impl std::fmt::Display for VarInt {

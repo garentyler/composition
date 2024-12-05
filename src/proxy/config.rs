@@ -37,16 +37,9 @@ impl ProxyConfig {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ProxyArgs {
     upstream: String,
-}
-impl Default for ProxyArgs {
-    fn default() -> Self {
-        ProxyArgs {
-            upstream: String::new(),
-        }
-    }
 }
 impl ProxyArgs {
     pub fn instance() -> Option<&'static Self> {

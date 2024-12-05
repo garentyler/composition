@@ -199,7 +199,8 @@ impl Server {
             .filter(|client| matches!(client.state, NetworkClientState::Play))
             .count();
         'clients: for client in clients.iter_mut() {
-            use crate::protocol::packets::{clientbound::*, serverbound::*};
+            use crate::protocol::packets;
+
             'packets: while !client.incoming_packet_queue.is_empty() {
                 // client.read_packet()
                 // None: The client doesn't have any more packets.
@@ -207,7 +208,9 @@ impl Server {
                 // Some(Ok(_)): The client read the expected packet.
                 match client.state.clone() {
                     NetworkClientState::Handshake => {
-                        let handshake = match client.read_packet::<SH00Handshake>() {
+                        use packets::handshake::serverbound::Handshake;
+
+                        let handshake = match client.read_packet::<Handshake>() {
                             None => continue 'packets,
                             Some(Err(_)) => continue 'clients,
                             Some(Ok(handshake)) => handshake,
@@ -235,7 +238,11 @@ impl Server {
                         received_request,
                         received_ping,
                     } if !received_request => {
-                        let _status_request = match client.read_packet::<SS00StatusRequest>() {
+                        use packets::status::{
+                            clientbound::StatusResponse, serverbound::StatusRequest,
+                        };
+
+                        let _status_request = match client.read_packet::<StatusRequest>() {
                             None => continue 'packets,
                             Some(Err(_)) => continue 'clients,
                             Some(Ok(p)) => p,
@@ -246,7 +253,7 @@ impl Server {
                         };
                         let config = Config::instance();
                         use base64::Engine;
-                        client.queue_packet(CS00StatusResponse {
+                        client.queue_packet(StatusResponse {
                             response: serde_json::json!({
                                 "version": {
                                     "name": config.global.game_version,
@@ -267,19 +274,25 @@ impl Server {
                     }
                     // Status !received_ping: Read SS00StatusRequest and respond with CS00StatusResponse
                     NetworkClientState::Status { received_ping, .. } if !received_ping => {
-                        let ping = match client.read_packet::<SS01PingRequest>() {
+                        use packets::status::{
+                            clientbound::PingResponse, serverbound::PingRequest,
+                        };
+
+                        let ping = match client.read_packet::<PingRequest>() {
                             None => continue 'packets,
                             Some(Err(_)) => continue 'clients,
                             Some(Ok(p)) => p,
                         };
-                        client.queue_packet(CS01PingResponse {
+                        client.queue_packet(PingResponse {
                             payload: ping.payload,
                         });
                         client.state = NetworkClientState::Disconnected;
                     }
                     NetworkClientState::Status { .. } => unreachable!(),
                     NetworkClientState::Login { received_start, .. } if !received_start.0 => {
-                        let login_start = match client.read_packet::<SL00LoginStart>() {
+                        use packets::login::{clientbound::*, serverbound::*};
+
+                        let login_start = match client.read_packet::<LoginStart>() {
                             None => continue 'packets,
                             Some(Err(_)) => continue 'clients,
                             Some(Ok(p)) => p,
@@ -287,7 +300,7 @@ impl Server {
                         // TODO: Authenticate the user.
                         // TODO: Get the user from the stored database.
                         // TODO: Encryption/compression.
-                        client.queue_packet(CL02LoginSuccess {
+                        client.queue_packet(LoginSuccess {
                             uuid: login_start.uuid.unwrap_or(0u128),
                             username: login_start.name.clone(),
                             properties: vec![],

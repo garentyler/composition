@@ -8,12 +8,8 @@ pub mod error;
 pub mod inventory;
 /// Network packets.
 ///
-/// The packet naming convention used is "DSIDName" where
-/// 'D' is either 'S' for serverbound or 'C' for clientbound,
-/// 'S' is the current connection state (**H**andshake, **S**tatus, **L**ogin, or **P**lay),
-/// "ID" is the packet id in uppercase hexadecimal (ex. 1B, 05, 3A),
-/// and "Name" is the packet's name as found on [wiki.vg](https://wiki.vg/Protocol) in PascalCase.
-/// Examples include "SH00Handshake", "CP00SpawnEntity", and "SP11KeepAlive".
+/// Packet names are as found on [wiki.vg](https://wiki.vg/Protocol)
+/// in PascalCase, with some exceptions for uniqueness.
 pub mod packets;
 /// Useful shared parsing functions.
 pub mod parsing;
@@ -27,13 +23,14 @@ use types::VarInt;
 ///
 /// Parsing packets requires knowing which state the connection is in.
 /// [Relevant wiki.vg page](https://wiki.vg/How_to_Write_a_Server#FSM_example_of_handling_new_TCP_connections)
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
 pub enum ClientState {
     /// The connection is freshly established.
     ///
     /// The only packet in this state is `SH00Handshake`.
     /// After this packet is sent, the connection immediately
     /// transitions to `Status` or `Login`.
+    #[default]
     Handshake,
     /// The client is performing [server list ping](https://wiki.vg/Server_List_Ping).
     Status,
@@ -59,8 +56,8 @@ impl parsing::Parsable for ClientState {
     }
     fn serialize(&self) -> Vec<u8> {
         let byte = match &self {
-            &ClientState::Status => 1,
-            &ClientState::Login => 2,
+            ClientState::Status => 1,
+            ClientState::Login => 2,
             _ => 0,
         };
         vec![byte]

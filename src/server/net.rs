@@ -1,5 +1,5 @@
 use crate::protocol::{
-    packets::{serverbound::SL00LoginStart, GenericPacket},
+    packets::{self, Packet, PacketDirection},
     parsing::Parsable,
     ClientState,
 };
@@ -30,7 +30,7 @@ pub(crate) enum NetworkClientState {
     /// The client sent `SH00Handshake` with `next_state = ClientState::Login`
     /// and is attempting to join the server.
     Login {
-        received_start: (bool, Option<SL00LoginStart>),
+        received_start: (bool, Option<packets::login::serverbound::LoginStart>),
     },
     /// The server sent `CL02LoginSuccess` and transitioned to `Play`.
     #[allow(dead_code)]
@@ -76,13 +76,13 @@ pub(crate) struct NetworkClient {
     incoming_data: VecDeque<u8>,
     /// Packets get appended to the back as they get read,
     /// and popped from the front as they get handled.
-    pub incoming_packet_queue: VecDeque<GenericPacket>,
+    pub incoming_packet_queue: VecDeque<Packet>,
     /// Keeps track of the last time the client sent data.
     ///
     /// This is useful for removing clients that have timed out.
     pub last_received_data_time: Instant,
     /// Packets get appended to the back and get popped from the front as they get sent.
-    pub outgoing_packet_queue: VecDeque<GenericPacket>,
+    pub outgoing_packet_queue: VecDeque<Packet>,
 }
 impl NetworkClient {
     #[tracing::instrument]
@@ -139,7 +139,11 @@ impl NetworkClient {
 
         let mut bytes_consumed = 0;
         while !data.is_empty() {
-            let p = GenericPacket::parse_uncompressed(self.state.clone().into(), true, data);
+            let p = Packet::parse(
+                self.state.clone().into(),
+                PacketDirection::Serverbound,
+                data,
+            );
             trace!("{} got {:?}", self.id, p);
             match p {
                 Ok((d, packet)) => {
@@ -166,9 +170,9 @@ impl NetworkClient {
     // Some(Err(())): The packet was the wrong type.
     // Some(Ok(_)): The packet was successfully read.
     #[tracing::instrument]
-    pub fn read_packet<P: std::fmt::Debug + TryFrom<GenericPacket>>(
+    pub fn read_packet<P: std::fmt::Debug + TryFrom<Packet>>(
         &mut self,
-    ) -> Option<std::result::Result<P, GenericPacket>> {
+    ) -> Option<std::result::Result<P, Packet>> {
         if let Some(generic_packet) = self.incoming_packet_queue.pop_back() {
             if let Ok(packet) = TryInto::<P>::try_into(generic_packet.clone()) {
                 Some(Ok(packet))
@@ -181,7 +185,7 @@ impl NetworkClient {
         }
     }
     #[tracing::instrument]
-    pub fn queue_packet<P: std::fmt::Debug + Into<GenericPacket>>(&mut self, packet: P) {
+    pub fn queue_packet<P: std::fmt::Debug + Into<Packet>>(&mut self, packet: P) {
         self.outgoing_packet_queue.push_back(packet.into());
     }
     #[tracing::instrument]
@@ -195,11 +199,11 @@ impl NetworkClient {
         Ok(())
     }
     #[tracing::instrument]
-    pub async fn send_packet<P: std::fmt::Debug + Into<GenericPacket>>(
+    pub async fn send_packet<P: std::fmt::Debug + Into<Packet>>(
         &self,
         packet: P,
     ) -> tokio::io::Result<()> {
-        let packet: GenericPacket = packet.into();
+        let packet: Packet = packet.into();
 
         debug!("Sending packet {:?} to client {}", packet, self.id);
         let (packet_id, mut packet_body) = packet.serialize();
@@ -219,7 +223,8 @@ impl NetworkClient {
     }
     #[tracing::instrument]
     pub async fn disconnect(&mut self, reason: Option<crate::protocol::types::Chat>) {
-        use crate::protocol::packets::clientbound::{CL00Disconnect, CP17Disconnect};
+        use packets::{login::clientbound::LoginDisconnect, play::clientbound::PlayDisconnect};
+
         let reason = reason.unwrap_or(serde_json::json!({
             "text": "You have been disconnected!"
         }));
@@ -229,10 +234,10 @@ impl NetworkClient {
                 // Impossible to send a disconnect in these states.
             }
             ClientState::Login => {
-                let _ = self.send_packet(CL00Disconnect { reason }).await;
+                let _ = self.send_packet(LoginDisconnect { reason }).await;
             }
             ClientState::Play => {
-                let _ = self.send_packet(CP17Disconnect { reason }).await;
+                let _ = self.send_packet(PlayDisconnect { reason }).await;
             }
         }
 
