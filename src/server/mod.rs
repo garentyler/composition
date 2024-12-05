@@ -2,6 +2,8 @@
 pub mod error;
 /// Network operations.
 pub mod net;
+/// Server-specific configuration.
+pub mod config;
 
 use crate::config::Config;
 use crate::protocol::ClientState;
@@ -23,9 +25,9 @@ impl Server {
     /// Start the server.
     #[tracing::instrument]
     pub async fn run() {
-        let config = crate::config::Config::instance();
-        info!("Starting {} on port {}", config.server_version, config.port);
-        let (mut server, running) = Self::new(format!("0.0.0.0:{}", Config::instance().port)).await;
+        let config = Config::instance();
+        info!("Starting {} on port {}", config.global.version, config.server.port);
+        let (mut server, running) = Self::new(format!("0.0.0.0:{}", config.server.port)).await;
         info!(
             "Done! Start took {:?}",
             crate::START_TIME.get().unwrap().elapsed()
@@ -242,18 +244,18 @@ impl Server {
                         client.queue_packet(CS00StatusResponse {
                             response: serde_json::json!({
                                 "version": {
-                                    "name": config.game_version,
-                                    "protocol": config.protocol_version
+                                    "name": config.global.game_version,
+                                    "protocol": config.global.protocol_version
                                 },
                                 "players": {
-                                    "max": config.max_players,
+                                    "max": config.server.max_players,
                                     "online": online_players,
                                     "sample": []
                                 },
                                 "description": {
-                                    "text": config.motd
+                                    "text": config.server.motd
                                 },
-                                "favicon": format!("data:image/png;base64,{}", base64::engine::general_purpose::STANDARD_NO_PAD.encode(&config.server_icon_bytes)),
+                                "favicon": format!("data:image/png;base64,{}", base64::engine::general_purpose::STANDARD_NO_PAD.encode(&config.server.server_icon_bytes)),
                                 "enforcesSecureChat": true
                             }),
                         });

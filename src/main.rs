@@ -38,7 +38,7 @@ pub fn main() {
     // Load the config.
     let config = composition::config::Config::instance();
 
-    match config.server_threads {
+    match config.global.threads {
         Some(1) => {
             warn!("Running on only one thread");
             tokio::runtime::Builder::new_current_thread()

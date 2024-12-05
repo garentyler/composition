@@ -4,6 +4,9 @@ use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
 use std::{fs::File, path::Path, path::PathBuf};
 use tracing::{error, trace, warn};
+use std::ffi::OsStr;
+
+use crate::server::config::{ServerConfig, ServerArgs, DEFAULT_SERVER_ARGS};
 
 /// The globally-accessible static instance of Config.
 /// On program startup, Config::load() should be called to initialize it.
@@ -13,12 +16,11 @@ pub static CONFIG: OnceCell<Config> = OnceCell::new();
 /// On program startup, Args::load() should be called to initialize it.
 pub static ARGS: OnceCell<Args> = OnceCell::new();
 static DEFAULT_ARGS: Lazy<Args> = Lazy::new(Args::default);
-static DEFAULT_SERVER_ARGS: Lazy<ServerArgs> = Lazy::new(ServerArgs::default);
 
 /// Helper function to read a file from a `Path`
 /// and return its bytes as a `Vec<u8>`.
 #[tracing::instrument]
-fn read_file(path: &Path) -> std::io::Result<Vec<u8>> {
+pub fn read_file(path: &Path) -> std::io::Result<Vec<u8>> {
     trace!("{:?}", path);
     let mut data = vec![];
     let mut file = File::open(path)?;
@@ -26,45 +28,14 @@ fn read_file(path: &Path) -> std::io::Result<Vec<u8>> {
     Ok(data)
 }
 
-/// The main server configuration struct.
-#[derive(Debug, Deserialize, Serialize)]
+/// The global configuration.
+#[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 #[serde(default)]
 pub struct Config {
-    pub port: u16,
-    pub max_players: usize,
-    pub motd: String,
-    pub server_icon: PathBuf,
-    #[serde(skip)]
-    pub server_icon_bytes: Vec<u8>,
-    #[serde(skip)]
-    pub protocol_version: i32,
-    #[serde(skip)]
-    pub game_version: String,
-    #[serde(skip)]
-    pub server_version: String,
-    pub server_threads: Option<usize>,
-}
-impl Default for Config {
-    fn default() -> Self {
-        let server_version = format!(
-            "composition {} ({} {})",
-            env!("CARGO_PKG_VERSION"),
-            &env!("GIT_HASH")[0..9],
-            &env!("GIT_DATE")[0..10]
-        );
-        Config {
-            port: 25565,
-            max_players: 20,
-            motd: "Hello world!".to_owned(),
-            server_icon: PathBuf::from("server-icon.png"),
-            server_icon_bytes: include_bytes!("./server-icon.png").to_vec(),
-            protocol_version: 762,
-            game_version: "1.19.4".to_owned(),
-            server_version,
-            server_threads: None,
-        }
-    }
+    #[serde(rename = "composition")]
+    pub global: GlobalConfig,
+    pub server: ServerConfig,
 }
 impl Config {
     pub fn instance() -> &'static Self {
@@ -73,9 +44,8 @@ impl Config {
             None => Self::load(),
         }
     }
-    #[tracing::instrument]
-    pub fn load() -> &'static Self {
-        trace!("Config::load()");
+    fn load() -> &'static Self {
+        trace!("GlobalConfig::load()");
         let args = Args::instance();
         let mut config = Config::default();
         let config_path = Path::new(&args.config_file);
@@ -100,26 +70,12 @@ impl Config {
         }
 
         // Load the server icon
-        config.server_icon = args
+        config.server.server_icon = args
             .server
             .as_ref()
             .map(|s| s.server_icon.clone())
             .unwrap_or(DEFAULT_SERVER_ARGS.server_icon.clone());
-        let server_icon_path = Path::new(&config.server_icon);
-
-        if server_icon_path.exists() {
-            if let Ok(server_icon_bytes) = read_file(server_icon_path) {
-                config.server_icon_bytes = server_icon_bytes;
-            } else {
-                warn!("Could not read server icon file, using default");
-            }
-        } else {
-            warn!(
-                "Server icon file does not exist, creating {}",
-                server_icon_path.to_str().unwrap_or("")
-            );
-            config.write_server_icon(server_icon_path);
-        }
+        config.server.load_icon();
 
         CONFIG.set(config).expect("could not set CONFIG");
         Self::instance()
@@ -143,21 +99,39 @@ impl Config {
         error!("Could not write configuration file");
         std::process::exit(1);
     }
-    #[tracing::instrument]
-    fn write_server_icon(&self, path: &Path) {
-        trace!("Config.write_server_icon()");
-        if let Ok(mut file) = File::options()
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .open(path)
-        {
-            if file.write_all(&self.server_icon_bytes).is_ok() {
-                return;
-            }
+}
+
+/// The global configuration.
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+#[serde(default)]
+pub struct GlobalConfig {
+    #[serde(skip)]
+    pub version: String,
+    #[serde(skip)]
+    pub protocol_version: i32,
+    #[serde(skip)]
+    pub game_version: String,
+    pub threads: Option<usize>,
+}
+impl Default for GlobalConfig {
+    fn default() -> Self {
+        GlobalConfig {
+            version: format!(
+                "composition {} ({} {})",
+                env!("CARGO_PKG_VERSION"),
+                &env!("GIT_HASH")[0..9],
+                &env!("GIT_DATE")[0..10]
+            ),
+            protocol_version: 762,
+            game_version: "1.19.4".to_owned(),
+            threads: None,
         }
-        error!("Could not write server icon file");
-        std::process::exit(1);
+    }
+}
+impl GlobalConfig {
+    pub fn instance() -> &'static Self {
+        &Config::instance().global
     }
 }
 
@@ -176,7 +150,7 @@ pub struct Args {
     pub log_level: Option<tracing::Level>,
     pub log_dir: PathBuf,
     pub subcommand: Subcommand,
-    server: Option<ServerArgs>,
+    pub server: Option<ServerArgs>,
 }
 impl Default for Args {
     fn default() -> Self {
@@ -201,7 +175,6 @@ impl Args {
         Self::instance()
     }
     fn command() -> clap::Command {
-        use std::ffi::OsStr;
         clap::Command::new("composition")
             .about(env!("CARGO_PKG_DESCRIPTION"))
             .disable_version_flag(true)
@@ -249,17 +222,7 @@ impl Args {
                     .value_hint(clap::ValueHint::DirPath)
                     .default_value(OsStr::new(&DEFAULT_ARGS.log_dir)),
             )
-            .subcommand(
-                clap::Command::new("server")
-                    .about("Run composition in server mode")
-                    .arg(
-                        Arg::new("server-icon")
-                            .long("server-icon")
-                            .help("Server icon file path")
-                            .value_hint(clap::ValueHint::FilePath)
-                            .default_value(OsStr::new(&DEFAULT_SERVER_ARGS.server_icon)),
-                    ),
-            )
+            .subcommand(ServerArgs::command())
     }
     fn parse() -> Self {
         let mut args = Self::default();
@@ -281,7 +244,7 @@ impl Args {
         }
 
         if m.get_flag("version") {
-            println!("{}", Config::default().server_version);
+            println!("{}", GlobalConfig::default().version);
             if m.get_flag("verbose") {
                 println!("release: {}", env!("CARGO_PKG_VERSION"));
                 println!("commit-hash: {}", env!("GIT_HASH"));
@@ -296,11 +259,7 @@ impl Args {
         match m.subcommand() {
             Some(("server", m)) => {
                 args.subcommand = Subcommand::Server;
-                let mut server_args = ServerArgs::default();
-                server_args.server_icon = m
-                    .get_one::<String>("server-icon")
-                    .map_or(server_args.server_icon, PathBuf::from);
-                args.server = Some(server_args);
+                args.server = Some(ServerArgs::parse(m.clone()))
             }
             None => {
                 let _ = Self::command().print_help();
@@ -310,26 +269,5 @@ impl Args {
         }
 
         args
-    }
-}
-
-#[derive(Debug)]
-pub struct ServerArgs {
-    server_icon: PathBuf,
-}
-impl Default for ServerArgs {
-    fn default() -> Self {
-        let config = Config::default();
-        ServerArgs {
-            server_icon: config.server_icon,
-        }
-    }
-}
-impl ServerArgs {
-    pub fn instance() -> Option<&'static Self> {
-        Args::instance().server.as_ref()
-    }
-    pub fn load() -> Option<&'static Self> {
-        Args::load().server.as_ref()
     }
 }
