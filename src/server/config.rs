@@ -39,13 +39,15 @@ impl ServerConfig {
     pub fn instance() -> &'static Self {
         &Config::instance().server
     }
-    /// Load the server icon.
-    pub fn load_icon(&mut self) {
+    pub fn load_args(&mut self) {
         self.server_icon = ServerArgs::instance()
             .as_ref()
             .map(|s| s.server_icon.clone())
             .unwrap_or(DEFAULT_SERVER_ARGS.server_icon.clone());
-
+        self.load_icon();
+    }
+    /// Load the server icon.
+    pub fn load_icon(&mut self) {
         let server_icon_path = Path::new(&self.server_icon);
 
         if server_icon_path.exists() {

@@ -92,7 +92,11 @@ impl Config {
 
         #[cfg(feature = "server")]
         {
-            config.server.load_icon();
+            config.server.load_args();
+        }
+        #[cfg(feature = "proxy")]
+        {
+            config.proxy.load_args();
         }
 
         CONFIG.set(config).expect("could not set CONFIG");
@@ -285,6 +289,20 @@ impl Args {
                 println!("license: {}", env!("CARGO_PKG_LICENSE"));
                 println!("authors: {}", env!("CARGO_PKG_AUTHORS"));
                 println!("build-target: {}", env!("BUILD_TARGET"));
+                let mut features = Vec::new();
+                if cfg!(feature = "server") {
+                    features.push("server");
+                }
+                if cfg!(feature = "proxy") {
+                    features.push("proxy");
+                }
+                if cfg!(feature = "world") {
+                    features.push("world");
+                }
+                if cfg!(feature = "update_1_20") {
+                    features.push("update_1_20");
+                }
+                println!("features: {}", features.join(", "));
             }
             std::process::exit(0);
         }

@@ -4,12 +4,37 @@ services:
   server:
     container_name: composition
     restart: unless-stopped
+    profiles: [server]
     build:
       context: .
       dockerfile: Dockerfile
       target: dev
+    command: [ "run -- server" ]
+    ports:
+      - "25566:25565"
+    volumes:
+      - .:/app
+      - .git:/app/.git
+  reference:
+    container_name: reference
+    restart: unless-stopped
+    profiles: [server, proxy]
+    image: itzg/minecraft-server
     ports:
       - "25565:25565"
+    environment:
+      EULA: "TRUE"
+  proxy:
+    container_name: composition-proxy
+    restart: unless-stopped
+    profiles: [proxy]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    command: [ "run -- proxy -u reference" ]
+    ports:
+      - "25566:25565"
     volumes:
       - .:/app
       - .git:/app/.git

@@ -23,6 +23,7 @@ impl Proxy {
             "Done! Start took {:?}",
             crate::START_TIME.get().unwrap().elapsed()
         );
+        info!("Upstream server: {}", config.proxy.upstream);
 
         // Spawn the ctrl-c task.
         let r = running.clone();

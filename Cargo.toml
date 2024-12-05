@@ -1,6 +1,6 @@
 [package]
 name = "composition"
-description = "An extremely fast Minecraft server"
+description = "An extremely fast Minecraft server & proxy"
 build = "build.rs"
 version = "0.1.0"
 authors = ["Garen Tyler <garentyler@garen.dev>"]
