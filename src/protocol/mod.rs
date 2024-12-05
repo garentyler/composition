@@ -21,6 +21,7 @@ pub mod parsing;
 pub mod types;
 
 pub use error::{Error, Result};
+use types::VarInt;
 
 /// Enum representation of the connection's current state.
 ///
@@ -44,4 +45,24 @@ pub enum ClientState {
     Play,
     /// The client has disconnected, and the connection struct should be removed. No packets should be sent or received.
     Disconnected,
+}
+impl parsing::Parsable for ClientState {
+    fn parse(data: &[u8]) -> nom::IResult<&[u8], Self>
+    where
+        Self: Sized,
+    {
+        nom::combinator::map_res(VarInt::parse, |next_state: VarInt| match *next_state {
+            1 => Ok(ClientState::Status),
+            2 => Ok(ClientState::Login),
+            _ => Err(()),
+        })(data)
+    }
+    fn serialize(&self) -> Vec<u8> {
+        let byte = match &self {
+            &ClientState::Status => 1,
+            &ClientState::Login => 2,
+            _ => 0,
+        };
+        vec![byte]
+    }
 }

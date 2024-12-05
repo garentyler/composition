@@ -2,7 +2,7 @@ pub use nom::IResult;
 use nom::{
     bytes::streaming::{take, take_while_m_n},
     combinator::map_res,
-    number::streaming as nom_nums,
+    number::streaming as nom_nums, Parser,
 };
 
 /// Implementation of the protocol's VarInt type.
@@ -154,10 +154,17 @@ impl Parsable for VarInt {
     fn parse(data: &[u8]) -> IResult<&[u8], Self> {
         let mut output = 0u32;
 
-        let (rest, bytes) = take_while_m_n(1, 5, |byte| byte & 0x80 == 0x80)(data)?;
-        for (i, &b) in bytes.iter().enumerate() {
+        // 0-4 bytes with the most significant bit set,
+        // followed by one with the bit unset.
+        let start_parser = take_while_m_n(0, 4, |byte| byte & 0x80 == 0x80);
+        let end_parser = take_while_m_n(1, 1, |byte| byte & 0x80 != 0x80);
+        let mut parser = start_parser.and(end_parser);
+        let (rest, (start, end)) = parser.parse(data)?;
+
+        for (i, &b) in start.iter().enumerate() {
             output |= ((b & 0x7f) as u32) << (7 * i);
         }
+        output |= ((end[0] & 0x7f) as u32) << (7 * start.len());
         Ok((rest, VarInt(output as i32)))
     }
     #[tracing::instrument]
@@ -354,6 +361,8 @@ mod tests {
         for (value, bytes) in get_varints() {
             assert_eq!(value, *VarInt::parse(&bytes).unwrap().1);
         }
+        // Check if the VarInt is too long (>5 bytes).
+        assert!(VarInt::parse(&[0x80, 0x80, 0x80, 0x80, 0x80, 0x08]).is_err());
     }
     #[test]
     fn serialize_varint_works() {
