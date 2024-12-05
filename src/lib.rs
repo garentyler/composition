@@ -16,6 +16,9 @@ use config::Subcommand;
 use once_cell::sync::OnceCell;
 use std::time::Instant;
 
+pub const PROTOCOL_VERSION: i32 = 762;
+pub const GAME_VERSION: &str = "1.19.4";
+
 /// A globally accessible instant of the composition's start time.
 ///
 /// This should be set immediately on startup.

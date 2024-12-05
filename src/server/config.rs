@@ -1,13 +1,11 @@
 use crate::config::{read_file, Args, Config};
 use clap::Arg;
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use std::ffi::OsStr;
 use std::io::Write;
 use std::{fs::File, path::Path, path::PathBuf};
 use tracing::{error, trace, warn};
 
-pub static DEFAULT_SERVER_ARGS: Lazy<ServerArgs> = Lazy::new(ServerArgs::default);
+const DEFAULT_SERVER_ICON: &str = "server-icon.png";
 
 /// The main server configuration struct.
 #[derive(Debug, Deserialize, Serialize)]
@@ -30,7 +28,7 @@ impl Default for ServerConfig {
             port: 25565,
             max_players: 20,
             motd: "Hello world!".to_owned(),
-            server_icon: PathBuf::from("server-icon.png"),
+            server_icon: PathBuf::from(DEFAULT_SERVER_ICON),
             server_icon_bytes: include_bytes!("../server-icon.png").to_vec(),
         }
     }
@@ -43,7 +41,7 @@ impl ServerConfig {
         self.server_icon = ServerArgs::instance()
             .as_ref()
             .map(|s| s.server_icon.clone())
-            .unwrap_or(DEFAULT_SERVER_ARGS.server_icon.clone());
+            .unwrap_or(PathBuf::from(DEFAULT_SERVER_ICON));
         self.load_icon();
     }
     /// Load the server icon.
@@ -87,9 +85,8 @@ pub struct ServerArgs {
 }
 impl Default for ServerArgs {
     fn default() -> Self {
-        let config = Config::default();
         ServerArgs {
-            server_icon: config.server.server_icon,
+            server_icon: PathBuf::from(DEFAULT_SERVER_ICON),
         }
     }
 }
@@ -105,7 +102,7 @@ impl ServerArgs {
                     .long("server-icon")
                     .help("Server icon file path")
                     .value_hint(clap::ValueHint::FilePath)
-                    .default_value(OsStr::new(&DEFAULT_SERVER_ARGS.server_icon)),
+                    .default_value(DEFAULT_SERVER_ICON),
             )
     }
     pub fn parse(m: clap::ArgMatches) -> Self {

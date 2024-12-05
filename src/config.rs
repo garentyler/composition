@@ -1,7 +1,6 @@
 use clap::Arg;
-use once_cell::sync::{Lazy, OnceCell};
+use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
-use std::ffi::OsStr;
 use std::io::{Read, Write};
 use std::{fs::File, path::Path, path::PathBuf};
 use tracing::{error, trace, warn};
@@ -18,7 +17,8 @@ pub static CONFIG: OnceCell<Config> = OnceCell::new();
 /// The globablly-accessible static instance of Args.
 /// On program startup, Args::load() should be called to initialize it.
 pub static ARGS: OnceCell<Args> = OnceCell::new();
-static DEFAULT_ARGS: Lazy<Args> = Lazy::new(Args::default);
+const DEFAULT_CONFIG_FILE: &str = "composition.toml";
+const DEFAULT_LOG_DIR: &str = "logs";
 
 /// Helper function to read a file from a `Path`
 /// and return its bytes as a `Vec<u8>`.
@@ -140,8 +140,8 @@ impl Default for GlobalConfig {
     fn default() -> Self {
         GlobalConfig {
             version: Config::get_formatted_version(Subcommand::None),
-            protocol_version: 762,
-            game_version: "1.19.4".to_owned(),
+            protocol_version: crate::PROTOCOL_VERSION,
+            game_version: crate::GAME_VERSION.to_owned(),
             threads: None,
         }
     }
@@ -179,9 +179,9 @@ pub struct Args {
 impl Default for Args {
     fn default() -> Self {
         Args {
-            config_file: PathBuf::from("composition.toml"),
+            config_file: PathBuf::from(DEFAULT_CONFIG_FILE),
             log_level: None,
-            log_dir: PathBuf::from("logs"),
+            log_dir: PathBuf::from(DEFAULT_LOG_DIR),
             subcommand: Subcommand::None,
             #[cfg(feature = "server")]
             server: None,
@@ -229,7 +229,7 @@ impl Args {
                     .help("Configuration file path")
                     .global(true)
                     .value_hint(clap::ValueHint::FilePath)
-                    .default_value(OsStr::new(&DEFAULT_ARGS.config_file)),
+                    .default_value(DEFAULT_CONFIG_FILE),
             )
             .arg(
                 Arg::new("log-level")
@@ -248,7 +248,7 @@ impl Args {
                     .global(true)
                     .value_name("dir")
                     .value_hint(clap::ValueHint::DirPath)
-                    .default_value(OsStr::new(&DEFAULT_ARGS.log_dir)),
+                    .default_value(DEFAULT_LOG_DIR),
             );
         #[cfg(feature = "server")]
         {
