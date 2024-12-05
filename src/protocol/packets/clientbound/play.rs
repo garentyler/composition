@@ -29,16 +29,19 @@ crate::protocol::packets::packet!(
         let (data, d) = VarInt::parse(data)?;
         let (data, velocity) = EntityVelocity::parse(data)?;
 
-        Ok((data, CP00SpawnEntity {
-            id,
-            uuid,
-            kind,
-            position,
-            rotation,
-            head_yaw,
-            data: d,
-            velocity,
-        }))
+        Ok((
+            data,
+            CP00SpawnEntity {
+                id,
+                uuid,
+                kind,
+                position,
+                rotation,
+                head_yaw,
+                data: d,
+                velocity,
+            },
+        ))
     },
     |packet: &CP00SpawnEntity| -> Vec<u8> {
         let mut output = vec![];
@@ -67,10 +70,13 @@ crate::protocol::packets::packet!(
     |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], CP0BChangeDifficulty> {
         let (data, difficulty) = Difficulty::parse(data)?;
         let (data, is_locked) = bool::parse(data)?;
-        Ok((data, CP0BChangeDifficulty {
-            difficulty,
-            is_locked,
-        }))
+        Ok((
+            data,
+            CP0BChangeDifficulty {
+                difficulty,
+                is_locked,
+            },
+        ))
     },
     |packet: &CP0BChangeDifficulty| -> Vec<u8> {
         let mut output = vec![];
@@ -129,12 +135,15 @@ crate::protocol::packets::packet!(
         let (data, location) = Position::parse(data)?;
         let (data, d) = i32::parse(data)?;
         let (data, disable_relative_volume) = bool::parse(data)?;
-        Ok((data, CP21WorldEvent {
-            event,
-            location,
-            data: d,
-            disable_relative_volume,
-        }))
+        Ok((
+            data,
+            CP21WorldEvent {
+                event,
+                location,
+                data: d,
+                disable_relative_volume,
+            },
+        ))
     },
     |packet: &CP21WorldEvent| -> Vec<u8> {
         let mut output = vec![];
@@ -159,10 +168,13 @@ crate::protocol::packets::packet!(
     |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], CP50SetEntityVelocity> {
         let (data, entity_id) = VarInt::parse(data)?;
         let (data, entity_velocity) = EntityVelocity::parse(data)?;
-        Ok((data, CP50SetEntityVelocity {
-            entity_id,
-            entity_velocity,
-        }))
+        Ok((
+            data,
+            CP50SetEntityVelocity {
+                entity_id,
+                entity_velocity,
+            },
+        ))
     },
     |packet: &CP50SetEntityVelocity| -> Vec<u8> {
         let mut output = vec![];
@@ -187,11 +199,14 @@ crate::protocol::packets::packet!(
         let (data, experience_bar) = f32::parse(data)?;
         let (data, total_experience) = VarInt::parse(data)?;
         let (data, level) = VarInt::parse(data)?;
-        Ok((data, CP52SetExperience {
-            experience_bar,
-            total_experience,
-            level,
-        }))
+        Ok((
+            data,
+            CP52SetExperience {
+                experience_bar,
+                total_experience,
+                level,
+            },
+        ))
     },
     |packet: &CP52SetExperience| -> Vec<u8> {
         let mut output = vec![];
@@ -231,16 +246,19 @@ crate::protocol::packets::packet!(
         let (data, has_factor_data) = bool::parse(data)?;
         // TODO: factor_codec
 
-        Ok((data, CP68EntityEffect {
-            entity_id,
-            effect_id,
-            amplifier,
-            duration,
-            is_ambient,
-            show_particles,
-            show_icon,
-            has_factor_data,
-        }))
+        Ok((
+            data,
+            CP68EntityEffect {
+                entity_id,
+                effect_id,
+                amplifier,
+                duration,
+                is_ambient,
+                show_particles,
+                show_icon,
+                has_factor_data,
+            },
+        ))
     },
     |packet: &CP68EntityEffect| -> Vec<u8> {
         let mut output = vec![];

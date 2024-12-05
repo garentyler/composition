@@ -58,10 +58,13 @@ crate::protocol::packets::packet!(
     |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], SP13SetPlayerPosition> {
         let (data, position) = EntityPosition::parse(data)?;
         let (data, on_ground) = bool::parse(data)?;
-        Ok((data, SP13SetPlayerPosition {
-            position,
-            on_ground,
-        }))
+        Ok((
+            data,
+            SP13SetPlayerPosition {
+                position,
+                on_ground,
+            },
+        ))
     },
     |packet: &SP13SetPlayerPosition| -> Vec<u8> {
         let mut output = vec![];
@@ -114,10 +117,13 @@ crate::protocol::packets::packet!(
     |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], SP15SetPlayerRotation> {
         let (data, rotation) = EntityRotation::parse(data)?;
         let (data, on_ground) = bool::parse(data)?;
-        Ok((data, SP15SetPlayerRotation {
-            rotation,
-            on_ground,
-        }))
+        Ok((
+            data,
+            SP15SetPlayerRotation {
+                rotation,
+                on_ground,
+            },
+        ))
     },
     |packet: &SP15SetPlayerRotation| -> Vec<u8> {
         let mut output = vec![];

@@ -3,7 +3,7 @@ pub mod clientbound;
 /// Packets that are heading to the server.
 pub mod serverbound;
 
-use crate::protocol::parsing::{VarInt, Parsable};
+use crate::protocol::parsing::{Parsable, VarInt};
 
 /// Alias for a `VarInt`.
 pub type PacketId = VarInt;

@@ -1,7 +1,12 @@
+/// When managing the server encounters errors.
+pub mod error;
+/// Network operations.
+pub mod net;
+
 use crate::config::Config;
-use crate::error::Result;
-use crate::net::{NetworkClient, NetworkClientState};
 use crate::protocol::ClientState;
+use error::Result;
+use net::{NetworkClient, NetworkClientState};
 use std::sync::Arc;
 use tokio::net::{TcpListener, ToSocketAddrs};
 use tokio::{sync::RwLock, task::JoinHandle};
@@ -15,6 +20,40 @@ pub struct Server {
     net_tasks_handle: JoinHandle<()>,
 }
 impl Server {
+    /// Start the server.
+    #[tracing::instrument]
+    pub async fn run() {
+        let config = crate::config::Config::instance();
+        info!("Starting {} on port {}", config.server_version, config.port);
+        let (mut server, running) = Self::new(format!("0.0.0.0:{}", Config::instance().port)).await;
+        info!(
+            "Done! Start took {:?}",
+            crate::START_TIME.get().unwrap().elapsed()
+        );
+
+        // Spawn the ctrl-c task.
+        let r = running.clone();
+        tokio::spawn(async move {
+            tokio::signal::ctrl_c().await.unwrap();
+            info!("Ctrl-C received, shutting down");
+            r.cancel();
+        });
+
+        // The main server loop.
+        loop {
+            tokio::select! {
+                _ = running.cancelled() => {
+                    break;
+                }
+                _ = server.update() => {}
+            }
+        }
+
+        match tokio::time::timeout(std::time::Duration::from_secs(10), server.shutdown()).await {
+            Ok(_) => std::process::exit(0),
+            Err(_) => std::process::exit(1),
+        }
+    }
     #[tracing::instrument]
     pub async fn new<A: 'static + ToSocketAddrs + Send + std::fmt::Debug>(
         bind_address: A,
@@ -33,15 +72,6 @@ impl Server {
             clients,
             net_tasks_handle,
         };
-
-        // let (shutdown_tx, shutdown_rx) = oneshot::channel();
-        let r = running.clone();
-        tokio::spawn(async move {
-            tokio::signal::ctrl_c().await.unwrap();
-            info!("Ctrl-C received, shutting down");
-            r.cancel();
-            // shutdown_tx.send(()).unwrap();
-        });
 
         (server, running)
     }

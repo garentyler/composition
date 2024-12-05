@@ -6,8 +6,6 @@ pub mod entities;
 pub mod error;
 /// Implementation of Minecraft's items and inventories.
 pub mod inventory;
-/// Useful types for representing the Minecraft protocol.
-pub mod types;
 /// Network packets.
 ///
 /// The packet naming convention used is "DSIDName" where
@@ -19,6 +17,8 @@ pub mod types;
 pub mod packets;
 /// Useful shared parsing functions.
 pub mod parsing;
+/// Useful types for representing the Minecraft protocol.
+pub mod types;
 
 pub use error::{Error, Result};
 

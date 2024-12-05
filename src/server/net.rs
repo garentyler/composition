@@ -1,7 +1,7 @@
 use crate::protocol::{
-    ClientState,
-    packets::{GenericPacket, serverbound::SL00LoginStart},
+    packets::{serverbound::SL00LoginStart, GenericPacket},
     parsing::Parsable,
+    ClientState,
 };
 use std::{collections::VecDeque, sync::Arc, time::Instant};
 use tokio::io::AsyncWriteExt;

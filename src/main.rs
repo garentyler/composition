@@ -36,7 +36,7 @@ pub fn main() {
         .init();
 
     // Load the config.
-    let config = composition::config::Config::load();
+    let config = composition::config::Config::instance();
 
     match config.server_threads {
         Some(1) => {
@@ -58,23 +58,7 @@ pub fn main() {
     }
     .unwrap()
     .block_on(async move {
-        info!("Starting {} on port {}", config.server_version, config.port);
-        let (mut server, running) = composition::start_server().await;
-        info!(
-            "Done! Start took {:?}",
-            composition::START_TIME.get().unwrap().elapsed()
-        );
-
-        // The main server loop.
-        loop {
-            tokio::select! {
-                _ = running.cancelled() => {
-                    break;
-                }
-                _ = server.update() => {}
-            }
-        }
-
-        let _ = tokio::time::timeout(std::time::Duration::from_secs(10), server.shutdown()).await;
+        let args = composition::config::Args::instance();
+        composition::run(args.subcommand).await;
     });
 }

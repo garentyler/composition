@@ -6,7 +6,7 @@ pub mod error;
 pub mod generators;
 /// Useful re-exports.
 pub mod prelude {
-    pub use super::{World, chunks::Chunk};
+    pub use super::{chunks::Chunk, World};
 }
 
 pub use crate::protocol::{blocks, entities};

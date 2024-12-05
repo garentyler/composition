@@ -16,10 +16,13 @@ crate::protocol::packets::packet!(
         let (data, has_uuid) = bool::parse(data)?;
         if has_uuid {
             let (data, uuid) = Uuid::parse(data)?;
-            Ok((data, SL00LoginStart {
-                name,
-                uuid: Some(uuid),
-            }))
+            Ok((
+                data,
+                SL00LoginStart {
+                    name,
+                    uuid: Some(uuid),
+                },
+            ))
         } else {
             Ok((data, SL00LoginStart { name, uuid: None }))
         }
@@ -51,10 +54,13 @@ crate::protocol::packets::packet!(
         let (data, verify_token_len) = VarInt::parse(data)?;
         let (data, verify_token) = take(*verify_token_len as usize)(data)?;
 
-        Ok((data, SL01EncryptionResponse {
-            shared_secret: shared_secret.to_vec(),
-            verify_token: verify_token.to_vec(),
-        }))
+        Ok((
+            data,
+            SL01EncryptionResponse {
+                shared_secret: shared_secret.to_vec(),
+                verify_token: verify_token.to_vec(),
+            },
+        ))
     },
     |packet: &SL01EncryptionResponse| -> Vec<u8> {
         let mut output = vec![];
@@ -81,17 +87,23 @@ crate::protocol::packets::packet!(
         let (data, message_id) = VarInt::parse(data)?;
         let (data, successful) = bool::parse(data)?;
         if successful {
-            Ok((&[], SL02LoginPluginResponse {
-                message_id,
-                successful,
-                data: data.to_vec(),
-            }))
+            Ok((
+                &[],
+                SL02LoginPluginResponse {
+                    message_id,
+                    successful,
+                    data: data.to_vec(),
+                },
+            ))
         } else {
-            Ok((data, SL02LoginPluginResponse {
-                message_id,
-                successful,
-                data: vec![],
-            }))
+            Ok((
+                data,
+                SL02LoginPluginResponse {
+                    message_id,
+                    successful,
+                    data: vec![],
+                },
+            ))
         }
     },
     |packet: &SL02LoginPluginResponse| -> Vec<u8> {

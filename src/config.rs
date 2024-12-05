@@ -13,6 +13,7 @@ pub static CONFIG: OnceCell<Config> = OnceCell::new();
 /// On program startup, Args::load() should be called to initialize it.
 pub static ARGS: OnceCell<Args> = OnceCell::new();
 static DEFAULT_ARGS: Lazy<Args> = Lazy::new(Args::default);
+static DEFAULT_SERVER_ARGS: Lazy<ServerArgs> = Lazy::new(ServerArgs::default);
 
 /// Helper function to read a file from a `Path`
 /// and return its bytes as a `Vec<u8>`.
@@ -99,7 +100,11 @@ impl Config {
         }
 
         // Load the server icon
-        config.server_icon = args.server_icon.clone();
+        config.server_icon = args
+            .server
+            .as_ref()
+            .map(|s| s.server_icon.clone())
+            .unwrap_or(DEFAULT_SERVER_ARGS.server_icon.clone());
         let server_icon_path = Path::new(&config.server_icon);
 
         if server_icon_path.exists() {
@@ -156,24 +161,31 @@ impl Config {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum Subcommand {
+    None,
+    Server,
+}
+
 /// All of the valid command line arguments for the composition binary.
 ///
 /// Arguments will always override the config options specified in `composition.toml` or `Config::default()`.
 #[derive(Debug)]
 pub struct Args {
     config_file: PathBuf,
-    server_icon: PathBuf,
     pub log_level: Option<tracing::Level>,
     pub log_dir: PathBuf,
+    pub subcommand: Subcommand,
+    server: Option<ServerArgs>,
 }
 impl Default for Args {
     fn default() -> Self {
-        let config = Config::default();
         Args {
             config_file: PathBuf::from("composition.toml"),
-            server_icon: config.server_icon,
             log_level: None,
             log_dir: PathBuf::from("logs"),
+            subcommand: Subcommand::None,
+            server: None,
         }
     }
 }
@@ -188,10 +200,9 @@ impl Args {
         ARGS.set(Self::parse()).expect("could not set ARGS");
         Self::instance()
     }
-    fn parse() -> Self {
+    fn command() -> clap::Command {
         use std::ffi::OsStr;
-
-        let m = clap::Command::new("composition")
+        clap::Command::new("composition")
             .about(env!("CARGO_PKG_DESCRIPTION"))
             .disable_version_flag(true)
             .arg(
@@ -215,21 +226,16 @@ impl Args {
                     .short('c')
                     .long("config-file")
                     .help("Configuration file path")
+                    .global(true)
                     .value_hint(clap::ValueHint::FilePath)
                     .default_value(OsStr::new(&DEFAULT_ARGS.config_file)),
-            )
-            .arg(
-                Arg::new("server-icon")
-                    .long("server-icon")
-                    .help("Server icon file path")
-                    .value_hint(clap::ValueHint::FilePath)
-                    .default_value(OsStr::new(&DEFAULT_ARGS.server_icon)),
             )
             .arg(
                 Arg::new("log-level")
                     .short('l')
                     .long("log-level")
                     .help("Set the log level")
+                    .global(true)
                     .conflicts_with("verbose")
                     .value_name("level")
                     .value_parser(["trace", "debug", "info", "warn", "error"]),
@@ -238,19 +244,30 @@ impl Args {
                 Arg::new("log-dir")
                     .long("log-dir")
                     .help("Set the log output directory")
+                    .global(true)
                     .value_name("dir")
                     .value_hint(clap::ValueHint::DirPath)
                     .default_value(OsStr::new(&DEFAULT_ARGS.log_dir)),
             )
-            .get_matches();
-
+            .subcommand(
+                clap::Command::new("server")
+                    .about("Run composition in server mode")
+                    .arg(
+                        Arg::new("server-icon")
+                            .long("server-icon")
+                            .help("Server icon file path")
+                            .value_hint(clap::ValueHint::FilePath)
+                            .default_value(OsStr::new(&DEFAULT_SERVER_ARGS.server_icon)),
+                    ),
+            )
+    }
+    fn parse() -> Self {
         let mut args = Self::default();
+        let m = Self::command().get_matches();
+
         args.config_file = m
             .get_one::<String>("config-file")
             .map_or(args.config_file, PathBuf::from);
-        args.server_icon = m
-            .get_one::<String>("server-icon")
-            .map_or(args.server_icon, PathBuf::from);
         args.log_dir = m
             .get_one::<String>("log-dir")
             .map_or(args.log_dir, PathBuf::from);
@@ -276,6 +293,43 @@ impl Args {
             std::process::exit(0);
         }
 
+        match m.subcommand() {
+            Some(("server", m)) => {
+                args.subcommand = Subcommand::Server;
+                let mut server_args = ServerArgs::default();
+                server_args.server_icon = m
+                    .get_one::<String>("server-icon")
+                    .map_or(server_args.server_icon, PathBuf::from);
+                args.server = Some(server_args);
+            }
+            None => {
+                let _ = Self::command().print_help();
+                std::process::exit(0);
+            }
+            _ => unreachable!(),
+        }
+
         args
+    }
+}
+
+#[derive(Debug)]
+pub struct ServerArgs {
+    server_icon: PathBuf,
+}
+impl Default for ServerArgs {
+    fn default() -> Self {
+        let config = Config::default();
+        ServerArgs {
+            server_icon: config.server_icon,
+        }
+    }
+}
+impl ServerArgs {
+    pub fn instance() -> Option<&'static Self> {
+        Args::instance().server.as_ref()
+    }
+    pub fn load() -> Option<&'static Self> {
+        Args::load().server.as_ref()
     }
 }

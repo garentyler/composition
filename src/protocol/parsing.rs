@@ -1,5 +1,9 @@
 pub use nom::IResult;
-use nom::{bytes::streaming::{take, take_while_m_n}, number::streaming as nom_nums, combinator::map_res};
+use nom::{
+    bytes::streaming::{take, take_while_m_n},
+    combinator::map_res,
+    number::streaming as nom_nums,
+};
 
 /// Implementation of the protocol's VarInt type.
 ///
@@ -317,7 +321,11 @@ impl Parsable for bool {
     }
     #[tracing::instrument]
     fn serialize(&self) -> Vec<u8> {
-        if *self { vec![0x01] } else { vec![0x00] }
+        if *self {
+            vec![0x01]
+        } else {
+            vec![0x00]
+        }
     }
 }
 
@@ -380,4 +388,3 @@ mod tests {
         }
     }
 }
-

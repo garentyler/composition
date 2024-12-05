@@ -1,4 +1,4 @@
-use crate::protocol::{ClientState, types::VarInt};
+use crate::protocol::{types::VarInt, ClientState};
 use nom::combinator::map_res;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -24,12 +24,15 @@ crate::protocol::packets::packet!(
             _ => Err(()),
         })(data)?;
 
-        Ok((data, SH00Handshake {
-            protocol_version,
-            server_address,
-            server_port,
-            next_state,
-        }))
+        Ok((
+            data,
+            SH00Handshake {
+                protocol_version,
+                server_address,
+                server_port,
+                next_state,
+            },
+        ))
     },
     |packet: &SH00Handshake| -> Vec<u8> {
         let mut output = vec![];

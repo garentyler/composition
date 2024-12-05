@@ -9,7 +9,7 @@ RUN cargo install cargo-watch --locked --version 8.5.3
 VOLUME /app
 VOLUME /app/.git
 EXPOSE 25565
-CMD ["cargo", "watch", "-x", "run"]
+CMD ["cargo", "watch", "-x", "run -- server"]
 
 FROM base AS planner
 COPY Cargo.toml .
@@ -36,3 +36,4 @@ COPY --from=builder /app/target/release/composition /app
 EXPOSE 25565
 USER composition
 ENTRYPOINT ["tini", "--", "/app/composition"]
+CMD [ "server" ]

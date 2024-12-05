@@ -1,5 +1,5 @@
-use crate::protocol::types::{Chat, Json, Uuid, VarInt};
 use crate::protocol::parsing::Parsable;
+use crate::protocol::types::{Chat, Json, Uuid, VarInt};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CL00Disconnect {
@@ -33,11 +33,14 @@ crate::protocol::packets::packet!(
         let (data, public_key) = u8::parse_vec(data)?;
         let (data, verify_token) = u8::parse_vec(data)?;
 
-        Ok((data, CL01EncryptionRequest {
-            server_id,
-            public_key,
-            verify_token,
-        }))
+        Ok((
+            data,
+            CL01EncryptionRequest {
+                server_id,
+                public_key,
+                verify_token,
+            },
+        ))
     },
     |packet: &CL01EncryptionRequest| -> Vec<u8> {
         let mut output = vec![];
@@ -66,11 +69,14 @@ impl Parsable for CL02LoginSuccessProperty {
         let (data, name) = String::parse(data)?;
         let (data, value) = String::parse(data)?;
         let (data, signature) = String::parse_optional(data)?;
-        Ok((data, CL02LoginSuccessProperty {
-            name,
-            value,
-            signature,
-        }))
+        Ok((
+            data,
+            CL02LoginSuccessProperty {
+                name,
+                value,
+                signature,
+            },
+        ))
     }
     #[tracing::instrument]
     fn serialize(&self) -> Vec<u8> {
@@ -91,11 +97,14 @@ crate::protocol::packets::packet!(
         let (data, username) = String::parse(data)?;
         let (data, properties) = CL02LoginSuccessProperty::parse_vec(data)?;
 
-        Ok((data, CL02LoginSuccess {
-            uuid,
-            username,
-            properties,
-        }))
+        Ok((
+            data,
+            CL02LoginSuccess {
+                uuid,
+                username,
+                properties,
+            },
+        ))
     },
     |packet: &CL02LoginSuccess| -> Vec<u8> {
         let mut output = vec![];
@@ -136,11 +145,14 @@ crate::protocol::packets::packet!(
     |data: &'data [u8]| -> crate::protocol::parsing::IResult<&'data [u8], CL04LoginPluginRequest> {
         let (data, message_id) = VarInt::parse(data)?;
         let (data, channel) = String::parse(data)?;
-        Ok((data, CL04LoginPluginRequest {
-            message_id,
-            channel,
-            data: data.to_vec(),
-        }))
+        Ok((
+            data,
+            CL04LoginPluginRequest {
+                message_id,
+                channel,
+                data: data.to_vec(),
+            },
+        ))
     },
     |packet: &CL04LoginPluginRequest| -> Vec<u8> {
         let mut output = vec![];
