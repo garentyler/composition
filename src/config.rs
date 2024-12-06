@@ -18,7 +18,7 @@ pub static CONFIG: OnceCell<Config> = OnceCell::new();
 /// On program startup, Args::load() should be called to initialize it.
 pub static ARGS: OnceCell<Args> = OnceCell::new();
 const DEFAULT_CONFIG_FILE: &str = "composition.toml";
-const DEFAULT_LOG_DIR: &str = "logs";
+pub const DEFAULT_LOG_DIR: &str = "logs";
 
 /// Helper function to read a file from a `Path`
 /// and return its bytes as a `Vec<u8>`.
@@ -69,7 +69,11 @@ impl Config {
         trace!("GlobalConfig::load()");
         let args = Args::instance();
         let mut config = Config::default();
-        let config_path = Path::new(&args.config_file);
+        let config_path = args
+            .config_file
+            .clone()
+            .unwrap_or(PathBuf::from(DEFAULT_CONFIG_FILE));
+        let config_path = Path::new(&config_path);
 
         if !config_path.exists() {
             warn!(
@@ -167,9 +171,9 @@ pub enum Subcommand {
 /// Arguments will always override the config options specified in `composition.toml` or `Config::default()`.
 #[derive(Debug)]
 pub struct Args {
-    config_file: PathBuf,
+    config_file: Option<PathBuf>,
     pub log_level: Option<tracing::Level>,
-    pub log_dir: PathBuf,
+    pub log_dir: Option<PathBuf>,
     pub subcommand: Subcommand,
     #[cfg(feature = "server")]
     pub server: Option<ServerArgs>,
@@ -179,9 +183,9 @@ pub struct Args {
 impl Default for Args {
     fn default() -> Self {
         Args {
-            config_file: PathBuf::from(DEFAULT_CONFIG_FILE),
+            config_file: None,
             log_level: None,
-            log_dir: PathBuf::from(DEFAULT_LOG_DIR),
+            log_dir: None,
             subcommand: Subcommand::None,
             #[cfg(feature = "server")]
             server: None,
@@ -229,6 +233,7 @@ impl Args {
                     .help("Configuration file path")
                     .global(true)
                     .value_hint(clap::ValueHint::FilePath)
+                    .value_parser(clap::value_parser!(PathBuf))
                     .default_value(DEFAULT_CONFIG_FILE),
             )
             .arg(
@@ -248,6 +253,7 @@ impl Args {
                     .global(true)
                     .value_name("dir")
                     .value_hint(clap::ValueHint::DirPath)
+                    .value_parser(clap::value_parser!(PathBuf))
                     .default_value(DEFAULT_LOG_DIR),
             );
         #[cfg(feature = "server")]
@@ -265,12 +271,8 @@ impl Args {
         let mut args = Self::default();
         let m = Self::command().get_matches();
 
-        args.config_file = m
-            .get_one::<String>("config-file")
-            .map_or(args.config_file, PathBuf::from);
-        args.log_dir = m
-            .get_one::<String>("log-dir")
-            .map_or(args.log_dir, PathBuf::from);
+        args.config_file = m.get_one("config-file").cloned();
+        args.log_dir = m.get_one("log-dir").cloned();
 
         if m.get_flag("verbose") {
             args.log_level = Some(tracing::Level::DEBUG);

@@ -67,6 +67,7 @@ impl ProxyArgs {
                     .long("port")
                     .help("Proxy listening port")
                     .value_hint(clap::ValueHint::Other)
+                    .value_parser(clap::value_parser!(u16))
                     .default_value(const_format::formatcp!("{}", DEFAULT_PORT)),
             )
             .arg(
@@ -83,6 +84,7 @@ impl ProxyArgs {
                     .long("upstream-port")
                     .help("Upstream server port")
                     .value_hint(clap::ValueHint::Other)
+                    .value_parser(clap::value_parser!(u16))
                     .default_value(const_format::formatcp!("{}", DEFAULT_UPSTREAM_PORT)),
             )
     }

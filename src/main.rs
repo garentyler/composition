@@ -7,9 +7,16 @@ pub fn main() {
         .set(std::time::Instant::now())
         .expect("could not set composition::START_TIME");
 
+    use composition::config::{Args, DEFAULT_LOG_DIR};
+    use std::path::{Path, PathBuf};
+
     // Set up logging.
-    let file_writer =
-        tracing_appender::rolling::daily(&composition::config::Args::instance().log_dir, "log");
+    let log_path = Args::instance()
+        .log_dir
+        .clone()
+        .unwrap_or(PathBuf::from(DEFAULT_LOG_DIR));
+    let log_path = Path::new(&log_path);
+    let file_writer = tracing_appender::rolling::daily(&log_path, "log");
     let (file_writer, _guard) = tracing_appender::non_blocking(file_writer);
 
     tracing_subscriber::registry()

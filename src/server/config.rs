@@ -39,8 +39,8 @@ impl ServerConfig {
     }
     pub fn load_args(&mut self) {
         self.server_icon = ServerArgs::instance()
-            .as_ref()
             .map(|s| s.server_icon.clone())
+            .flatten()
             .unwrap_or(PathBuf::from(DEFAULT_SERVER_ICON));
         self.load_icon();
     }
@@ -81,13 +81,11 @@ impl ServerConfig {
 
 #[derive(Debug)]
 pub struct ServerArgs {
-    pub server_icon: PathBuf,
+    pub server_icon: Option<PathBuf>,
 }
 impl Default for ServerArgs {
     fn default() -> Self {
-        ServerArgs {
-            server_icon: PathBuf::from(DEFAULT_SERVER_ICON),
-        }
+        ServerArgs { server_icon: None }
     }
 }
 impl ServerArgs {
@@ -102,14 +100,13 @@ impl ServerArgs {
                     .long("server-icon")
                     .help("Server icon file path")
                     .value_hint(clap::ValueHint::FilePath)
+                    .value_parser(clap::value_parser!(PathBuf))
                     .default_value(DEFAULT_SERVER_ICON),
             )
     }
     pub fn parse(m: clap::ArgMatches) -> Self {
         let mut server_args = ServerArgs::default();
-        server_args.server_icon = m
-            .get_one::<String>("server-icon")
-            .map_or(server_args.server_icon, PathBuf::from);
+        server_args.server_icon = m.get_one("server-icon").cloned();
         server_args
     }
 }
