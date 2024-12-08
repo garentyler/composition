@@ -104,6 +104,15 @@ macro_rules! packets {
                     )*)*)*
                 }
             }
+            pub fn state_change(&self) -> Option<ClientState> {
+                match self {
+                    Packet::Handshake(handshake) => Some(handshake.next_state),
+                    Packet::LoginSuccess(_) => Some(ClientState::Play),
+                    Packet::LoginDisconnect(_) => Some(ClientState::Disconnected),
+                    Packet::PlayDisconnect(_) => Some(ClientState::Disconnected),
+                    _ => None,
+                }
+            }
         }
 
         $(pub mod $state {

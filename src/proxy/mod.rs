@@ -1,13 +1,15 @@
 pub mod config;
 
-use crate::config::Config;
+use crate::{config::Config, net::listener::NetworkListener};
 use config::ProxyConfig;
 use tokio::net::ToSocketAddrs;
 use tokio_util::sync::CancellationToken;
 use tracing::{info, trace};
 
 #[derive(Debug)]
-pub struct Proxy {}
+pub struct Proxy {
+    _network_listener: NetworkListener,
+}
 impl Proxy {
     /// Start the proxy.
     #[tracing::instrument]
@@ -53,12 +55,18 @@ impl Proxy {
     }
     #[tracing::instrument]
     async fn new<A: 'static + ToSocketAddrs + Send + std::fmt::Debug>(
-        _bind_address: A,
+        bind_address: A,
     ) -> (Proxy, CancellationToken) {
         trace!("Proxy::new()");
-
         let running = CancellationToken::new();
-        let proxy = Proxy {};
+
+        let network_listener = NetworkListener::new(bind_address, running.child_token(), None)
+            .await
+            .expect("listener to bind properly");
+
+        let proxy = Proxy {
+            _network_listener: network_listener,
+        };
 
         (proxy, running)
     }

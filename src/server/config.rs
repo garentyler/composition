@@ -39,8 +39,7 @@ impl ServerConfig {
     }
     pub fn load_args(&mut self) {
         self.server_icon = ServerArgs::instance()
-            .map(|s| s.server_icon.clone())
-            .flatten()
+            .and_then(|s| s.server_icon.clone())
             .unwrap_or(PathBuf::from(DEFAULT_SERVER_ICON));
         self.load_icon();
     }
@@ -83,6 +82,7 @@ impl ServerConfig {
 pub struct ServerArgs {
     pub server_icon: Option<PathBuf>,
 }
+#[allow(clippy::derivable_impls)]
 impl Default for ServerArgs {
     fn default() -> Self {
         ServerArgs { server_icon: None }
@@ -104,6 +104,7 @@ impl ServerArgs {
                     .default_value(DEFAULT_SERVER_ICON),
             )
     }
+    #[allow(clippy::field_reassign_with_default)]
     pub fn parse(m: clap::ArgMatches) -> Self {
         let mut server_args = ServerArgs::default();
         server_args.server_icon = m.get_one("server-icon").cloned();

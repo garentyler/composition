@@ -1,5 +1,7 @@
 /// Server configuration and cli options.
 pub mod config;
+/// Network operations.
+pub(crate) mod net;
 /// The Minecraft protocol implemented in a network-agnostic way.
 pub mod protocol;
 /// A proxy server.
