@@ -7,14 +7,14 @@ pub mod net;
 
 use crate::config::Config;
 use crate::protocol::ClientState;
+use crate::App;
 use config::ServerConfig;
-use error::Result;
 use net::{NetworkClient, NetworkClientState};
 use std::sync::Arc;
 use tokio::net::{TcpListener, ToSocketAddrs};
 use tokio::{sync::RwLock, task::JoinHandle};
 use tokio_util::sync::CancellationToken;
-use tracing::{error, info, trace};
+use tracing::{error, trace};
 
 /// The main state and logic of the program.
 #[derive(Debug)]
@@ -23,65 +23,6 @@ pub struct Server {
     net_tasks_handle: JoinHandle<()>,
 }
 impl Server {
-    /// Start the server.
-    #[tracing::instrument]
-    pub async fn run() {
-        let config = Config::instance();
-        info!(
-            "Starting {} on port {}",
-            ServerConfig::default().version,
-            config.server.port
-        );
-        let (mut server, running) = Self::new(format!("0.0.0.0:{}", config.server.port)).await;
-        info!(
-            "Done! Start took {:?}",
-            crate::START_TIME.get().unwrap().elapsed()
-        );
-
-        // Spawn the ctrl-c task.
-        let r = running.clone();
-        tokio::spawn(async move {
-            tokio::signal::ctrl_c().await.unwrap();
-            info!("Ctrl-C received, shutting down");
-            r.cancel();
-        });
-
-        // The main server loop.
-        loop {
-            tokio::select! {
-                _ = running.cancelled() => {
-                    break;
-                }
-                _ = server.update() => {}
-            }
-        }
-
-        match tokio::time::timeout(std::time::Duration::from_secs(10), server.shutdown()).await {
-            Ok(_) => std::process::exit(0),
-            Err(_) => std::process::exit(1),
-        }
-    }
-    #[tracing::instrument]
-    async fn new<A: 'static + ToSocketAddrs + Send + std::fmt::Debug>(
-        bind_address: A,
-    ) -> (Server, CancellationToken) {
-        trace!("Server::new()");
-
-        let running = CancellationToken::new();
-        let clients = Arc::new(RwLock::new(vec![]));
-        let net_tasks_handle = tokio::spawn(Self::create_network_tasks(
-            bind_address,
-            clients.clone(),
-            running.clone(),
-        ));
-
-        let server = Server {
-            clients,
-            net_tasks_handle,
-        };
-
-        (server, running)
-    }
     #[tracing::instrument]
     async fn create_network_tasks<A: 'static + ToSocketAddrs + Send + std::fmt::Debug>(
         bind_address: A,
@@ -187,10 +128,38 @@ impl Server {
             .await
             .expect("Disconnection task crashed");
     }
-    #[tracing::instrument]
-    pub async fn update(&mut self) -> Result<()> {
-        trace!("Server.update()");
+}
+#[async_trait::async_trait]
+impl App for Server {
+    type Error = error::Error;
 
+    fn startup_message() -> String {
+        let config = Config::instance();
+        format!(
+            "Starting {} on port {}",
+            ServerConfig::default().version,
+            config.server.port
+        )
+    }
+    #[tracing::instrument]
+    async fn new(running: CancellationToken) -> Result<Self, Self::Error> {
+        let config = Config::instance();
+        let bind_address = format!("0.0.0.0:{}", config.server.port);
+
+        let clients = Arc::new(RwLock::new(vec![]));
+        let net_tasks_handle = tokio::spawn(Self::create_network_tasks(
+            bind_address,
+            clients.clone(),
+            running.child_token(),
+        ));
+
+        Ok(Server {
+            clients,
+            net_tasks_handle,
+        })
+    }
+    #[tracing::instrument]
+    async fn update(&mut self) -> Result<(), Self::Error> {
         let mut clients = self.clients.write().await;
 
         // Handle packets from the clients.
@@ -321,9 +290,7 @@ impl Server {
         Ok(())
     }
     #[tracing::instrument]
-    pub async fn shutdown(self) {
-        trace!("Server.shutdown()");
-
+    async fn shutdown(self) -> Result<(), Self::Error> {
         // Close the concurrent tasks.
         let _ = self.net_tasks_handle.await;
 
@@ -335,5 +302,7 @@ impl Server {
                 ))
                 .await;
         }
+
+        Ok(())
     }
 }

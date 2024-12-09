@@ -1,3 +1,4 @@
+use tokio_util::sync::CancellationToken;
 use tracing::{info, warn};
 use tracing_subscriber::prelude::*;
 
@@ -65,7 +66,17 @@ pub fn main() {
     }
     .unwrap()
     .block_on(async move {
+        let running = CancellationToken::new();
+
+        // Spawn the ctrl-c task.
+        let r = running.clone();
+        tokio::spawn(async move {
+            tokio::signal::ctrl_c().await.unwrap();
+            info!("Ctrl-C received, shutting down");
+            r.cancel();
+        });
+
         let args = composition::config::Args::instance();
-        composition::run(args.subcommand).await;
+        composition::run(args.subcommand, running).await;
     });
 }

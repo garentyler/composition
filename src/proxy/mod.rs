@@ -1,83 +1,64 @@
 pub mod config;
 
-use crate::{config::Config, net::listener::NetworkListener};
+use crate::App;
+use crate::{config::Config, net::connection::ConnectionManager};
 use config::ProxyConfig;
-use tokio::net::ToSocketAddrs;
+use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
-use tracing::{info, trace};
+use tracing::info;
 
 #[derive(Debug)]
 pub struct Proxy {
-    _network_listener: NetworkListener,
+    running: CancellationToken,
+    connections: ConnectionManager,
+    listener: JoinHandle<()>,
 }
-impl Proxy {
-    /// Start the proxy.
-    #[tracing::instrument]
-    pub async fn run() {
+#[async_trait::async_trait]
+impl App for Proxy {
+    type Error = ();
+
+    fn startup_message() -> String {
         let config = Config::instance();
-        info!(
+        format!(
             "Starting {} on port {}",
             ProxyConfig::default().version,
             config.proxy.port
-        );
-        let (mut proxy, running) = Self::new(format!("0.0.0.0:{}", config.proxy.port)).await;
-        info!(
-            "Done! Start took {:?}",
-            crate::START_TIME.get().unwrap().elapsed()
-        );
+        )
+    }
+    #[tracing::instrument]
+    async fn new(running: CancellationToken) -> Result<Self, Self::Error> {
+        let config = Config::instance();
+        let bind_address = format!("0.0.0.0:{}", config.proxy.port);
+
+        let connections = ConnectionManager::new();
+        let listener = connections
+            .spawn_listener(bind_address, running.child_token())
+            .await
+            .map_err(|_| ())?;
+
         info!(
             "Upstream server: {}:{}",
             config.proxy.upstream_host, config.proxy.upstream_port
         );
 
-        // Spawn the ctrl-c task.
-        let r = running.clone();
-        tokio::spawn(async move {
-            tokio::signal::ctrl_c().await.unwrap();
-            info!("Ctrl-C received, shutting down");
-            r.cancel();
-        });
-
-        // The main loop.
-        loop {
-            tokio::select! {
-                _ = running.cancelled() => {
-                    break;
-                }
-                _ = proxy.update() => {}
-            }
-        }
-
-        match tokio::time::timeout(std::time::Duration::from_secs(10), proxy.shutdown()).await {
-            Ok(_) => std::process::exit(0),
-            Err(_) => std::process::exit(1),
-        }
+        Ok(Proxy {
+            running,
+            connections,
+            listener,
+        })
     }
     #[tracing::instrument]
-    async fn new<A: 'static + ToSocketAddrs + Send + std::fmt::Debug>(
-        bind_address: A,
-    ) -> (Proxy, CancellationToken) {
-        trace!("Proxy::new()");
-        let running = CancellationToken::new();
-
-        let network_listener = NetworkListener::new(bind_address, running.child_token(), None)
-            .await
-            .expect("listener to bind properly");
-
-        let proxy = Proxy {
-            _network_listener: network_listener,
-        };
-
-        (proxy, running)
+    async fn update(&mut self) -> Result<(), Self::Error> {
+        todo!()
     }
     #[tracing::instrument]
-    async fn update(&mut self) -> Result<(), ()> {
-        // TODO
+    async fn shutdown(self) -> Result<(), Self::Error> {
+        // Ensure any child tasks have been shut down.
+        self.running.cancel();
+
+        let _ = self.listener.await.map_err(|_| ())?;
+        let _ = self.connections.shutdown(None).await.map_err(|_| ())?;
+
         Ok(())
-    }
-    #[tracing::instrument]
-    async fn shutdown(self) {
-        trace!("Proxy.shutdown()");
-        // TODO
     }
 }
