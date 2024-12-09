@@ -45,8 +45,8 @@ macro_rules! packets {
                     if client_state == ClientState::Disconnected {
                         return nom::combinator::fail(input);
                     }
-
                     let (input, packet_len) = VarInt::parse_usize(input)?;
+                    let (input, packet_body) = take(packet_len)(input)?;
                     let (packet_body, packet_id) = verify(VarInt::parse, |v| {
                         match client_state {
                             $(ClientState::$state_name => {
@@ -61,8 +61,7 @@ macro_rules! packets {
                             })*
                             ClientState::Disconnected => false,
                         }
-                    })(input)?;
-                    let (input, packet_body) = take(packet_len)(packet_body)?;
+                    })(packet_body)?;
                     let (_, packet) = Packet::body_parser(client_state, direction, packet_id)(packet_body)?;
                     Ok((input, packet))
                 }
@@ -110,6 +109,7 @@ macro_rules! packets {
                     Packet::LoginSuccess(_) => Some(ClientState::Play),
                     Packet::LoginDisconnect(_) => Some(ClientState::Disconnected),
                     Packet::PlayDisconnect(_) => Some(ClientState::Disconnected),
+                    Packet::PingResponse(_) => Some(ClientState::Disconnected),
                     _ => None,
                 }
             }
@@ -239,3 +239,43 @@ packets!(
         }
     }
 );
+
+#[cfg(test)]
+mod tests {
+    use crate::protocol::{packets::handshake::serverbound::Handshake, types::VarInt, ClientState};
+    use super::{Packet, PacketDirection};
+
+    fn get_handshake() -> (Handshake, &'static [u8]) {
+        (
+            Handshake {
+                protocol_version: VarInt::from(767),
+                host: String::from("localhost"),
+                port: 25565,
+                next_state: ClientState::Status,
+            },
+            &[
+                // Packet length
+                0x10,
+                // Packet ID
+                0x00,
+                // protocol_version: VarInt 
+                0xff, 0x05,
+                // host: String
+                0x09, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f, 0x73, 0x74,
+                // port: u16
+                0x63, 0xdd,
+                // next_state: ClientState (VarInt)
+                0x01,
+            ]
+        )
+    }
+
+    #[test]
+    fn packet_parsing_works() {
+        let (handshake, handshake_bytes) = get_handshake();
+
+        let (rest, packet) = Packet::parse(ClientState::Handshake, PacketDirection::Serverbound, handshake_bytes).unwrap();
+        assert_eq!(packet, Packet::Handshake(handshake));
+        assert!(rest.is_empty());
+    }
+}

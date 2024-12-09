@@ -2,6 +2,8 @@ pub mod config;
 pub mod error;
 
 use crate::net::connection::Connection;
+use crate::protocol::packets::Packet;
+use crate::protocol::ClientState;
 use crate::App;
 use crate::{config::Config, net::connection::ConnectionManager};
 use config::ProxyConfig;
@@ -16,7 +18,24 @@ pub struct Proxy {
     running: CancellationToken,
     connections: ConnectionManager,
     listener: JoinHandle<()>,
+    upstream_address: String,
     upstream: Connection,
+}
+impl Proxy {
+    pub async fn connect_upstream(upstream_address: &str) -> Result<Connection, Error> {
+        let upstream = TcpStream::connect(upstream_address).await.map_err(Error::Io)?;
+        Ok(Connection::new_server(0, upstream))
+    }
+    pub fn rewrite_packet(packet: Packet) -> Packet {
+        match packet {
+            Packet::StatusResponse(mut status) => {
+                let new_description = ProxyConfig::default().version.clone();
+                *status.response.as_object_mut().unwrap().get_mut("description").unwrap() = serde_json::Value::String(new_description);
+                Packet::StatusResponse(status)
+            }
+            p => p,
+        }
+    }
 }
 #[async_trait::async_trait]
 impl App for Proxy {
@@ -30,7 +49,6 @@ impl App for Proxy {
             config.proxy.port
         )
     }
-    #[tracing::instrument]
     async fn new(running: CancellationToken) -> Result<Self, Self::Error> {
         let config = Config::instance();
         let bind_address = format!("0.0.0.0:{}", config.proxy.port);
@@ -44,14 +62,14 @@ impl App for Proxy {
 
         let upstream_address = format!("{}:{}", config.proxy.upstream_host, config.proxy.upstream_port);
         info!("Upstream server: {}", upstream_address);
-        let upstream = TcpStream::connect(upstream_address).await.map_err(Error::Io)?;
-        let upstream = Connection::new_server(0, upstream);
+        let upstream = Proxy::connect_upstream(&upstream_address).await?;
 
         Ok(Proxy {
             running,
             connections,
             listener,
             upstream,
+            upstream_address,
         })
     }
     #[tracing::instrument]
@@ -72,7 +90,11 @@ impl App for Proxy {
                     match packet {
                         Ok(packet) => {
                             trace!("Got packet from client: {:?}", packet);
-                            self.upstream.send_packet(packet).await.map_err(Error::Network)?;
+                            let next_state = packet.state_change();
+                            self.upstream.send_packet(Proxy::rewrite_packet(packet)).await.map_err(Error::Network)?;
+                            if let Some(next_state) = next_state {
+                                *self.upstream.client_state_mut() = next_state;
+                            }
                         }
                         Err(NetworkError::Parsing) => {
                             debug!("Got invalid data from client (id {})", client.id());
@@ -87,7 +109,11 @@ impl App for Proxy {
                     match packet {
                         Ok(packet) => {
                             trace!("Got packet from upstream: {:?}", packet);
-                            client.send_packet(packet).await.map_err(Error::Network)?;
+                            let next_state = packet.state_change();
+                            client.send_packet(Proxy::rewrite_packet(packet)).await.map_err(Error::Network)?;
+                            if let Some(next_state) = next_state {
+                                *client.client_state_mut() = next_state;
+                            }
                         }
                         Err(NetworkError::Parsing) => {
                             error!("Got invalid data from upstream");
@@ -104,6 +130,10 @@ impl App for Proxy {
             // Drop the &mut Connection
             let _ = client;
             let _ = self.connections.disconnect(id, Some(serde_json::json!({ "text": "Received malformed data." }))).await;
+        }
+        if self.upstream.client_state() == ClientState::Disconnected {
+            // Start a new connection with the upstream server.
+            self.upstream = Proxy::connect_upstream(&self.upstream_address).await?;
         }
 
         Ok(())

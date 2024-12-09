@@ -86,15 +86,3 @@ impl Encoder<Packet> for PacketCodec {
         Ok(())
     }
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn packet_decoder_works() {
-        unimplemented!()
-    }
-    #[test]
-    fn packet_encoder_works() {
-        unimplemented!()
-    }
-}

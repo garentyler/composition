@@ -135,8 +135,13 @@ impl ConnectionManager {
         }).await;
 
         // Remove disconnected clients.
+        let before = self.clients.len();
         self.clients
             .retain(|_id, c| c.client_state() != ClientState::Disconnected);
+        let after = self.clients.len();
+        if before - after > 0 {
+            trace!("Removed {} disconnected clients", before - after);
+        }
         Ok(())
     }
     pub async fn disconnect(
@@ -197,6 +202,9 @@ impl Connection {
     }
     pub fn client_state(&self) -> ClientState {
         self.stream.codec().client_state
+    }
+    pub fn client_state_mut(&mut self) -> &mut ClientState {
+        &mut self.stream.codec_mut().client_state
     }
     pub fn received_elapsed(&self) -> Duration {
         self.last_received_data_time.elapsed()
