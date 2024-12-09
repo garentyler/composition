@@ -1,4 +1,4 @@
-use super::codec::PacketCodec;
+use super::{codec::PacketCodec, error::Error};
 use crate::protocol::{
     packets::{self, Packet, PacketDirection},
     types::Chat,
@@ -20,6 +20,7 @@ use tracing::{error, trace};
 
 #[derive(Debug)]
 pub struct ConnectionManager {
+    max_clients: Option<usize>,
     clients: HashMap<u128, Connection>,
     channel: (
         mpsc::UnboundedSender<Connection>,
@@ -27,8 +28,9 @@ pub struct ConnectionManager {
     ),
 }
 impl ConnectionManager {
-    pub fn new() -> ConnectionManager {
+    pub fn new(max_clients: Option<usize>) -> ConnectionManager {
         ConnectionManager {
+            max_clients,
             clients: HashMap::new(),
             channel: mpsc::unbounded_channel(),
         }
@@ -39,11 +41,17 @@ impl ConnectionManager {
     pub fn client_mut(&mut self, id: u128) -> Option<&mut Connection> {
         self.clients.get_mut(&id)
     }
+    pub fn clients(&self) -> impl Iterator<Item = &Connection> {
+        self.clients.iter().map(|(_id, c)| c)
+    }
+    pub fn clients_mut(&mut self) -> impl Iterator<Item = &mut Connection> {
+        self.clients.iter_mut().map(|(_id, c)| c)
+    }
     pub async fn spawn_listener<A>(
         &self,
         bind_address: A,
         running: CancellationToken,
-    ) -> Result<JoinHandle<()>, std::io::Error>
+    ) -> Result<JoinHandle<()>, Error>
     where
         A: 'static + ToSocketAddrs + Send + std::fmt::Debug,
     {
@@ -51,6 +59,7 @@ impl ConnectionManager {
         let fmt_addr = format!("{:?}", bind_address);
         let listener = TcpListener::bind(bind_address)
             .await
+            .map_err(Error::Io)
             .inspect_err(|_| error!("Could not bind to {}.", fmt_addr))?;
 
         let sender = self.channel.0.clone();
@@ -81,25 +90,49 @@ impl ConnectionManager {
 
         Ok(join_handle)
     }
-    pub fn update(&mut self) -> Result<(), std::io::Error> {
-        use std::io::{Error, ErrorKind};
-
+    pub async fn update(&mut self) -> Result<(), Error> {
         // Receive new clients from the sender.
         loop {
             match self.channel.1.try_recv() {
                 Ok(connection) => {
                     let id = connection.id();
-                    self.clients.insert(id, connection);
+
+                    match self.max_clients {
+                        Some(max) => {
+                            if self.clients.len() >= max {
+                                let _ = connection.disconnect(None).await;
+                            } else {
+                                self.clients.insert(id, connection);
+                            }
+                        }
+                        None => {
+                            self.clients.insert(id, connection);
+                        },
+                    }
                 }
-                Err(mpsc::error::TryRecvError::Disconnected) => {
-                    return Err(Error::new(
-                        ErrorKind::BrokenPipe,
-                        "all senders disconnected",
-                    ))
-                }
+                Err(mpsc::error::TryRecvError::Disconnected) => return Err(Error::ConnectionChannelDisconnnection),
                 Err(mpsc::error::TryRecvError::Empty) => break,
             };
         }
+        
+        // Disconnect any clients that have timed out.
+        // We don't actually care if the disconnections succeed,
+        // the connection is going to be dropped anyway.
+        let _ = futures::future::join_all({
+            // Workaround until issue #59618 hash_extract_if gets stabilized.
+            let ids = self.clients.iter()
+                .filter_map(|(id, c)| {
+                    if c.received_elapsed() > Duration::from_secs(10) {
+                        Some(*id)
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>();
+            ids.into_iter()
+                .map(|id| self.clients.remove(&id).unwrap())
+                .map(|client| client.disconnect(None))
+        }).await;
 
         // Remove disconnected clients.
         self.clients
@@ -110,11 +143,11 @@ impl ConnectionManager {
         &mut self,
         id: u128,
         reason: Option<Chat>,
-    ) -> Option<Result<(), std::io::Error>> {
+    ) -> Option<Result<(), Error>> {
         let client = self.clients.remove(&id)?;
         Some(client.disconnect(reason).await)
     }
-    pub async fn shutdown(mut self, reason: Option<Chat>) -> Result<(), std::io::Error> {
+    pub async fn shutdown(mut self, reason: Option<Chat>) -> Result<(), Error> {
         let reason = reason.unwrap_or(serde_json::json!({
             "text": "You have been disconnected!"
         }));
@@ -128,8 +161,7 @@ impl ConnectionManager {
 
         // We don't actually care if the disconnections succeed,
         // the connection is going to be dropped anyway.
-        let _disconnections: Vec<Result<(), std::io::Error>> =
-            futures::future::join_all(disconnections).await;
+        let _disconnections = futures::future::join_all(disconnections).await;
 
         Ok(())
     }
@@ -172,15 +204,15 @@ impl Connection {
     pub fn sent_elapsed(&self) -> Duration {
         self.last_sent_data_time.elapsed()
     }
-    pub async fn read_packet(&mut self) -> Option<Result<Packet, std::io::Error>> {
+    pub async fn read_packet(&mut self) -> Option<Result<Packet, Error>> {
         self.last_received_data_time = Instant::now();
         self.stream.next().await
     }
-    pub async fn send_packet<P: Into<Packet>>(&mut self, packet: P) -> Result<(), std::io::Error> {
+    pub async fn send_packet<P: Into<Packet>>(&mut self, packet: P) -> Result<(), Error> {
         let packet: Packet = packet.into();
         self.stream.send(packet).await
     }
-    pub async fn disconnect(mut self, reason: Option<Chat>) -> Result<(), std::io::Error> {
+    pub async fn disconnect(mut self, reason: Option<Chat>) -> Result<(), Error> {
         trace!("Connection disconnected (id {})", self.id);
         use packets::{login::clientbound::LoginDisconnect, play::clientbound::PlayDisconnect};
 

@@ -18,7 +18,7 @@ use config::Subcommand;
 use once_cell::sync::OnceCell;
 use std::time::Instant;
 use tokio_util::sync::CancellationToken;
-use tracing::info;
+use tracing::{info, error};
 
 pub const PROTOCOL_VERSION: i32 = 762;
 pub const GAME_VERSION: &str = "1.19.4";
@@ -62,8 +62,12 @@ pub(crate) trait App: Sized {
                     break;
                 }
                 r = app.update() => {
-                    if r.is_err() {
-                        break;
+                    match r {
+                        Ok(_) => {},
+                        Err(e) => {
+                            error!("{:?}", e);
+                            break;
+                        }
                     }
                 }
             }

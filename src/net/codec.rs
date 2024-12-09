@@ -4,11 +4,12 @@ use crate::protocol::{
     types::VarInt,
     ClientState,
 };
-use std::io::{Error, ErrorKind};
 use tokio_util::{
     bytes::{Buf, BytesMut},
     codec::{Decoder, Encoder},
 };
+use super::error::Error;
+use tracing::trace;
 
 #[derive(Clone, Copy, Debug)]
 pub struct PacketCodec {
@@ -33,7 +34,7 @@ impl Default for PacketCodec {
 }
 impl Decoder for PacketCodec {
     type Item = Packet;
-    type Error = std::io::Error;
+    type Error = Error;
 
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         match Packet::parse(self.client_state, self.packet_direction, src) {
@@ -58,17 +59,21 @@ impl Decoder for PacketCodec {
                         src.reserve(5);
                         Ok(None)
                     }
-                    Err(_) => Err(Error::new(ErrorKind::InvalidData, "Nom parsing error")),
+                    Err(_) => Err(Error::Parsing),
                 }
             }
-            Err(nom::Err::Error(_)) | Err(nom::Err::Failure(_)) => {
-                Err(Error::new(ErrorKind::InvalidData, "Nom parsing error"))
+            Err(nom::Err::Error(e)) => {
+                trace!("parsing error: {:02X?}", e.input);
+                Err(Error::Parsing)
+            }
+            Err(nom::Err::Failure(_)) => {
+                Err(Error::Parsing)
             }
         }
     }
 }
 impl Encoder<Packet> for PacketCodec {
-    type Error = std::io::Error;
+    type Error = Error;
 
     fn encode(&mut self, item: Packet, dst: &mut BytesMut) -> Result<(), Self::Error> {
         let mut out = vec![];

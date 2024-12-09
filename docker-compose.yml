@@ -32,9 +32,13 @@ services:
       context: .
       dockerfile: Dockerfile
       target: dev
-    command: [ "run -- proxy -u reference" ]
+    depends_on:
+      reference:
+        condition: service_healthy
+        restart: true
+    command: [ "run -- proxy -U reference -l trace" ]
     ports:
-      - "25566:25565"
+      - "25566:25566"
     volumes:
       - .:/app
       - .git:/app/.git
