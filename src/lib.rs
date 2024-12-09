@@ -18,7 +18,7 @@ use config::Subcommand;
 use once_cell::sync::OnceCell;
 use std::time::Instant;
 use tokio_util::sync::CancellationToken;
-use tracing::{info, error};
+use tracing::{error, info};
 
 pub const PROTOCOL_VERSION: i32 = 762;
 pub const GAME_VERSION: &str = "1.19.4";

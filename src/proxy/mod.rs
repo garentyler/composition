@@ -7,11 +7,11 @@ use crate::protocol::ClientState;
 use crate::App;
 use crate::{config::Config, net::connection::ConnectionManager};
 use config::ProxyConfig;
+use error::{Error, NetworkError};
 use tokio::net::TcpStream;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
-use tracing::{info, trace, error, debug};
-use error::{Error, NetworkError};
+use tracing::{debug, error, info, trace};
 
 #[derive(Debug)]
 pub struct Proxy {
@@ -23,14 +23,21 @@ pub struct Proxy {
 }
 impl Proxy {
     pub async fn connect_upstream(upstream_address: &str) -> Result<Connection, Error> {
-        let upstream = TcpStream::connect(upstream_address).await.map_err(Error::Io)?;
+        let upstream = TcpStream::connect(upstream_address)
+            .await
+            .map_err(Error::Io)?;
         Ok(Connection::new_server(0, upstream))
     }
     pub fn rewrite_packet(packet: Packet) -> Packet {
         match packet {
             Packet::StatusResponse(mut status) => {
                 let new_description = ProxyConfig::default().version.clone();
-                *status.response.as_object_mut().unwrap().get_mut("description").unwrap() = serde_json::Value::String(new_description);
+                *status
+                    .response
+                    .as_object_mut()
+                    .unwrap()
+                    .get_mut("description")
+                    .unwrap() = serde_json::Value::String(new_description);
                 Packet::StatusResponse(status)
             }
             p => p,
@@ -52,7 +59,7 @@ impl App for Proxy {
     async fn new(running: CancellationToken) -> Result<Self, Self::Error> {
         let config = Config::instance();
         let bind_address = format!("0.0.0.0:{}", config.proxy.port);
-        
+
         // Only allow one client to join at a time.
         let connections = ConnectionManager::new(Some(1));
         let listener = connections
@@ -60,7 +67,10 @@ impl App for Proxy {
             .await
             .map_err(Error::Network)?;
 
-        let upstream_address = format!("{}:{}", config.proxy.upstream_host, config.proxy.upstream_port);
+        let upstream_address = format!(
+            "{}:{}",
+            config.proxy.upstream_host, config.proxy.upstream_port
+        );
         info!("Upstream server: {}", upstream_address);
         let upstream = Proxy::connect_upstream(&upstream_address).await?;
 
@@ -81,7 +91,7 @@ impl App for Proxy {
         };
 
         let mut client_parsing_error = false;
-        
+
         // At the same time, try to read packets from the server and client.
         // Forward the packet onto the other.
         tokio::select! {
@@ -129,7 +139,13 @@ impl App for Proxy {
             let id = client.id();
             // Drop the &mut Connection
             let _ = client;
-            let _ = self.connections.disconnect(id, Some(serde_json::json!({ "text": "Received malformed data." }))).await;
+            let _ = self
+                .connections
+                .disconnect(
+                    id,
+                    Some(serde_json::json!({ "text": "Received malformed data." })),
+                )
+                .await;
         }
         if self.upstream.client_state() == ClientState::Disconnected {
             // Start a new connection with the upstream server.
@@ -144,7 +160,11 @@ impl App for Proxy {
         self.running.cancel();
 
         let _ = self.listener.await.map_err(Error::Task)?;
-        let _ = self.connections.shutdown(None).await.map_err(Error::Network)?;
+        let _ = self
+            .connections
+            .shutdown(None)
+            .await
+            .map_err(Error::Network)?;
 
         Ok(())
     }

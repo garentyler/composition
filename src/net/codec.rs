@@ -1,3 +1,4 @@
+use super::error::Error;
 use crate::protocol::{
     packets::{Packet, PacketDirection},
     parsing::Parsable,
@@ -8,7 +9,6 @@ use tokio_util::{
     bytes::{Buf, BytesMut},
     codec::{Decoder, Encoder},
 };
-use super::error::Error;
 use tracing::trace;
 
 #[derive(Clone, Copy, Debug)]
@@ -66,9 +66,7 @@ impl Decoder for PacketCodec {
                 trace!("parsing error: {:02X?}", e.input);
                 Err(Error::Parsing)
             }
-            Err(nom::Err::Failure(_)) => {
-                Err(Error::Parsing)
-            }
+            Err(nom::Err::Failure(_)) => Err(Error::Parsing),
         }
     }
 }

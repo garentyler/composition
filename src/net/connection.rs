@@ -42,10 +42,10 @@ impl ConnectionManager {
         self.clients.get_mut(&id)
     }
     pub fn clients(&self) -> impl Iterator<Item = &Connection> {
-        self.clients.iter().map(|(_id, c)| c)
+        self.clients.values()
     }
     pub fn clients_mut(&mut self) -> impl Iterator<Item = &mut Connection> {
-        self.clients.iter_mut().map(|(_id, c)| c)
+        self.clients.values_mut()
     }
     pub async fn spawn_listener<A>(
         &self,
@@ -107,20 +107,24 @@ impl ConnectionManager {
                         }
                         None => {
                             self.clients.insert(id, connection);
-                        },
+                        }
                     }
                 }
-                Err(mpsc::error::TryRecvError::Disconnected) => return Err(Error::ConnectionChannelDisconnnection),
+                Err(mpsc::error::TryRecvError::Disconnected) => {
+                    return Err(Error::ConnectionChannelDisconnnection)
+                }
                 Err(mpsc::error::TryRecvError::Empty) => break,
             };
         }
-        
+
         // Disconnect any clients that have timed out.
         // We don't actually care if the disconnections succeed,
         // the connection is going to be dropped anyway.
         let _ = futures::future::join_all({
             // Workaround until issue #59618 hash_extract_if gets stabilized.
-            let ids = self.clients.iter()
+            let ids = self
+                .clients
+                .iter()
                 .filter_map(|(id, c)| {
                     if c.received_elapsed() > Duration::from_secs(10) {
                         Some(*id)
@@ -132,7 +136,8 @@ impl ConnectionManager {
             ids.into_iter()
                 .map(|id| self.clients.remove(&id).unwrap())
                 .map(|client| client.disconnect(None))
-        }).await;
+        })
+        .await;
 
         // Remove disconnected clients.
         let before = self.clients.len();

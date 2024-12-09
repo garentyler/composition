@@ -242,8 +242,8 @@ packets!(
 
 #[cfg(test)]
 mod tests {
-    use crate::protocol::{packets::handshake::serverbound::Handshake, types::VarInt, ClientState};
     use super::{Packet, PacketDirection};
+    use crate::protocol::{packets::handshake::serverbound::Handshake, types::VarInt, ClientState};
 
     fn get_handshake() -> (Handshake, &'static [u8]) {
         (
@@ -255,18 +255,13 @@ mod tests {
             },
             &[
                 // Packet length
-                0x10,
-                // Packet ID
-                0x00,
-                // protocol_version: VarInt 
-                0xff, 0x05,
-                // host: String
-                0x09, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f, 0x73, 0x74,
-                // port: u16
-                0x63, 0xdd,
-                // next_state: ClientState (VarInt)
+                0x10, // Packet ID
+                0x00, // protocol_version: VarInt
+                0xff, 0x05, // host: String
+                0x09, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x68, 0x6f, 0x73, 0x74, // port: u16
+                0x63, 0xdd, // next_state: ClientState (VarInt)
                 0x01,
-            ]
+            ],
         )
     }
 
@@ -274,7 +269,12 @@ mod tests {
     fn packet_parsing_works() {
         let (handshake, handshake_bytes) = get_handshake();
 
-        let (rest, packet) = Packet::parse(ClientState::Handshake, PacketDirection::Serverbound, handshake_bytes).unwrap();
+        let (rest, packet) = Packet::parse(
+            ClientState::Handshake,
+            PacketDirection::Serverbound,
+            handshake_bytes,
+        )
+        .unwrap();
         assert_eq!(packet, Packet::Handshake(handshake));
         assert!(rest.is_empty());
     }
