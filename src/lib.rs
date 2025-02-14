@@ -20,10 +20,10 @@ use std::time::Instant;
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 
-pub const PROTOCOL_VERSION: i32 = 762;
-pub const GAME_VERSION: &str = "1.19.4";
+pub const PROTOCOL_VERSION: i32 = 767;
+pub const GAME_VERSION: &str = "1.21.1";
 
-/// A globally accessible instant of the composition's start time.
+/// A globally accessible instant of Composition's start time.
 ///
 /// This should be set immediately on startup.
 pub static START_TIME: OnceCell<Instant> = OnceCell::new();

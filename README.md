@@ -1,49 +1,55 @@
 # Composition
+
 Composition is a new Minecraft server written from the ground-up in Rust.
 
-Composition is targeting Minecraft version 1.19.4, protocol version 762.
+Composition is targeting Minecraft version 1.21.1, protocol version 767.
 The main goal is to get a working server, then optimize for speed (multi-threading/kubernetes/etc).
 
-## Features
-- [x] Server status (favicon included)
-- [ ] [Authentication](https://github.com/garentyler/composition/milestone/1)
-- [ ] [Encryption](https://github.com/garentyler/composition/issues/10)/[compression](https://github.com/garentyler/composition/issues/11)
-- [ ] World
-  - [ ] [World generation](https://github.com/garentyler/composition/milestone/3)
-    - [ ] [Flat world generation](https://github.com/garentyler/composition/issues/12)
-    - [ ] [More complex world generation](https://github.com/garentyler/composition/issues/13)
-  - [ ] [World updates](https://github.com/garentyler/composition/milestone/7) (placing/breaking blocks)
-  - [ ] [World saving](https://github.com/garentyler/composition/milestone/8) (probably custom format)
-- [ ] [Chat](https://github.com/garentyler/composition/milestone/4)
-  - [ ] [Player chat](https://github.com/garentyler/composition/issues/15)
-  - [ ] [System chat](https://github.com/garentyler/composition/issues/16)
-  - [ ] Console input
-  - [ ] Commands
-- [ ] [Collisions and physics](https://github.com/garentyler/composition/milestone/6)
-  - [ ] Player movement
-- [ ] [Entities](https://github.com/garentyler/composition/milestone/9)
-  - [ ] Spawning
-  - [ ] AI
-- [ ] [Inventory](https://github.com/garentyler/composition/milestone/10)
-  - [ ] Items
-  - [ ] Chests/Shulkers/etc.
-  - [ ] Crafting/Smelting/etc.
-- [ ] Plugins ([WASM](https://webassembly.org/))
-- [ ] Future ideas (k8s, mods, anti-cheat, etc.)
+Composition is my personal project to learn more about networking,
+game development, and Rust and is not currently intended for production use.
+I want to use it as a platform to experiment with ideas about how a Minecraft
+server could work, such as a tickless design, one that could run across a distributed
+kubernetes cluster, or a world as a database that's accessed by multiple servers.
+
+## Getting Started
+
+- The only prerequisite for running Composition is to have Docker and Docker Compose installed.
+- Clone the project: `git clone https://github.com/garentyler/composition.git`
+- Run it in proxy mode: `docker compose --profile proxy up`
+
+  Proxy mode will start an instance of `itzg/minecraft-server` on port 25565 and
+  the Composition proxy in 25566. This is useful for testing packet parsing and
+  handling.
+- Run it in server mode: `docker compose --profile server up`
+
+  Server mode starts Composition on port 25566.
+  This is useful for testing the server logic and world generation.
+- To build release images, use `docker buildx bake -f docker-bake.hcl`.
+  This will create a multi-arch image that can be run on amd64 and arm64.
 
 ## Project Structure
-Composition is broken up into multiple crates to speed up build times and improve modularity.
-- `composition-core` implements the main server logic, such as handling clients and loading world chunks.
-  It also sets up logging and loads the main configuration.
-  This is the main binary that is exported with `cargo build`.
-- `composition-protocol` handles the types and packets needed for network communication as well as general Minecraft types, such as entities, items, and blocks.
-  The library was designed to be able to used by anyone looking to implement a Minecraft server.
-- `composition-world` generates the world and updates the entities and blocks within it. In the future, the world might be extracted into its own server so that multiple "server cores" can process players on the same world.
-- `composition-parsing` is a utility library that helps with parsing.
+
+Composition is built using the async runtime and networking from Tokio.
+On startup, Composition sets up logging, reads the configuration, and
+parses command line arguments. From there, it decides which mode to
+start in (server, proxy, world, etc). The subcommand performs any
+startup tasks, such as loading the world, and then begins the main
+event loop.
+
+### Cargo Features
+
+Composition has a non-optional core and multiple cargo features that can be enabled or disabled to configure functionality.
+
+The `server` feature enables the `composition server` command, which runs a standalone Minecraft server.
+
+The `proxy` feature enables the `composition proxy` command, which runs a proxy server that forwards packets to another server.
+
+The `world` feature is not yet implemented. When finished, it will host a world server that can be accessed by multiple server cores.
 
 ## Useful Resources
-- [Protocol Specification](https://wiki.vg/Protocol)
-- [Normal Login Sequence](https://wiki.vg/Protocol_FAQ#What.27s_the_normal_login_sequence_for_a_client.3F)
-- [Server Ping](https://wiki.vg/Server_List_Ping)
-- [Map Format](https://wiki.vg/Map_Format)
 
+- [wiki.vg archive](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge) (now merged with the Minecraft wiki)
+- [Protocol Specification](https://minecraft.wiki/w/Java_Edition_protocol)
+- [Normal Login Sequence](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol_FAQ#What's_the_normal_login_sequence_for_a_client?)
+- [Server Ping](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Server_List_Ping)
+- [Map Format](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Map_Format)

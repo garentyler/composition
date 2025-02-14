@@ -1,6 +1,6 @@
 FROM rust:1.83.0-alpine3.20 AS base
-RUN apk add --no-cache musl-dev=1.2.5-r0 git=2.45.2-r0
-RUN cargo install cargo-chef --locked --version 0.1.68
+RUN apk add --no-cache musl-dev git
+RUN cargo install cargo-chef --locked --version 0.1.71
 WORKDIR /app
 RUN git config --global --add safe.directory /app
 ARG FEATURES
@@ -30,8 +30,8 @@ RUN cargo build --release --no-default-features --features $FEATURES
 RUN strip target/release/composition
 
 FROM alpine:3.20 AS prod
-RUN apk add --no-cache tini=0.19.0-r3
-RUN addgroup --gid 10001 --system composition && adduser --uid 10000 --system --ingroup composition --home /app composition
+RUN apk add --no-cache tini
+RUN addgroup --gid 25565 --system composition && adduser --uid 25565 --system --ingroup composition --home /app composition
 VOLUME /app/data
 WORKDIR /app/data
 COPY --from=builder /app/target/release/composition /app
