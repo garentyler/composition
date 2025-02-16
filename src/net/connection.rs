@@ -219,11 +219,22 @@ impl Connection {
     }
     pub async fn read_packet(&mut self) -> Option<Result<Packet, Error>> {
         self.last_received_data_time = Instant::now();
-        self.stream.next().await
+        self.stream.next().await.map(|packet| {
+            packet.map_err(|mut e| {
+                // Set the codec error to something more descriptive.
+                if e.to_string() == "bytes remaining on stream" {
+                    e = Error::Io(std::io::Error::new(std::io::ErrorKind::UnexpectedEof, e));
+                }
+                trace!("Error reading packet from connection {}: {:?}", self.id, e);
+                e
+            })
+        })
     }
     pub async fn send_packet<P: Into<Packet>>(&mut self, packet: P) -> Result<(), Error> {
         let packet: Packet = packet.into();
-        self.stream.send(packet).await
+        self.stream.send(packet).await.inspect_err(|e| {
+            trace!("Error sending packet to connection {}: {:?}", self.id, e);
+        })
     }
     pub async fn disconnect(mut self, reason: Option<Chat>) -> Result<(), Error> {
         trace!("Connection disconnected (id {})", self.id);

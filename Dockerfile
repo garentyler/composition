@@ -1,12 +1,15 @@
 FROM rust:1.83.0-alpine3.20 AS base
 RUN apk add --no-cache musl-dev git
 RUN cargo install cargo-chef --locked --version 0.1.71
+RUN cargo install cargo-watch --locked --version 8.5.3
 WORKDIR /app
 RUN git config --global --add safe.directory /app
 ARG FEATURES
+RUN addgroup --gid 25565 --system composition && adduser --uid 25565 --system --ingroup composition --home /app composition
+RUN chown -R composition:composition /app
+USER composition
 
 FROM base AS dev
-RUN cargo install cargo-watch --locked --version 8.5.3
 VOLUME /app
 VOLUME /app/.git
 EXPOSE 25565

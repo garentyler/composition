@@ -90,7 +90,8 @@ impl App for Proxy {
             return Ok(());
         };
 
-        let mut client_parsing_error = false;
+        let mut client_error = false;
+        let mut server_error = false;
 
         // At the same time, try to read packets from the server and client.
         // Forward the packet onto the other.
@@ -106,11 +107,24 @@ impl App for Proxy {
                                 *self.upstream.client_state_mut() = next_state;
                             }
                         }
-                        Err(NetworkError::Parsing) => {
-                            debug!("Got invalid data from client (id {})", client.id());
-                            client_parsing_error = true;
+                        Err(e) => {
+                            client_error = true;
+                            match e {
+                                NetworkError::Parsing => {
+                                    trace!("Got invalid data from client (id {})", client.id());
+                                    return Err(Error::Network(NetworkError::Parsing));
+                                }
+                                NetworkError::Io(e) => {
+                                    if e.kind() == std::io::ErrorKind::UnexpectedEof {
+                                        trace!("Client (id {}) disconnected", client.id());
+                                    } else {
+                                        trace!("Got IO error from client (id {}): {}", client.id(), e);
+                                        return Err(Error::Io(e));
+                                    }
+                                }
+                                e => return Err(Error::Network(e)),
+                            };
                         }
-                        Err(e) => return Err(Error::Network(e)),
                     }
                 }
             }
@@ -125,17 +139,26 @@ impl App for Proxy {
                                 *client.client_state_mut() = next_state;
                             }
                         }
-                        Err(NetworkError::Parsing) => {
-                            error!("Got invalid data from upstream");
-                            return Err(Error::Network(NetworkError::Parsing));
-                        },
-                        Err(e) => return Err(Error::Network(e)),
+                        Err(e) => {
+                            server_error = true;
+                            return match e {
+                                NetworkError::Parsing => {
+                                    trace!("Got invalid data from upstream");
+                                    Err(Error::Network(NetworkError::Parsing))
+                                }
+                                NetworkError::Io(e) => {
+                                    trace!("Got IO error from upstream");
+                                    Err(Error::Io(e))
+                                }
+                                e => Err(Error::Network(e)),
+                            };
+                        }
                     }
                 }
             }
         }
-
-        if client_parsing_error {
+        
+        if client_error {
             let id = client.id();
             // Drop the &mut Connection
             let _ = client;
@@ -147,7 +170,7 @@ impl App for Proxy {
                 )
                 .await;
         }
-        if self.upstream.client_state() == ClientState::Disconnected {
+        if self.upstream.client_state() == ClientState::Disconnected || server_error {
             // Start a new connection with the upstream server.
             self.upstream = Proxy::connect_upstream(&self.upstream_address).await?;
         }
