@@ -1,7 +1,8 @@
 use crate::protocol::parsing::{IResult, Parsable};
+pub use uuid::Uuid;
 
-/// Alias for a u128.
-pub type Uuid = u128;
+// /// Alias for a u128.
+// pub type Uuid = u128;
 pub use crate::protocol::parsing::VarInt;
 /// Alias for a `serde_json::Value`.
 pub type Json = serde_json::Value;

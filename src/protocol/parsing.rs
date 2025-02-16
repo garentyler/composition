@@ -114,24 +114,13 @@ pub trait Parsable {
 impl<T: Parsable + std::fmt::Debug> Parsable for Option<T> {
     #[tracing::instrument]
     fn parse(data: &[u8]) -> IResult<&[u8], Self> {
-        let (data, exists) = bool::parse(data)?;
-        if exists {
-            let (data, thing) = T::parse(data)?;
-            Ok((data, Some(thing)))
-        } else {
-            Ok((data, None))
-        }
+        nom::combinator::opt(T::parse)(data)
     }
     #[tracing::instrument]
     fn serialize(&self) -> Vec<u8> {
         match self {
-            Some(t) => {
-                let mut output = vec![];
-                output.extend(true.serialize());
-                output.extend(t.serialize());
-                output
-            }
-            None => false.serialize(),
+            Some(t) => t.serialize(),
+            None => Vec::new(),
         }
     }
 }
@@ -151,6 +140,16 @@ impl<T: Parsable + std::fmt::Debug> Parsable for Vec<T> {
     }
 }
 
+impl Parsable for uuid::Uuid {
+    #[tracing::instrument]
+    fn parse(data: &[u8]) -> IResult<&[u8], Self> {
+        map_res(take(16usize), uuid::Uuid::from_slice)(data)
+    }
+    #[tracing::instrument]
+    fn serialize(&self) -> Vec<u8> {
+        self.as_bytes().to_vec()
+    }
+}
 impl Parsable for serde_json::Value {
     #[tracing::instrument]
     fn parse(data: &[u8]) -> IResult<&[u8], Self> {

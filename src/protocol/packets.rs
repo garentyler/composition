@@ -2,6 +2,8 @@
 
 // Inspired by https://github.com/iceiix/stevenarella.
 
+use tracing::trace;
+
 /// Enum representation of a packet's direction.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum PacketDirection {
@@ -62,7 +64,9 @@ macro_rules! packets {
                             ClientState::Disconnected => false,
                         }
                     })(packet_body)?;
+                    trace!("Parsing packet: {:?} {:?} {:02x} ({} bytes)", direction, client_state, *packet_id, packet_body.len());
                     let (_, packet) = Packet::body_parser(client_state, direction, packet_id)(packet_body)?;
+                    // trace!("Parsed packet: {:?}", packet);
                     Ok((input, packet))
                 }
             }

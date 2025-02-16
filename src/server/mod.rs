@@ -15,6 +15,7 @@ use tokio::net::{TcpListener, ToSocketAddrs};
 use tokio::{sync::RwLock, task::JoinHandle};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, trace};
+use crate::protocol::types::Uuid;
 
 /// The main state and logic of the program.
 #[derive(Debug)]
@@ -270,7 +271,7 @@ impl App for Server {
                         // TODO: Get the user from the stored database.
                         // TODO: Encryption/compression.
                         client.queue_packet(LoginSuccess {
-                            uuid: login_start.uuid.unwrap_or(0u128),
+                            uuid: login_start.uuid.unwrap_or(Uuid::nil()),
                             username: login_start.name.clone(),
                             properties: vec![],
                         });
