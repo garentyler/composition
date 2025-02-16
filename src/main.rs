@@ -17,7 +17,12 @@ pub fn main() {
         .clone()
         .unwrap_or(PathBuf::from(DEFAULT_LOG_DIR));
     let log_path = Path::new(&log_path);
-    let file_writer = tracing_appender::rolling::daily(log_path, "log");
+    let file_writer = tracing_appender::rolling::RollingFileAppender::builder()
+        .rotation(tracing_appender::rolling::Rotation::DAILY)
+        .filename_suffix("log")
+        .build(log_path)
+        .expect("could not create file writer");
+    // let file_writer = tracing_appender::rolling::daily(log_path, "log");
     let (file_writer, _guard) = tracing_appender::non_blocking(file_writer);
 
     tracing_subscriber::registry()
