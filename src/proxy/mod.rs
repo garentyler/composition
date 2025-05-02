@@ -11,7 +11,7 @@ use error::{Error, NetworkError};
 use tokio::net::TcpStream;
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
-use tracing::{debug, error, info, trace};
+use tracing::{info, trace};
 
 #[derive(Debug)]
 pub struct Proxy {
@@ -91,7 +91,7 @@ impl App for Proxy {
         };
 
         let mut client_error = false;
-        let mut server_error = false;
+        let server_error = false;
 
         // At the same time, try to read packets from the server and client.
         // Forward the packet onto the other.
@@ -140,7 +140,7 @@ impl App for Proxy {
                             }
                         }
                         Err(e) => {
-                            server_error = true;
+                            // server_error = true;
                             return match e {
                                 NetworkError::Parsing => {
                                     trace!("Got invalid data from upstream");
