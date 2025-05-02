@@ -1,33 +1,117 @@
-# Composition
+# 📓 Composition
 
 Composition is a new Minecraft server written from the ground-up in Rust.
 
 Composition is targeting Minecraft version 1.21.1, protocol version 767.
-The main goal is to get a working server, then optimize for speed (multi-threading/kubernetes/etc).
+The main goal is to get a working server, then optimize for speed
+(multi-threading/kubernetes/etc).
 
 Composition is my personal project to learn more about networking,
-game development, and Rust and is not currently intended for production use.
+game development, Rust, Docker, and CI/CD pipelines.
+Composition is not currently intended for production use.
 I want to use it as a platform to experiment with ideas about how a Minecraft
 server could work, such as a tickless design, one that could run across a distributed
 kubernetes cluster, or a world as a database that's accessed by multiple servers.
 
-## Getting Started
+## 🚀 Getting Started
 
-- The only prerequisite for running Composition is to have Docker and Docker Compose installed.
-- Clone the project: `git clone https://github.com/garentyler/composition.git`
-- Run it in proxy mode: `docker compose --profile proxy up`
+- The only prerequisite for running Composition is to have Docker installed.
+- Pull the latest version of the Docker image:
+  `docker pull git.garen.dev/garentyler/composition:latest`
+- Make sure a folder exists for the it to store its data. The uid/gid of the
+  process inside the container is `25565:25565`, so make sure the folder
+  is writable by that user.
 
-  Proxy mode will start an instance of `itzg/minecraft-server` on port 25565 and
-  the Composition proxy in 25566. This is useful for testing packet parsing and
-  handling.
-- Run it in server mode: `docker compose --profile server up`
+  To get the right file permissions, you can run the following:
 
-  Server mode starts Composition on port 25566.
-  This is useful for testing the server logic and world generation.
-- To build release images, use `docker buildx bake -f docker-bake.hcl`.
-  This will create a multi-arch image that can be run on amd64 and arm64.
+  ```sh
+  mkdir -p composition-server
+  sudo chown -R 25565:25565 composition-server
+  sudo chmod -R 775 composition-server
+  ```
 
-## Project Structure
+### 🕹️ Running Composition as a Server
+
+Standalone command:
+
+```sh
+docker run -it -v .:/app/data --network host git.garen.dev/garentyler/composition server
+```
+
+Example docker-compose.yml file:
+
+```yml
+services:
+  # Composition running as a server.
+  composition-server:
+    image: git.garen.dev/garentyler/composition:latest
+    container_name: composition-server
+    restart: unless-stopped
+    ports:
+      - "25565:25565"
+    volumes:
+      - ./composition-server:/app/data
+    command: server
+```
+
+### 🌐 Running Composition as a Proxy
+
+Standalone command:
+
+```sh
+docker run -it -v .:/app/data --network host git.garen.dev/garentyler/composition proxy
+```
+
+Example docker-compose.yml file:
+
+```yml
+services:
+  # Example Minecraft server to run as a reference.
+  reference:
+    image: itzg/minecraft-server
+    container_name: reference
+    restart: unless-stopped
+    ports:
+      - "25565:25565"
+    environment:
+      EULA: "TRUE"
+      VERSION: "1.21.1"
+  # Composition running as a proxy.
+  composition-proxy:
+    image: git.garen.dev/garentyler/composition:latest
+    container_name: composition-proxy
+    restart: unless-stopped
+    depends_on:
+      reference:
+        condition: service_healthy
+        restart: true
+    ports:
+      - "25566:25566"
+    volumes:
+      - ./composition-proxy:/app/data
+    command: proxy -U reference
+```
+
+## 🛠️ Building From Source
+
+To build Composition from source, you will need to have Rust and Cargo installed.
+The stable toolchain is recommended, but the nightly toolchain may be required for some features.
+
+```sh
+cargo build --release
+```
+
+To build the Docker image, you will need to have Docker configured with Bake.
+
+```sh
+# To build both linux/amd64 and linux/arm64 images, use the following command:
+docker buildx bake -f docker-bake.hcl
+
+# To build only the linux/amd64 image, use the following command:
+docker buildx bake -f docker-bake.hcl --set default.platform=linux/amd64
+```
+
+## 🏗️ Project Structure
 
 Composition is built using the async runtime and networking from Tokio.
 On startup, Composition sets up logging, reads the configuration, and
@@ -36,7 +120,7 @@ start in (server, proxy, world, etc). The subcommand performs any
 startup tasks, such as loading the world, and then begins the main
 event loop.
 
-### Cargo Features
+### 🦀 Cargo Features
 
 Composition has a non-optional core and multiple cargo features that can be enabled or disabled to configure functionality.
 
@@ -46,7 +130,7 @@ The `proxy` feature enables the `composition proxy` command, which runs a proxy 
 
 The `world` feature is not yet implemented. When finished, it will host a world server that can be accessed by multiple server cores.
 
-## Useful Resources
+## 📋 Useful Resources
 
 - [wiki.vg archive](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge) (now merged with the Minecraft wiki)
 - [Protocol Specification](https://minecraft.wiki/w/Java_Edition_protocol)

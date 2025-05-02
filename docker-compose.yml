@@ -1,47 +1,12 @@
-# This file is only meant to provide a simple dev environment.
-# For prod images, look at docker-bake.hcl.
+# This file is only meant to provide a convenient dev environment.
+# For prod images, look at docker-bake.hcl and README.md.
 services:
-  server:
-    container_name: composition
-    restart: unless-stopped
-    profiles: [server]
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: dev
-    command: [ "run -- server" ]
-    ports:
-      - "25566:25565"
-    volumes:
-      - .:/app
-      - .git:/app/.git
   reference:
     container_name: reference
     restart: unless-stopped
-    profiles: [server, proxy]
     image: itzg/minecraft-server
     ports:
       - "25565:25565"
     environment:
       EULA: "TRUE"
       VERSION: "1.21.1"
-  proxy:
-    container_name: composition-proxy
-    restart: unless-stopped
-    profiles: [proxy]
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: dev
-    depends_on:
-      reference:
-        condition: service_healthy
-        restart: true
-    command: [ "run -- proxy -U reference -l trace" ]
-    ports:
-      - "25566:25566"
-    volumes:
-      - .:/app
-      - .git:/app/.git
-    environment:
-      CARGO_HOME: "/app/.cargo"

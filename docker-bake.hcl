@@ -18,7 +18,6 @@ target "default" {
     "${REGISTRY}/composition:${RELEASE_VERSION}",
     "${REGISTRY}/composition:${GITHUB_SHA}"
   ]
-  target = "prod"
   args = {
     FEATURES = "server,proxy"
   }
