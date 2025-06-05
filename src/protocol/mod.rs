@@ -1,5 +1,7 @@
 /// Implementation of Minecraft's blocks.
 pub mod blocks;
+/// Protocol encryption.
+pub mod encryption;
 /// Implementation of Minecraft's entities.
 pub mod entities;
 /// When using the protocol encounters errors.

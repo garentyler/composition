@@ -6,6 +6,7 @@ pub mod error;
 pub mod net;
 
 use crate::config::Config;
+use crate::protocol::types::Uuid;
 use crate::protocol::ClientState;
 use crate::App;
 use config::ServerConfig;
@@ -15,7 +16,6 @@ use tokio::net::{TcpListener, ToSocketAddrs};
 use tokio::{sync::RwLock, task::JoinHandle};
 use tokio_util::sync::CancellationToken;
 use tracing::{error, trace};
-use crate::protocol::types::Uuid;
 
 /// The main state and logic of the program.
 #[derive(Debug)]

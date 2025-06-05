@@ -40,6 +40,26 @@ impl Proxy {
                     .unwrap() = serde_json::Value::String(new_description);
                 Packet::StatusResponse(status)
             }
+            Packet::EncryptionRequest(mut p) => {
+                trace!("Rewriting encryption request packet: {:?}", p);
+                use crate::protocol::parsing::Parsable;
+
+                // Decode the upstream public key from the packet.
+                let upstream_public_key = rsa::RsaPublicKey::parse(&p.public_key)
+                    .expect("Failed to parse RSA public key from packet");
+                trace!("server public key: {:?}", upstream_public_key);
+
+                // Make our own private and public rsa keys and send those instead.
+                use rand::SeedableRng;
+                let mut rng = rand::rngs::StdRng::from_entropy();
+                let private_key = rsa::RsaPrivateKey::new(&mut rng, 1024)
+                    .expect("Failed to generate RSA private key");
+                let public_key = private_key.to_public_key();
+                trace!("local public key: {:?}", public_key);
+                p.public_key = public_key.serialize();
+
+                Packet::EncryptionRequest(p)
+            }
             p => p,
         }
     }
@@ -82,7 +102,6 @@ impl App for Proxy {
             upstream_address,
         })
     }
-    #[tracing::instrument]
     async fn update(&mut self) -> Result<(), Self::Error> {
         let _ = self.connections.update().await.map_err(Error::Network)?;
 
@@ -157,7 +176,7 @@ impl App for Proxy {
                 }
             }
         }
-        
+
         if client_error {
             let id = client.id();
             // Drop the &mut Connection
@@ -177,7 +196,6 @@ impl App for Proxy {
 
         Ok(())
     }
-    #[tracing::instrument]
     async fn shutdown(self) -> Result<(), Self::Error> {
         // Ensure any child tasks have been shut down.
         self.running.cancel();

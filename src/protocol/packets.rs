@@ -217,6 +217,7 @@ packets!(
                 field server_id: String,
                 field public_key: Vec<u8>,
                 field verify_token: Vec<u8>,
+                field use_mojang_authentication: bool,
             }
             packet LoginSuccess 0x02 {
                 field uuid: Uuid,
