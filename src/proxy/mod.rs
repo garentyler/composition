@@ -1,11 +1,13 @@
 pub mod config;
 pub mod error;
 
-use crate::net::connection::Connection;
 use crate::protocol::packets::Packet;
 use crate::protocol::ClientState;
 use crate::App;
-use crate::{config::Config, net::connection::ConnectionManager};
+use crate::{
+    config::Config,
+    net::connection::{DownstreamConnectionManager, UpstreamConnection},
+};
 use config::ProxyConfig;
 use error::{Error, NetworkError};
 use tokio::net::TcpStream;
@@ -16,17 +18,18 @@ use tracing::{info, trace};
 #[derive(Debug)]
 pub struct Proxy {
     running: CancellationToken,
-    connections: ConnectionManager,
+    connections: DownstreamConnectionManager,
     listener: JoinHandle<()>,
     upstream_address: String,
-    upstream: Connection,
+    upstream: UpstreamConnection,
 }
 impl Proxy {
-    pub async fn connect_upstream(upstream_address: &str) -> Result<Connection, Error> {
+    pub async fn connect_upstream(upstream_address: &str) -> Result<UpstreamConnection, Error> {
         let upstream = TcpStream::connect(upstream_address)
             .await
             .map_err(Error::Io)?;
-        Ok(Connection::new_server(0, upstream))
+
+        Ok(UpstreamConnection::new(0, upstream))
     }
     pub fn rewrite_packet(packet: Packet) -> Option<Packet> {
         match packet {
@@ -62,7 +65,7 @@ impl App for Proxy {
         let bind_address = format!("0.0.0.0:{}", config.proxy.port);
 
         // Only allow one client to join at a time.
-        let connections = ConnectionManager::new(Some(1));
+        let connections = DownstreamConnectionManager::new(Some(1));
         let listener = connections
             .spawn_listener(bind_address, running.child_token())
             .await
