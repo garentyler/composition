@@ -8,6 +8,8 @@ pub enum Error {
     Io(IoError),
     #[error("There was an error parsing data")]
     Parsing,
+    #[error("Received unexpected data")]
+    Unexpected,
     #[error("Internal channel disconnected")]
     ConnectionChannelDisconnnection,
 }

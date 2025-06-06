@@ -49,7 +49,7 @@ impl DownstreamConnectionManager {
         A: 'static + ToSocketAddrs + Send + std::fmt::Debug,
     {
         trace!("Starting listener task");
-        let fmt_addr = format!("{:?}", bind_address);
+        let fmt_addr = format!("{bind_address:?}");
         let listener = TcpListener::bind(bind_address)
             .await
             .map_err(Error::Io)
@@ -87,7 +87,7 @@ impl DownstreamConnectionManager {
         // Receive new clients from the sender.
         loop {
             match self.channel.1.try_recv() {
-                Ok(connection) => {
+                Ok(mut connection) => {
                     let id = connection.id();
 
                     match self.max_clients {
@@ -113,23 +113,13 @@ impl DownstreamConnectionManager {
         // Disconnect any clients that have timed out.
         // We don't actually care if the disconnections succeed,
         // the connection is going to be dropped anyway.
-        let _ = futures::future::join_all({
-            // Workaround until issue #59618 hash_extract_if gets stabilized.
-            let ids = self
-                .clients
-                .iter()
-                .filter_map(|(id, c)| {
-                    if c.received_elapsed() > Duration::from_secs(10) {
-                        Some(*id)
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<_>>();
-            ids.into_iter()
-                .map(|id| self.clients.remove(&id).unwrap())
-                .map(|client| client.disconnect(None))
-        })
+        let _ = futures::future::join_all(self.clients.iter_mut().filter_map(|(_, client)| {
+            if client.received_elapsed() > Duration::from_secs(10) {
+                Some(client.disconnect(None))
+            } else {
+                None
+            }
+        }))
         .await;
 
         // Remove disconnected clients.
@@ -140,6 +130,7 @@ impl DownstreamConnectionManager {
         if before - after > 0 {
             trace!("Removed {} disconnected clients", before - after);
         }
+
         Ok(())
     }
     pub async fn disconnect(
@@ -147,7 +138,7 @@ impl DownstreamConnectionManager {
         id: u128,
         reason: Option<Chat>,
     ) -> Option<Result<(), Error>> {
-        let client = self.clients.remove(&id)?;
+        let mut client = self.clients.remove(&id)?;
         Some(client.disconnect(reason).await)
     }
     pub async fn shutdown(mut self, reason: Option<Chat>) -> Result<(), Error> {
@@ -155,10 +146,9 @@ impl DownstreamConnectionManager {
             "text": "You have been disconnected!"
         }));
 
-        let disconnections = self
-            .clients
-            .drain()
-            .map(|(_, c)| c)
+        let mut clients = self.clients.drain().map(|(_, c)| c).collect::<Vec<_>>();
+        let disconnections = clients
+            .iter_mut()
             .map(|c| c.disconnect(Some(reason.clone())))
             .collect::<Vec<_>>();
 

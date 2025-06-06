@@ -83,7 +83,7 @@ impl GenericConnection {
             trace!("Error sending packet to connection {}: {:?}", self.id, e);
         })
     }
-    pub async fn disconnect(mut self) -> Result<(), Error> {
+    pub async fn disconnect(&mut self) -> Result<(), Error> {
         trace!("Connection disconnected (id {})", self.id);
         self.stream.flush().await?;
         self.stream.codec_mut().client_state = ClientState::Disconnected;

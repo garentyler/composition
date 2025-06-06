@@ -62,7 +62,7 @@ pub trait World {
     fn get_entity(&self, entity_id: EntityId) -> Result<&Entity>;
     /// Get a mutable reference to the entity with the given `EntityId`.
     /// Returns Err if no entity could be found with that id.
-    fn get_entity_mut(&self, entity_id: EntityId) -> Result<&mut Entity>;
+    fn get_entity_mut(&self, entity_id: EntityId) -> Result<&Entity>;
     /// Remove the entity with the given `EntityId`.
     ///
     /// Async because the containing chunk might need to be loaded.
