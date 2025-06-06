@@ -1,10 +1,14 @@
 use super::{codec::PacketCodec, error::Error};
 use crate::protocol::{
+    encryption::*,
     packets::{self, Packet, PacketDirection},
     types::Chat,
     ClientState,
 };
 use futures::{stream::StreamExt, SinkExt};
+use rand::rngs::StdRng;
+use rand::Rng;
+use rand::SeedableRng;
 use std::{
     collections::HashMap,
     time::{Duration, Instant},
@@ -196,9 +200,11 @@ impl Connection {
             last_sent_data_time: Instant::now(),
         }
     }
+    /// Make a Connection from a `TcpStream`, acting as a client talking to a server.
     pub fn new_client(id: u128, stream: TcpStream) -> Self {
         Self::new(id, PacketDirection::Serverbound, stream)
     }
+    /// Make a Connection from a `TcpStream`, acting as a server talking to a client.
     pub fn new_server(id: u128, stream: TcpStream) -> Self {
         Self::new(id, PacketDirection::Clientbound, stream)
     }
@@ -218,8 +224,7 @@ impl Connection {
         self.last_sent_data_time.elapsed()
     }
     pub async fn read_packet(&mut self) -> Option<Result<Packet, Error>> {
-        self.last_received_data_time = Instant::now();
-        self.stream.next().await.map(|packet| {
+        let packet = self.stream.next().await.map(|packet| {
             packet.map_err(|mut e| {
                 // Set the codec error to something more descriptive.
                 if e.to_string() == "bytes remaining on stream" {
@@ -228,10 +233,50 @@ impl Connection {
                 trace!("Error reading packet from connection {}: {:?}", self.id, e);
                 e
             })
-        })
+        });
+
+        if let Some(Ok(ref packet)) = packet {
+            trace!("Received packet from connection {}: {:?}", self.id, packet);
+            self.last_received_data_time = Instant::now();
+
+            if let Packet::EncryptionRequest(packet) = packet {
+                // Extract the public key from the packet.
+                let public_key = rsa::RsaPublicKey::parse(&packet.public_key)
+                    .expect("Failed to parse RSA public key from packet")
+                    .1;
+
+                // Generate a shared secret.
+                let mut rng = StdRng::from_entropy();
+                let shared_secret: [u8; 16] = rng.gen();
+
+                // Create the AES stream cipher and initialize it with the shared secret.
+                let encryptor =
+                    Aes128Cfb8Encryptor::new((&shared_secret).into(), (&shared_secret).into());
+                let decryptor =
+                    Aes128Cfb8Decryptor::new((&shared_secret).into(), (&shared_secret).into());
+
+                // Send the encryption response packet.
+                self.send_packet(packets::login::serverbound::EncryptionResponse {
+                    shared_secret: public_key
+                        .encrypt(&mut rng, rsa::Pkcs1v15Encrypt, &shared_secret[..])
+                        .expect("Failed to encrypt shared secret"),
+                    verify_token: public_key
+                        .encrypt(&mut rng, rsa::Pkcs1v15Encrypt, &packet.verify_token[..])
+                        .expect("Failed to encrypt shared secret"),
+                })
+                .await
+                .expect("Failed to send encryption response");
+
+                // Enable encryption on the connection.
+                self.stream.codec_mut().aes_cipher = Some((encryptor, decryptor, 0));
+            }
+        }
+
+        packet
     }
     pub async fn send_packet<P: Into<Packet>>(&mut self, packet: P) -> Result<(), Error> {
         let packet: Packet = packet.into();
+        trace!("Sending packet to connection {}: {:?}", self.id, packet);
         self.stream.send(packet).await.inspect_err(|e| {
             trace!("Error sending packet to connection {}: {:?}", self.id, e);
         })

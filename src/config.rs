@@ -1,5 +1,6 @@
 use clap::Arg;
 use once_cell::sync::OnceCell;
+use rsa::{RsaPrivateKey, RsaPublicKey};
 use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
 use std::{fs::File, path::Path, path::PathBuf};
@@ -32,7 +33,7 @@ pub fn read_file(path: &Path) -> std::io::Result<Vec<u8>> {
 }
 
 /// The global configuration.
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 #[serde(default)]
 pub struct Config {
@@ -42,6 +43,10 @@ pub struct Config {
     pub server: ServerConfig,
     #[cfg(feature = "proxy")]
     pub proxy: ProxyConfig,
+    /// RSA key pair used for encryption and decryption.
+    /// Generated on each startup and not saved to disk.
+    #[serde(skip)]
+    pub rsa_key_pair: (RsaPublicKey, RsaPrivateKey),
 }
 impl Config {
     pub fn get_formatted_version(subcommand: Subcommand) -> String {
@@ -124,6 +129,21 @@ impl Config {
         }
         error!("Could not write configuration file");
         std::process::exit(1);
+    }
+}
+impl Default for Config {
+    fn default() -> Self {
+        let rsa_key_pair = RsaPrivateKey::new(&mut rand::thread_rng(), 1024)
+            .map(|key| (key.to_public_key(), key))
+            .expect("Failed to generate RSA key pair");
+        Config {
+            global: GlobalConfig::default(),
+            #[cfg(feature = "server")]
+            server: ServerConfig::default(),
+            #[cfg(feature = "proxy")]
+            proxy: ProxyConfig::default(),
+            rsa_key_pair,
+        }
     }
 }
 

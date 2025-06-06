@@ -28,7 +28,7 @@ impl Proxy {
             .map_err(Error::Io)?;
         Ok(Connection::new_server(0, upstream))
     }
-    pub fn rewrite_packet(packet: Packet) -> Packet {
+    pub fn rewrite_packet(packet: Packet) -> Option<Packet> {
         match packet {
             Packet::StatusResponse(mut status) => {
                 let new_description = ProxyConfig::default().version.clone();
@@ -38,29 +38,10 @@ impl Proxy {
                     .unwrap()
                     .get_mut("description")
                     .unwrap() = serde_json::Value::String(new_description);
-                Packet::StatusResponse(status)
+                Some(Packet::StatusResponse(status))
             }
-            Packet::EncryptionRequest(mut p) => {
-                trace!("Rewriting encryption request packet: {:?}", p);
-                use crate::protocol::parsing::Parsable;
-
-                // Decode the upstream public key from the packet.
-                let upstream_public_key = rsa::RsaPublicKey::parse(&p.public_key)
-                    .expect("Failed to parse RSA public key from packet");
-                trace!("server public key: {:?}", upstream_public_key);
-
-                // Make our own private and public rsa keys and send those instead.
-                use rand::SeedableRng;
-                let mut rng = rand::rngs::StdRng::from_entropy();
-                let private_key = rsa::RsaPrivateKey::new(&mut rng, 1024)
-                    .expect("Failed to generate RSA private key");
-                let public_key = private_key.to_public_key();
-                trace!("local public key: {:?}", public_key);
-                p.public_key = public_key.serialize();
-
-                Packet::EncryptionRequest(p)
-            }
-            p => p,
+            Packet::EncryptionRequest(_) => None,
+            p => Some(p),
         }
     }
 }
@@ -119,9 +100,10 @@ impl App for Proxy {
                 if let Some(packet) = packet {
                     match packet {
                         Ok(packet) => {
-                            trace!("Got packet from client: {:?}", packet);
                             let next_state = packet.state_change();
-                            self.upstream.send_packet(Proxy::rewrite_packet(packet)).await.map_err(Error::Network)?;
+                            if let Some(packet) = Proxy::rewrite_packet(packet) {
+                                self.upstream.send_packet(packet).await.map_err(Error::Network)?;
+                            }
                             if let Some(next_state) = next_state {
                                 *self.upstream.client_state_mut() = next_state;
                             }
@@ -151,9 +133,10 @@ impl App for Proxy {
                 if let Some(packet) = packet {
                     match packet {
                         Ok(packet) => {
-                            trace!("Got packet from upstream: {:?}", packet);
                             let next_state = packet.state_change();
-                            client.send_packet(Proxy::rewrite_packet(packet)).await.map_err(Error::Network)?;
+                            if let Some(packet) = Proxy::rewrite_packet(packet) {
+                                client.send_packet(packet).await.map_err(Error::Network)?;
+                            }
                             if let Some(next_state) = next_state {
                                 *client.client_state_mut() = next_state;
                             }
