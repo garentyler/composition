@@ -141,7 +141,7 @@ impl App for Proxy {
                                 client.send_packet(packet).await.map_err(Error::Network)?;
                             }
                             if let Some(next_state) = next_state {
-                                *client.client_state_mut() = next_state;
+                                *client.inner_state_mut() = next_state;
                             }
                         }
                         Err(e) => {

@@ -3,7 +3,9 @@ mod downstream;
 /// Connections where we're the client.
 mod upstream;
 
-pub use downstream::{manager::DownstreamConnectionManager, DownstreamConnection};
+pub use downstream::{
+    manager::DownstreamConnectionManager, DownstreamConnection, DownstreamConnectionState,
+};
 pub use upstream::UpstreamConnection;
 
 use crate::{
@@ -75,6 +77,15 @@ impl GenericConnection {
         }
 
         packet
+    }
+    pub async fn read_specific_packet<P: TryFrom<Packet>>(&mut self) -> Option<Result<P, Error>> {
+        self.read_packet()
+            .await
+            .map(|packet| match packet.map(P::try_from) {
+                Ok(Ok(p)) => Ok(p),
+                Ok(Err(_)) => Err(Error::Unexpected),
+                Err(e) => Err(e),
+            })
     }
     pub async fn send_packet<P: Into<Packet>>(&mut self, packet: P) -> Result<(), Error> {
         let packet: Packet = packet.into();

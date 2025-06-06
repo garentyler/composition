@@ -40,6 +40,42 @@ impl DownstreamConnection {
             state: DownstreamConnectionState::Handshake,
         }
     }
+    pub fn client_state(&self) -> DownstreamConnectionState {
+        self.state
+    }
+    pub fn client_state_mut(&mut self) -> &mut DownstreamConnectionState {
+        &mut self.state
+    }
+    pub fn inner_state(&self) -> ClientState {
+        self.inner.client_state()
+    }
+    pub fn inner_state_mut(&mut self) -> &mut ClientState {
+        self.inner.client_state_mut()
+    }
+    pub async fn handle_handshake(&mut self) -> Result<(), Error> {
+        use packets::handshake::serverbound::Handshake;
+
+        let handshake = self
+            .read_specific_packet::<Handshake>()
+            .await
+            .ok_or(Error::Unexpected)??;
+
+        match handshake.next_state {
+            ClientState::Status => {
+                *self.client_state_mut() = DownstreamConnectionState::StatusRequest;
+                *self.inner_state_mut() = ClientState::Status;
+            }
+            ClientState::Login => todo!(),
+            _ => {
+                self.disconnect(Some(
+                    serde_json::json!({ "text": "Received invalid handshake." }),
+                ))
+                .await?;
+            }
+        }
+
+        Ok(())
+    }
     pub async fn handle_status_ping(&mut self, online_player_count: usize) -> Result<(), Error> {
         // The state just changed from Handshake to Status.
         use base64::Engine;
@@ -102,7 +138,7 @@ impl DownstreamConnection {
         // }));
 
         if let Some(reason) = reason {
-            match self.client_state() {
+            match self.inner_state() {
                 ClientState::Disconnected | ClientState::Handshake | ClientState::Status => {
                     // Impossible to send a disconnect in these states.
                 }

@@ -1,5 +1,8 @@
 use crate::{
-    net::{connection::DownstreamConnection, error::Error},
+    net::{
+        connection::{DownstreamConnection, DownstreamConnectionState},
+        error::Error,
+    },
     protocol::{types::Chat, ClientState},
 };
 use std::{collections::HashMap, time::Duration};
@@ -83,6 +86,8 @@ impl DownstreamConnectionManager {
 
         Ok(join_handle)
     }
+    /// Receive new connections and remove disconnected clients.
+    /// Reading packets from clients is handled elsewhere.
     pub async fn update(&mut self) -> Result<(), Error> {
         // Receive new clients from the sender.
         loop {
@@ -124,8 +129,10 @@ impl DownstreamConnectionManager {
 
         // Remove disconnected clients.
         let before = self.clients.len();
-        self.clients
-            .retain(|_id, c| c.client_state() != ClientState::Disconnected);
+        self.clients.retain(|_id, c| {
+            c.client_state() != DownstreamConnectionState::Disconnected
+                && c.inner_state() != ClientState::Disconnected
+        });
         let after = self.clients.len();
         if before - after > 0 {
             trace!("Removed {} disconnected clients", before - after);

@@ -1,7 +1,20 @@
+pub use crate::net::error::Error as NetworkError;
+pub use std::io::Error as IoError;
+pub use tokio::task::JoinError as TaskError;
+
 /// This type represents all possible errors that can occur when running the server.
 #[allow(dead_code)]
-#[derive(thiserror::Error, Clone, Debug, PartialEq)]
+#[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("the server is not running")]
-    NotRunning,
+    #[error(transparent)]
+    Io(IoError),
+    #[error(transparent)]
+    Task(TaskError),
+    #[error(transparent)]
+    Network(NetworkError),
+}
+impl From<NetworkError> for Error {
+    fn from(err: NetworkError) -> Self {
+        Error::Network(err)
+    }
 }
