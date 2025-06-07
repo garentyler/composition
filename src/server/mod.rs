@@ -16,7 +16,7 @@ use tokio_util::sync::CancellationToken;
 #[derive(Debug)]
 pub struct Server {
     running: CancellationToken,
-    connections: DownstreamConnectionManager,
+    pub connections: DownstreamConnectionManager,
     listener: JoinHandle<()>,
 }
 #[async_trait::async_trait]
@@ -80,6 +80,14 @@ impl App for Server {
         .await;
 
         // Handle login connections.
+        let _ = futures::future::join_all(
+            self.connections
+                .clients_mut()
+                .filter(|c| matches!(c.client_state(), DownstreamConnectionState::LoginStart))
+                .map(|c| c.handle_login()),
+        )
+        .await;
+
         // Handle play connection packets.
         // Process world updates.
         // Send out play connection updates.

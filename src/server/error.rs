@@ -7,14 +7,9 @@ pub use tokio::task::JoinError as TaskError;
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error(transparent)]
-    Io(IoError),
+    Io(#[from] IoError),
     #[error(transparent)]
-    Task(TaskError),
+    Task(#[from] TaskError),
     #[error(transparent)]
-    Network(NetworkError),
-}
-impl From<NetworkError> for Error {
-    fn from(err: NetworkError) -> Self {
-        Error::Network(err)
-    }
+    Network(#[from] NetworkError),
 }

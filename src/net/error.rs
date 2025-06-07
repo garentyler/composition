@@ -12,6 +12,8 @@ pub enum Error {
     Unexpected,
     #[error("Internal channel disconnected")]
     ConnectionChannelDisconnnection,
+    #[error("Invalid response")]
+    Invalid,
 }
 impl From<std::io::Error> for Error {
     fn from(value: std::io::Error) -> Self {

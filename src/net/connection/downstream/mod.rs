@@ -55,17 +55,17 @@ impl DownstreamConnection {
     pub async fn handle_handshake(&mut self) -> Result<(), Error> {
         use packets::handshake::serverbound::Handshake;
 
-        let handshake = self
-            .read_specific_packet::<Handshake>()
-            .await
-            .ok_or(Error::Unexpected)??;
+        let handshake = self.read_specific_packet::<Handshake>().await?;
 
         match handshake.next_state {
             ClientState::Status => {
                 *self.client_state_mut() = DownstreamConnectionState::StatusRequest;
                 *self.inner_state_mut() = ClientState::Status;
             }
-            ClientState::Login => todo!(),
+            ClientState::Login => {
+                *self.client_state_mut() = DownstreamConnectionState::LoginStart;
+                *self.inner_state_mut() = ClientState::Login;
+            }
             _ => {
                 self.disconnect(Some(
                     serde_json::json!({ "text": "Received invalid handshake." }),
@@ -79,14 +79,13 @@ impl DownstreamConnection {
     pub async fn handle_status_ping(&mut self, online_player_count: usize) -> Result<(), Error> {
         // The state just changed from Handshake to Status.
         use base64::Engine;
-        use packets::status::clientbound::{PingResponse, StatusResponse};
+        use packets::status::{
+            clientbound::{PingResponse, StatusResponse},
+            serverbound::{PingRequest, StatusRequest},
+        };
 
         // Read the status request packet.
-        let Packet::StatusRequest(_status_request) =
-            self.read_packet().await.ok_or(Error::Unexpected)??
-        else {
-            return Err(Error::Unexpected);
-        };
+        let _status_request = self.read_specific_packet::<StatusRequest>().await?;
 
         // Send the status response packet.
         let config = Config::instance();
@@ -110,19 +109,101 @@ impl DownstreamConnection {
         }).await?;
 
         // Read the ping request packet.
-        let Packet::PingRequest(ping_request) =
-            self.read_packet().await.ok_or(Error::Unexpected)??
-        else {
-            return Err(Error::Unexpected);
-        };
+        let payload = self.read_specific_packet::<PingRequest>().await?.payload;
 
         // Send the ping response packet.
-        self.send_packet(PingResponse {
-            payload: ping_request.payload,
+        self.send_packet(PingResponse { payload }).await?;
+
+        self.disconnect(None).await?;
+
+        Ok(())
+    }
+    pub async fn handle_login(&mut self) -> Result<(), Error> {
+        // The state just changed from Handshake to Login.
+        use packets::login::{clientbound::LoginSuccess, serverbound::LoginStart};
+
+        // Read login start packet.
+        let login_start = self.read_specific_packet::<LoginStart>().await?;
+
+        // Enable encryption and authenticate with Mojang.
+        self.enable_encryption().await?;
+
+        // Enable compression.
+        self.enable_compression().await?;
+
+        // Send login success packet.
+        self.send_packet(LoginSuccess {
+            // Generate a random UUID if none was provided.
+            uuid: login_start.uuid.unwrap_or(uuid::Uuid::new_v4()),
+            username: login_start.name,
+            properties: vec![],
         })
         .await?;
 
-        self.disconnect(None).await
+        Ok(())
+    }
+    pub async fn enable_encryption(&mut self) -> Result<(), Error> {
+        use crate::protocol::encryption::*;
+        use packets::login::{clientbound::EncryptionRequest, serverbound::EncryptionResponse};
+        use rand::{rngs::StdRng, Rng, SeedableRng};
+
+        assert!(matches!(self.inner_state(), ClientState::Login));
+
+        // RSA keys were generated on startup.
+        let config = Config::instance();
+        let (public_key, private_key) = &config.rsa_key_pair;
+        tracing::trace!(
+            "{}",
+            public_key
+                .serialize()
+                .iter()
+                .map(|b| format!("{b:02X?}"))
+                .collect::<Vec<String>>()
+                .join("")
+        );
+
+        // Generate a verify token.
+        let mut rng = StdRng::from_entropy();
+        let verify_token: [u8; 16] = rng.gen();
+
+        // Send the encryption request packet.
+        self.send_packet(EncryptionRequest {
+            server_id: "".into(),
+            public_key: public_key.serialize(),
+            verify_token: verify_token.to_vec(),
+            // TODO: Implement Mojang authentication.
+            use_mojang_authentication: false,
+        })
+        .await?;
+
+        // Read the encryption response packet.
+        let encryption_response = self.read_specific_packet::<EncryptionResponse>().await?;
+
+        // Verify the response.
+        let decrypted_verify_token = private_key
+            .decrypt(Pkcs1v15Encrypt, &encryption_response.verify_token)
+            .expect("failed to decrypt verify token");
+        if decrypted_verify_token != verify_token {
+            return Err(Error::Invalid);
+        }
+
+        // Decrypt the shared secret.
+        let shared_secret = private_key
+            .decrypt(Pkcs1v15Encrypt, &encryption_response.shared_secret)
+            .expect("failed to decrypt shared secret");
+
+        // Enable encryption on the connection.
+        let encryptor =
+            Aes128Cfb8Encryptor::new((&(*shared_secret)).into(), (&(*shared_secret)).into());
+        let decryptor =
+            Aes128Cfb8Decryptor::new((&(*shared_secret)).into(), (&(*shared_secret)).into());
+        self.inner.stream.codec_mut().aes_cipher = Some((encryptor, decryptor, 0));
+
+        Ok(())
+    }
+    pub async fn enable_compression(&mut self) -> Result<(), Error> {
+        // TODO: Implement compression.
+        Ok(())
     }
     pub async fn read_packet(&mut self) -> Option<Result<Packet, Error>> {
         self.inner.read_packet().await

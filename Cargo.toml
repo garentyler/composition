@@ -44,3 +44,4 @@ der = { version = "0.7.10", features = ["alloc", "derive"] }
 aes = "0.8.4"
 cfb8 = { version = "0.8.1", features = ["alloc"] }
 generic-array = "0.14.7"
+spki = { version = "0.7.3", features = ["std"] }

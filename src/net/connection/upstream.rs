@@ -25,6 +25,15 @@ impl UpstreamConnection {
         match packet {
             Packet::EncryptionRequest(ref packet) => {
                 // Extract the public key from the packet.
+                tracing::trace!(
+                    "{}",
+                    packet
+                        .public_key
+                        .iter()
+                        .map(|b| format!("{b:02X?}"))
+                        .collect::<Vec<String>>()
+                        .join("")
+                );
                 let public_key = rsa::RsaPublicKey::parse(&packet.public_key)
                     .expect("Failed to parse RSA public key from packet")
                     .1;

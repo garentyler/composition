@@ -236,6 +236,7 @@ dependencies = [
  "rsa",
  "serde",
  "serde_json",
+ "spki",
  "thiserror 2.0.12",
  "tokio",
  "tokio-util",

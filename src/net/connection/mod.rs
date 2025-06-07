@@ -78,14 +78,9 @@ impl GenericConnection {
 
         packet
     }
-    pub async fn read_specific_packet<P: TryFrom<Packet>>(&mut self) -> Option<Result<P, Error>> {
-        self.read_packet()
-            .await
-            .map(|packet| match packet.map(P::try_from) {
-                Ok(Ok(p)) => Ok(p),
-                Ok(Err(_)) => Err(Error::Unexpected),
-                Err(e) => Err(e),
-            })
+    pub async fn read_specific_packet<P: TryFrom<Packet>>(&mut self) -> Result<P, Error> {
+        let packet = self.read_packet().await.ok_or(Error::Unexpected)??;
+        P::try_from(packet).map_err(|_| Error::Unexpected)
     }
     pub async fn send_packet<P: Into<Packet>>(&mut self, packet: P) -> Result<(), Error> {
         let packet: Packet = packet.into();
