@@ -64,7 +64,10 @@ macro_rules! packets {
                             ClientState::Disconnected => false,
                         }
                     })(packet_body)?;
-                    trace!("Parsing packet: {:?} {:?} {:02x} ({} bytes)", direction, client_state, *packet_id, packet_body.len());
+                    trace!("Parsing packet: {:?} {:?} {:02x} ({} bytes) {}",
+                        direction, client_state, *packet_id, packet_body.len(),
+                        packet_body.iter().map(|b| format!("{:02x}", b)).collect::<Vec<_>>().join("")
+                    );
                     let (_, packet) = Packet::body_parser(client_state, direction, packet_id)(packet_body)?;
                     // trace!("Parsed packet: {:?}", packet);
                     Ok((input, packet))
@@ -111,7 +114,9 @@ macro_rules! packets {
                 match self {
                     Packet::Handshake(handshake) => Some(handshake.next_state),
                     Packet::LoginAcknowledged(_) => Some(ClientState::Configuration),
+                    Packet::AcknowledgeFinishConfiguration(_) => Some(ClientState::Play),
                     Packet::LoginDisconnect(_) => Some(ClientState::Disconnected),
+                    Packet::ConfigurationDisconnect(_) => Some(ClientState::Disconnected),
                     Packet::PlayDisconnect(_) => Some(ClientState::Disconnected),
                     Packet::PingResponse(_) => Some(ClientState::Disconnected),
                     _ => None,
@@ -246,10 +251,101 @@ packets!(
         }
     }
     configuration Configuration {
-        serverbound Serverbound {}
+        serverbound Serverbound {
+            packet ConfigurationClientInformation 0x00 {
+                field locale: String,
+                field view_distance: i8,
+                field chat_mode: VarInt,
+                field chat_colors: bool,
+                field displayed_skin_parts: u8,
+                field main_hand: VarInt,
+                field enable_text_filtering: bool,
+                field allow_server_listing: bool,
+                field particle_status: VarInt,
+            }
+            packet ConfigurationCookieResponse 0x01 {
+                field key: String,
+                field payload: Option<Vec<u8>>,
+            }
+            packet ConfigurationServerboundPluginMessage 0x02 {
+                field channel: String,
+                rest data,
+            }
+            packet AcknowledgeFinishConfiguration 0x03 {}
+            packet ConfigurationServerboundKeepAlive 0x04 {
+                field payload: i64,
+            }
+            packet ConfigurationPong 0x05 {
+                field payload: i32,
+            }
+            packet ConfigurationResourcePackResponse 0x06 {
+                field uuid: Uuid,
+                field result: VarInt,
+            }
+            packet ServerboundKnownPacks 0x07 {
+                // TODO: Implement
+                rest data,
+            }
+        }
         clientbound Clientbound {
+            packet ConfigurationCookieRequest 0x00 {
+                field key: String,
+            }
+            packet ConfigurationClientboundPluginMessage 0x01 {
+                field channel: String,
+                rest data,
+            }
             packet ConfigurationDisconnect 0x02 {
                 field reason: Chat,
+            }
+            packet FinishConfiguration 0x03 {}
+            packet ConfigurationClientboundKeepAlive 0x04 {
+                field payload: i64,
+            }
+            packet ConfigurationPing 0x05 {
+                field payload: i32,
+            }
+            packet ResetChat 0x06 {}
+            packet RegistryData 0x07 {
+                // TODO: Implement
+                rest data,
+            }
+            packet ConfigurationRemoveResourcePack 0x08 {
+                field uuid: Option<Uuid>,
+            }
+            packet ConfigurationAddResourcePack 0x09 {
+                field uuid: Uuid,
+                field url: String,
+                field hash: String,
+                field forced: bool,
+                field prompt: Option<Chat>,
+            }
+            packet ConfigurationStoreCookie 0x0A {
+                field key: String,
+                field payload: Vec<u8>,
+            }
+            packet ConfigurationTransfer 0x0B {
+                field host: String,
+                field port: u16,
+            }
+            packet FeatureFlags 0x0C {
+                field feature_flags: Vec<String>,
+            }
+            packet ConfigurationUpdateTags 0x0D {
+                // TODO: Implement
+                rest data,
+            }
+            packet ClientboundKnownPacks 0x0E {
+                // TODO: Implement
+                rest data,
+            }
+            packet ConfigurationCustomReportDetails 0x0F {
+                // TODO: Implement
+                rest data,
+            }
+            packet ConfigurationServerLinks 0x10 {
+                // TODO: Implement
+                rest data,
             }
         }
     }

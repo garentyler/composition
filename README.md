@@ -2,7 +2,7 @@
 
 Composition is a new Minecraft server written from the ground-up in Rust.
 
-Composition is targeting Minecraft version 1.21.1, protocol version 767.
+Composition is targeting Minecraft version 1.21.5, protocol version 770.
 The main goal is to get a working server, then optimize for speed
 (multi-threading/kubernetes/etc).
 

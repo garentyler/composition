@@ -9,6 +9,6 @@ services:
       - "25565:25565"
     environment:
       EULA: "TRUE"
-      VERSION: "1.21.1"
+      VERSION: "1.21.5"
       ONLINE_MODE: "false"
       NETWORK_COMPRESSION_THRESHOLD: "-1"
