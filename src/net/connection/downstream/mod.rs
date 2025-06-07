@@ -10,6 +10,7 @@ use crate::{
     },
 };
 use tokio::net::TcpStream;
+use tracing::trace;
 
 /// The connection's current state.
 /// Similar to crate::protocol::ClientState,
@@ -126,7 +127,7 @@ impl DownstreamConnection {
         let login_start = self.read_specific_packet::<LoginStart>().await?;
 
         // Enable encryption and authenticate with Mojang.
-        self.enable_encryption().await?;
+        // self.enable_encryption().await?;
 
         // Enable compression.
         self.enable_compression().await?;
@@ -193,6 +194,8 @@ impl DownstreamConnection {
             .expect("failed to decrypt shared secret");
 
         // Enable encryption on the connection.
+        trace!("Enabling encryption for connection {}", self.inner.id);
+        todo!("Fix AES encryption implementation");
         let encryptor =
             Aes128Cfb8Encryptor::new((&(*shared_secret)).into(), (&(*shared_secret)).into());
         let decryptor =
@@ -212,7 +215,10 @@ impl DownstreamConnection {
         self.inner.send_packet(packet).await
     }
     pub async fn disconnect(&mut self, reason: Option<Chat>) -> Result<(), Error> {
-        use packets::{login::clientbound::LoginDisconnect, play::clientbound::PlayDisconnect};
+        use packets::{
+            configuration::clientbound::ConfigurationDisconnect,
+            login::clientbound::LoginDisconnect, play::clientbound::PlayDisconnect,
+        };
 
         // let reason = reason.unwrap_or(serde_json::json!({
         //     "text": "You have been disconnected!"
@@ -225,6 +231,9 @@ impl DownstreamConnection {
                 }
                 ClientState::Login => {
                     let _ = self.send_packet(LoginDisconnect { reason }).await;
+                }
+                ClientState::Configuration => {
+                    let _ = self.send_packet(ConfigurationDisconnect { reason }).await;
                 }
                 ClientState::Play => {
                     let _ = self.send_packet(PlayDisconnect { reason }).await;

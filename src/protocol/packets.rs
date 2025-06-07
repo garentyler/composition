@@ -110,7 +110,7 @@ macro_rules! packets {
             pub fn state_change(&self) -> Option<ClientState> {
                 match self {
                     Packet::Handshake(handshake) => Some(handshake.next_state),
-                    Packet::LoginSuccess(_) => Some(ClientState::Play),
+                    Packet::LoginAcknowledged(_) => Some(ClientState::Configuration),
                     Packet::LoginDisconnect(_) => Some(ClientState::Disconnected),
                     Packet::PlayDisconnect(_) => Some(ClientState::Disconnected),
                     Packet::PingResponse(_) => Some(ClientState::Disconnected),
@@ -205,7 +205,12 @@ packets!(
             }
             packet LoginPluginResponse 0x02 {
                 field message_id: VarInt,
-                field successful: bool,
+                // TODO: Implement
+                rest data,
+            }
+            packet LoginAcknowledged 0x03 {}
+            packet LoginCookieResponse 0x04 {
+                // TODO: Implement
                 rest data,
             }
         }
@@ -222,7 +227,7 @@ packets!(
             packet LoginSuccess 0x02 {
                 field uuid: Uuid,
                 field username: String,
-                // TODO: Re-implement CL02LoginSuccessProperty
+                // TODO: Implement
                 rest properties,
             }
             packet SetCompression 0x03 {
@@ -231,7 +236,20 @@ packets!(
             packet LoginPluginRequest 0x04 {
                 field message_id: VarInt,
                 field channel: String,
+                // TODO: Implement
                 rest data,
+            }
+            packet LoginCookieRequest 0x05 {
+                // TODO: Implement
+                rest data,
+            }
+        }
+    }
+    configuration Configuration {
+        serverbound Serverbound {}
+        clientbound Clientbound {
+            packet ConfigurationDisconnect 0x02 {
+                field reason: Chat,
             }
         }
     }

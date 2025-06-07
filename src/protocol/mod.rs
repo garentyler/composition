@@ -40,6 +40,8 @@ pub enum ClientState {
     ///
     /// The `Login` state includes authentication, encryption, compression, and plugins.
     Login,
+    /// The client is in the `Configuration` state.
+    Configuration,
     /// The main connection state. The client has authenticated and is playing on the server.
     Play,
     /// The client has disconnected, and the connection struct should be removed. No packets should be sent or received.

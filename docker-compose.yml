@@ -10,3 +10,5 @@ services:
     environment:
       EULA: "TRUE"
       VERSION: "1.21.1"
+      ONLINE_MODE: "false"
+      NETWORK_COMPRESSION_THRESHOLD: "-1"
